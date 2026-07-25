@@ -1,0 +1,27 @@
+# Node dependencies
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Laravel / PHP
+vendor/
+.env
+.env.backup
+.env.production
+storage/*.key
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/.idea
+/.vscode
+
+# Build & System outputs
+dist/
+build/
+.DS_Store
+Thumbs.db
+*.log
