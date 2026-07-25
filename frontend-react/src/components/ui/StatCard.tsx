@@ -5,27 +5,31 @@ interface StatCardProps {
   value: string;
   change?: string;
   isPositive?: boolean;
-  icon?: string;
+  accentColor?: string;
   subtitle?: string;
 }
 
+/**
+ * Reusable KPI stat card for dashboard overview.
+ * Uses a colored accent dot instead of emoji icons for a clean, professional look.
+ */
 export const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
   change,
   isPositive = true,
-  icon = '💰',
+  accentColor = 'bg-emerald-500',
   subtitle,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-gray-150 p-5 hover:shadow-sm transition-shadow">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{title}</p>
-        <span className="text-xl p-2 rounded-lg bg-slate-50">{icon}</span>
+        <span className={`w-2.5 h-2.5 rounded-full ${accentColor}`} />
       </div>
 
       <div className="mt-2">
-        <h3 className="text-2xl font-bold text-slate-900 tracking-tight font-mono">{value}</h3>
+        <h3 className="text-2xl font-bold text-slate-900 tracking-tight font-mono tabular-nums">{value}</h3>
       </div>
 
       {(change || subtitle) && (

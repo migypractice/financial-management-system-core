@@ -1,33 +1,72 @@
 import React, { useState } from 'react';
 import DashboardLayout from './components/layout/DashboardLayout';
+import DashboardPage from './pages/Dashboard/DashboardPage';
 import ApprovalsPage from './pages/Approvals/ApprovalsPage';
 import GeneralLedgerPage from './pages/GeneralLedger/GeneralLedgerPage';
+import AccountsPayablePage from './pages/AccountsPayable/AccountsPayablePage';
+import AccountsReceivablePage from './pages/AccountsReceivable/AccountsReceivablePage';
+import DisbursementPage from './pages/Disbursement/DisbursementPage';
+import CollectionPage from './pages/Collection/CollectionPage';
+import BudgetPage from './pages/Budget/BudgetPage';
+import CashManagementPage from './pages/Cash/CashManagementPage';
+import ReportsPage from './pages/Reports/ReportsPage';
+import TaxManagementPage from './pages/Tax/TaxManagementPage';
+
+type AppRoute = 
+  | '/dashboard' 
+  | '/approvals' 
+  | '/gl' 
+  | '/ap' 
+  | '/ar' 
+  | '/disbursements' 
+  | '/collections' 
+  | '/budget' 
+  | '/cash' 
+  | '/reports' 
+  | '/tax';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'/approvals' | '/gl'>('/approvals');
+  const [activePath, setActivePath] = useState<AppRoute>('/dashboard');
+
+  const renderPage = () => {
+    switch (activePath) {
+      case '/dashboard':
+        return <DashboardPage />;
+      case '/approvals':
+        return <ApprovalsPage />;
+      case '/gl':
+        return <GeneralLedgerPage />;
+      case '/ap':
+        return <AccountsPayablePage />;
+      case '/ar':
+        return <AccountsReceivablePage />;
+      case '/disbursements':
+        return <DisbursementPage />;
+      case '/collections':
+        return <CollectionPage />;
+      case '/budget':
+        return <BudgetPage />;
+      case '/cash':
+        return <CashManagementPage />;
+      case '/reports':
+        return <ReportsPage />;
+      case '/tax':
+        return <TaxManagementPage />;
+      default:
+        return (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <p className="text-lg font-semibold text-slate-700">Page Not Found</p>
+              <p className="text-sm text-slate-400 mt-1">Please select a valid module from the sidebar.</p>
+            </div>
+          </div>
+        );
+    }
+  };
 
   return (
-    <DashboardLayout activePath={activeTab}>
-      <div className="p-4 bg-slate-100 border-b border-slate-200 flex gap-3 text-xs font-semibold">
-        <button
-          onClick={() => setActiveTab('/approvals')}
-          className={`px-3 py-1.5 rounded-md transition-colors ${
-            activeTab === '/approvals' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-200'
-          }`}
-        >
-          ⚡ Maker-Checker AI Approvals
-        </button>
-        <button
-          onClick={() => setActiveTab('/gl')}
-          className={`px-3 py-1.5 rounded-md transition-colors ${
-            activeTab === '/gl' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-200'
-          }`}
-        >
-          📖 Chart of Accounts (GL)
-        </button>
-      </div>
-
-      {activeTab === '/approvals' ? <ApprovalsPage /> : <GeneralLedgerPage />}
+    <DashboardLayout activePath={activePath} onNavigate={(path) => setActivePath(path as AppRoute)}>
+      {renderPage()}
     </DashboardLayout>
   );
 };
