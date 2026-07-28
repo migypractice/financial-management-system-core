@@ -7,29 +7,29 @@ import {
 } from 'lucide-react';
 
 const recentTransactions = [
-  { code: 'TXN-2026-8801', module: 'SUPPLY_CHAIN', amount: 685000,  status: 'ai_flagged',       time: '2 min ago' },
-  { code: 'TXN-2026-8802', module: 'HRMS',         amount: 145000,  status: 'pending_approval', time: '18 min ago' },
-  { code: 'TXN-2026-8803', module: 'ECOMMERCE',    amount: 45000,   status: 'pending_approval', time: '35 min ago' },
-  { code: 'TXN-2026-8804', module: 'FLEET',        amount: 12800,   status: 'approved',         time: '1 hr ago' },
-  { code: 'TXN-2026-8805', module: 'FACILITIES',   amount: 95000,   status: 'posted',           time: '2 hrs ago' },
+  { code: 'TXN-2026-8801', module: 'SUPPLY_CHAIN', amount: 685000, status: 'ai_flagged', time: '2 min ago' },
+  { code: 'TXN-2026-8802', module: 'HRMS', amount: 145000, status: 'pending_approval', time: '18 min ago' },
+  { code: 'TXN-2026-8803', module: 'ECOMMERCE', amount: 45000, status: 'pending_approval', time: '35 min ago' },
+  { code: 'TXN-2026-8804', module: 'FLEET', amount: 12800, status: 'approved', time: '1 hr ago' },
+  { code: 'TXN-2026-8805', module: 'FACILITIES', amount: 95000, status: 'posted', time: '2 hrs ago' },
 ];
 
 const statusConfig: Record<string, { bg: string; text: string; border: string; icon: React.ReactNode; label: string }> = {
-  ai_flagged:       { bg: 'bg-red-50',    text: 'text-red-600',    border: 'border-red-200',    icon: <AlertTriangle size={11} />, label: 'AI Flagged' },
-  pending_approval: { bg: 'bg-amber-50',  text: 'text-amber-600',  border: 'border-amber-200',  icon: <Clock size={11} />,         label: 'Pending' },
-  approved:         { bg: 'bg-green-50',  text: 'text-green-600',  border: 'border-green-200',  icon: <CheckCircle size={11} />,   label: 'Approved' },
-  posted:           { bg: 'bg-blue-50',   text: 'text-blue-600',   border: 'border-blue-200',   icon: <CheckCircle size={11} />,   label: 'Posted' },
+  ai_flagged: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', icon: <AlertTriangle size={11} />, label: 'AI Flagged' },
+  pending_approval: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', icon: <Clock size={11} />, label: 'Pending' },
+  approved: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200', icon: <CheckCircle size={11} />, label: 'Approved' },
+  posted: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', icon: <CheckCircle size={11} />, label: 'Posted' },
 };
 
 const quickAccessItems = [
-  { label: 'General Ledger',  icon: BookOpen,  color: 'bg-blue-50 text-blue-600' },
-  { label: 'Accounts Payable',icon: CreditCard,color: 'bg-orange-50 text-orange-600' },
-  { label: 'Disbursement',    icon: Send,      color: 'bg-purple-50 text-purple-600' },
-  { label: 'Reports',         icon: BarChart2, color: 'bg-teal-50 text-teal-600' },
-  { label: 'Budget',          icon: PieChart,  color: 'bg-pink-50 text-pink-600' },
-  { label: 'Collections',     icon: Inbox,     color: 'bg-indigo-50 text-indigo-600' },
-  { label: 'Cash Mgmt',       icon: Landmark,  color: 'bg-green-50 text-green-600' },
-  { label: 'Tax',             icon: Receipt,   color: 'bg-red-50 text-red-600' },
+  { label: 'General Ledger', icon: BookOpen, color: 'bg-blue-50 text-blue-600' },
+  { label: 'Accounts Payable', icon: CreditCard, color: 'bg-orange-50 text-orange-600' },
+  { label: 'Disbursement', icon: Send, color: 'bg-purple-50 text-purple-600' },
+  { label: 'Reports', icon: BarChart2, color: 'bg-teal-50 text-teal-600' },
+  { label: 'Budget', icon: PieChart, color: 'bg-pink-50 text-pink-600' },
+  { label: 'Collections', icon: Inbox, color: 'bg-indigo-50 text-indigo-600' },
+  { label: 'Cash Mgmt', icon: Landmark, color: 'bg-green-50 text-green-600' },
+  { label: 'Tax', icon: Receipt, color: 'bg-red-50 text-red-600' },
 ];
 
 const moduleHealth = [
