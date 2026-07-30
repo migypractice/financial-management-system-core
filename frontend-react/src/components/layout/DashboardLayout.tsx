@@ -14,7 +14,14 @@ interface DashboardLayoutProps {
   onNavigate?: (path: string) => void;
 }
 
-const navItems = [
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ElementType;
+  badge?: string;
+}
+
+const navItems: NavItem[] = [
   { path: '/dashboard',     label: 'Dashboard',          icon: LayoutDashboard },
   { path: '/approvals',     label: 'AI Approvals',        icon: CheckSquare },
   { path: '/gl',            label: 'General Ledger',      icon: BookOpen },
