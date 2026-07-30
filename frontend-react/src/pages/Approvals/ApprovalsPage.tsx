@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionStatus } from '../../types/financial';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Maker-Checker AI Approvals Center
@@ -21,8 +22,8 @@ const STATUS_CONFIG: Record<TransactionStatus, { label: string; bg: string; text
 const ConfidenceBar: React.FC<{ score: number }> = ({ score }) => {
   const pct = Math.round(score * 100);
   let barColor = 'bg-emerald-500';
-  if (pct < 85) barColor = 'bg-red-500';
-  else if (pct < 92) barColor = 'bg-amber-500';
+  if (pct < 70) barColor = 'bg-red-500';
+  else if (pct < 90) barColor = 'bg-amber-500';
 
   return (
     <div className="flex items-center gap-2">
@@ -36,78 +37,103 @@ const ConfidenceBar: React.FC<{ score: number }> = ({ score }) => {
 
 export const ApprovalsPage: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'FLAGGED' | 'PENDING'>('ALL');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user, token } = useAuth();
 
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: 'tx-001',
-      transactionCode: 'TXN-2026-8801',
-      flowType: 'OUTBOUND',
-      categoryType: 'SUPPLIER_INVOICE',
-      externalModule: 'SUPPLY_CHAIN',
-      externalReferenceId: 'PO-99421',
-      amount: 685000.00,
-      taxAmount: 82200.00,
-      feeAmount: 0.00,
-      netAmount: 602800.00,
-      currency: 'PHP',
-      payeeAccount: 'ACC-8831-SUPPLIER-INC',
-      description: 'Bulk raw inventory procurement from Global Supplies Ltd (High Value)',
-      status: 'ai_flagged',
-      aiConfidenceScore: 0.7450,
-      aiSuggestedGlAccountName: '2100-AP — Accounts Payable Trade',
-      aiAnomalyFlag: true,
-      aiAnomalyReason: 'High-value transaction (PHP 685,000.00) exceeds threshold. Requires mandatory human review.',
-      createdAt: '2026-07-25 19:30:00',
-      updatedAt: '2026-07-25 19:30:00',
-    },
-    {
-      id: 'tx-002',
-      transactionCode: 'TXN-2026-8802',
-      flowType: 'OUTBOUND',
-      categoryType: 'PAYROLL_SALARY',
-      externalModule: 'HRMS',
-      externalReferenceId: 'PAYROLL-2026-M07',
-      amount: 145000.00,
-      taxAmount: 18000.00,
-      feeAmount: 0.00,
-      netAmount: 127000.00,
-      currency: 'PHP',
-      payeeAccount: 'ACC-PAYROLL-BNK',
-      description: 'July 2026 Mid-month executive claim disbursement batch',
-      status: 'pending_approval',
-      aiConfidenceScore: 0.9650,
-      aiSuggestedGlAccountName: '5100-EXP — Salaries and Compensation',
-      aiAnomalyFlag: false,
-      createdAt: '2026-07-25 20:15:00',
-      updatedAt: '2026-07-25 20:15:00',
-    },
-    {
-      id: 'tx-003',
-      transactionCode: 'TXN-2026-8803',
-      flowType: 'INBOUND',
-      categoryType: 'SALES_REVENUE',
-      externalModule: 'ECOMMERCE_CORE',
-      externalReferenceId: 'ORD-998241',
-      amount: 45000.00,
-      taxAmount: 5400.00,
-      feeAmount: 900.00,
-      netAmount: 38700.00,
-      currency: 'PHP',
-      payerAccount: 'GATEWAY-PAYPAL-STRIPE',
-      description: 'Settlement for E-Commerce Marketplace Order batch #ORD-998241',
-      status: 'pending_approval',
-      aiConfidenceScore: 0.9880,
-      aiSuggestedGlAccountName: '4000-REV — E-Commerce Sales Revenue',
-      aiAnomalyFlag: false,
-      createdAt: '2026-07-25 20:45:00',
-      updatedAt: '2026-07-25 20:45:00',
-    },
-  ]);
+  const fetchTransactions = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch('http://localhost:8000/api/v1/dashboard/transactions', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.status === 401) {
+        // Token expired or invalid
+        alert('Your session has expired. Please log in again.');
+        window.location.reload(); // Simple way to trigger re-auth
+        return;
+      }
+      
+      if (response.status === 403) {
+        throw new Error('Access Denied: You do not have permission to view transactions.');
+      }
+      
+      if (!response.ok) throw new Error('Failed to fetch transactions');
+      
+      const json = await response.json();
+      
+      if (json.success) {
+        // Map backend snake_case to frontend camelCase
+        const mapped = json.data.map((tx: any) => ({
+          id: tx.id,
+          transactionCode: tx.transaction_code,
+          flowType: tx.type === 'INCOME' ? 'INBOUND' : 'OUTBOUND',
+          categoryType: tx.category_type || 'UNKNOWN',
+          externalModule: tx.source_module,
+          externalReferenceId: tx.external_reference_id,
+          amount: parseFloat(tx.amount),
+          taxAmount: parseFloat(tx.tax_amount || 0),
+          feeAmount: parseFloat(tx.fee_amount || 0),
+          netAmount: parseFloat(tx.net_amount || 0),
+          currency: tx.currency,
+          description: tx.description,
+          status: tx.status,
+          aiConfidenceScore: parseFloat(tx.ai_confidence_score || 0),
+          aiSuggestedGlAccountName: tx.ai_suggested_gl_name || 'N/A',
+          aiAnomalyFlag: tx.ai_anomaly_flag === 1 || tx.ai_anomaly_flag === true,
+          aiAnomalyReason: tx.ai_anomaly_reason,
+          createdAt: tx.created_at,
+          updatedAt: tx.updated_at,
+        }));
+        
+        setTransactions(mapped);
+      } else {
+        throw new Error(json.message || 'Unknown error occurred');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error while reaching API.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleAction = (id: string, newStatus: 'approved' | 'rejected') => {
-    setTransactions((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
-    );
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const handleAction = async (id: string, actionType: 'approve' | 'reject') => {
+    try {
+      // Optimistically show processing state or simply await the network call
+      const response = await fetch(`http://localhost:8000/api/v1/dashboard/transactions/${id}/${actionType}`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+      
+      const json = await response.json();
+      
+      if (!response.ok || !json.success) {
+        alert(json.message || `Failed to ${actionType} transaction`);
+        return;
+      }
+      
+      // Update UI locally instead of refetching everything
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, status: json.data?.new_status || (actionType === 'approve' ? 'approved' : 'rejected') } : t))
+      );
+    } catch (err) {
+      alert('Network error while performing action.');
+    }
   };
 
   const filteredTransactions = transactions.filter((t) => {
@@ -124,6 +150,24 @@ export const ApprovalsPage: React.FC = () => {
     { key: 'FLAGGED' as const, label: `Flagged (${flaggedCount})`, activeClass: 'bg-red-600 text-white' },
     { key: 'PENDING' as const, label: `Pending (${pendingCount})`, activeClass: 'bg-amber-600 text-white' },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-slate-50 min-h-full flex items-center justify-center">
+        <div className="text-slate-500 font-medium animate-pulse">Loading Approvals...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-slate-50 min-h-full flex flex-col items-center justify-center">
+        <div className="text-red-500 font-medium mb-2">Error connecting to Laravel Backend</div>
+        <div className="text-slate-600 text-sm mb-4">{error}</div>
+        <button onClick={fetchTransactions} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-slate-50 min-h-full">
@@ -227,16 +271,16 @@ export const ApprovalsPage: React.FC = () => {
                     </p>
                   </div>
 
-                  {isActionable && (
+                  {isActionable && (user?.role === 'finance_manager' || user?.role === 'super_admin') && (
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleAction(tx.id, 'rejected')}
+                        onClick={() => handleAction(tx.id, 'reject')}
                         className="px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
                       >
                         Reject
                       </button>
                       <button
-                        onClick={() => handleAction(tx.id, 'approved')}
+                        onClick={() => handleAction(tx.id, 'approve')}
                         className="px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors"
                       >
                         Approve

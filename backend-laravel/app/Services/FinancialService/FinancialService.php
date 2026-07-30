@@ -153,6 +153,13 @@ class FinancialService
                 throw new \RuntimeException("Transaction not found: {$transactionId}");
             }
 
+            $rejectableStatuses = ['pending_approval', 'ai_flagged'];
+            if (!in_array($transaction->status, $rejectableStatuses)) {
+                throw new \RuntimeException(
+                    "Transaction {$transaction->transaction_code} cannot be rejected (current status: {$transaction->status})."
+                );
+            }
+
             DB::table('transactions')
                 ->where('id', $transactionId)
                 ->update([

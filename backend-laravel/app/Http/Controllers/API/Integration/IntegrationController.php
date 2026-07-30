@@ -42,7 +42,8 @@ class IntegrationController extends Controller
 
         $validated['type'] = 'INCOME';
 
-        return $this->processAndPersist($validated, $request->header('Idempotency-Key'));
+        $idempotencyKey = $request->header('Idempotency-Key') ?? $request->input('idempotency_key');
+        return $this->processAndPersist($validated, $idempotencyKey);
     }
 
     /**
@@ -72,7 +73,8 @@ class IntegrationController extends Controller
         );
         unset($validated['payee_info']);
 
-        return $this->processAndPersist($validated, $request->header('Idempotency-Key'));
+        $idempotencyKey = $request->header('Idempotency-Key') ?? $request->input('idempotency_key');
+        return $this->processAndPersist($validated, $idempotencyKey);
     }
 
     /**
@@ -186,12 +188,14 @@ class IntegrationController extends Controller
     private function resolveSubsystemSlug(string $categoryType): string
     {
         return match ($categoryType) {
-            'SALES_REVENUE', 'CUSTOMER_REFUND' => 'accounts-receivable',
-            'SUPPLIER_INVOICE'                 => 'accounts-payable',
-            'PAYROLL_SALARY', 'EMPLOYEE_CLAIM' => 'disbursement-management',
-            'FLEET_FUEL', 'FLEET_MAINTENANCE'  => 'disbursement-management',
-            'FACILITY_RENT', 'LEGAL_BILLING'   => 'disbursement-management',
-            default                            => 'general-ledger',
+            'SALES_REVENUE', 'CUSTOMER_REFUND', 'SALES_RETURN'          => 'accounts-receivable',
+            'SUPPLIER_INVOICE', 'PURCHASE_RETURN'                       => 'accounts-payable',
+            'PAYROLL_SALARY', 'EMPLOYEE_CLAIM'                          => 'disbursement-management',
+            'FLEET_FUEL', 'FLEET_MAINTENANCE'                           => 'disbursement-management',
+            'FACILITY_RENT', 'LEGAL_BILLING'                            => 'disbursement-management',
+            'INVENTORY_PURCHASE', 'INVENTORY_ADJUSTMENT',
+            'INVENTORY_SHRINKAGE', 'COST_OF_GOODS_SOLD'                 => 'general-ledger',
+            default                                                     => 'general-ledger',
         };
     }
 }

@@ -4,6 +4,7 @@ import {
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt,
   Bell, Mail, ChevronDown, Search, Menu, LogOut, Settings, ChevronLeft
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ const navItems = [
   { path: '/cash',          label: 'Cash Management',     icon: Landmark },
   { path: '/reports',       label: 'Financial Reports',   icon: BarChart2 },
   { path: '/tax',           label: 'Tax Management',      icon: Receipt },
+
 ];
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
@@ -36,10 +38,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { logout, user } = useAuth();
 
-  const initials = userName
+  const activeUserName = user ? user.name : userName;
+  const activeUserRole = user ? user.role : userRole;
+
+  const initials = activeUserName
     .split(' ')
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
@@ -130,8 +136,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               {!collapsed && (
                 <>
                   <div className="min-w-0 flex-1 text-left">
-                    <p className="text-white text-xs font-semibold truncate">{userName}</p>
-                    <p className="text-blue-300/60 text-[10px] truncate">{userRole}</p>
+                    <p className="text-white text-xs font-semibold truncate">{activeUserName}</p>
+                    <p className="text-blue-300/60 text-[10px] truncate">{activeUserRole}</p>
                   </div>
                   <ChevronDown size={13} className="text-blue-300/60 shrink-0" />
                 </>
@@ -142,7 +148,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 <button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50">
                   <Settings size={14} /> Settings
                 </button>
-                <button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50">
+                <button 
+                  onClick={() => {
+                    logout();
+                    setUserMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50"
+                >
                   <LogOut size={14} /> Sign Out
                 </button>
               </div>
@@ -192,8 +204,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 {initials}
               </div>
               <div className="hidden sm:block text-right">
-                <p className="text-xs font-semibold text-gray-800">{userName}</p>
-                <p className="text-[10px] text-gray-400">{userRole}</p>
+                <p className="text-xs font-semibold text-gray-800">{activeUserName}</p>
+                <p className="text-[10px] text-gray-400">{activeUserRole}</p>
               </div>
               <ChevronDown size={13} className="text-gray-400" />
             </div>

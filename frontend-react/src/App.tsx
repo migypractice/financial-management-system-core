@@ -12,6 +12,10 @@ import CashManagementPage from './pages/Cash/CashManagementPage';
 import ReportsPage from './pages/Reports/ReportsPage';
 import TaxManagementPage from './pages/Tax/TaxManagementPage';
 
+
+import { useAuth } from './context/AuthContext';
+import LoginPage from './pages/Auth/LoginPage';
+
 type AppRoute = 
   | '/dashboard' 
   | '/approvals' 
@@ -23,10 +27,24 @@ type AppRoute =
   | '/budget' 
   | '/cash' 
   | '/reports' 
-  | '/tax';
+  | '/tax'
+;
 
 export const App: React.FC = () => {
   const [activePath, setActivePath] = useState<AppRoute>('/dashboard');
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-pulse text-indigo-600 font-semibold text-lg">Loading System...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={() => setActivePath('/dashboard')} />;
+  }
 
   const renderPage = () => {
     switch (activePath) {
@@ -52,6 +70,7 @@ export const App: React.FC = () => {
         return <ReportsPage />;
       case '/tax':
         return <TaxManagementPage />;
+
       default:
         return (
           <div className="flex items-center justify-center h-full">
