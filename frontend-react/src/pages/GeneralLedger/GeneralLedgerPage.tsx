@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Search } from 'lucide-react';
 
@@ -27,10 +27,11 @@ export const GeneralLedgerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const { token, logout } = useAuth();
 
-  const fetchGL = async (search: string = '') => {
+  const fetchGL = useCallback(async (search: string = '') => {
     try {
       setIsLoading(true);
       setError(null);
@@ -64,23 +65,34 @@ export const GeneralLedgerPage: React.FC = () => {
         throw new Error(json.message || 'Unknown error occurred');
       }
     } catch (err: any) {
-      setError(err.message || 'Network error while reaching API.');
+      setError(err.message || 'Unable to connect to server. Please ensure the Laravel backend is running.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token, logout]);
 
   useEffect(() => {
-    // Initial fetch
     fetchGL();
-  }, []);
+  }, [fetchGL]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  // Debounced search — fires 300ms after the user stops typing
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchGL(value);
+    }, 300);
+  };
+
+  // Fallback: also search on Enter key
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     fetchGL(searchTerm);
   };
 
-  // Safe formatting for dates
   const formatDate = (isoString: string) => {
     try {
       const date = new Date(isoString);
@@ -89,13 +101,13 @@ export const GeneralLedgerPage: React.FC = () => {
         month: 'short',
         day: 'numeric',
       });
-    } catch (e) {
+    } catch {
       return isoString;
     }
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PH', {
       style: 'currency',
       currency: 'PHP',
       minimumFractionDigits: 2
@@ -109,9 +121,29 @@ export const GeneralLedgerPage: React.FC = () => {
       SUPPLY_CHAIN: 'bg-indigo-50 text-indigo-700 border-indigo-200',
       FACILITIES_LEGAL: 'bg-cyan-50 text-cyan-700 border-cyan-200',
       ECOMMERCE_CORE: 'bg-violet-50 text-violet-700 border-violet-200',
+      PROCUREMENT: 'bg-orange-50 text-orange-700 border-orange-200',
     };
     return modules[module] || 'bg-slate-100 text-slate-700 border-slate-200';
   };
+
+  /** Skeleton row for loading state */
+  const SkeletonRow = () => (
+    <tr className="animate-pulse">
+      <td className="px-4 py-3"><div className="h-4 w-20 bg-slate-100 rounded" /></td>
+      <td className="px-4 py-3 space-y-1.5">
+        <div className="h-3 w-28 bg-slate-100 rounded" />
+        <div className="h-3 w-20 bg-slate-50 rounded" />
+        <div className="h-4 w-14 bg-slate-100 rounded" />
+      </td>
+      <td className="px-4 py-3 space-y-1.5">
+        <div className="h-4 w-40 bg-slate-100 rounded" />
+        <div className="h-3 w-56 bg-slate-50 rounded" />
+      </td>
+      <td className="px-4 py-3"><div className="h-4 w-24 bg-slate-100 rounded ml-auto" /></td>
+      <td className="px-4 py-3"><div className="h-4 w-24 bg-slate-100 rounded ml-auto" /></td>
+      <td className="px-4 py-3"><div className="h-5 w-16 bg-slate-100 rounded mx-auto" /></td>
+    </tr>
+  );
 
   return (
     <div className="p-6 bg-slate-50 min-h-full">
@@ -124,15 +156,15 @@ export const GeneralLedgerPage: React.FC = () => {
           </p>
         </div>
         
-        {/* Search Bar */}
+        {/* Search Bar — instant debounced search */}
         <div className="mt-4 md:mt-0 relative w-full md:w-80">
-          <form onSubmit={handleSearch}>
+          <form onSubmit={handleSearchSubmit}>
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search reference, description..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              onChange={handleSearchChange}
+              placeholder="Search by entry, reference, module, description..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
             />
             <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
           </form>
@@ -140,15 +172,22 @@ export const GeneralLedgerPage: React.FC = () => {
       </div>
 
       {error ? (
-        <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-lg border border-red-200">
-          <p className="font-semibold">Error</p>
-          <p className="text-sm">{error}</p>
-          <button 
-            onClick={() => fetchGL(searchTerm)}
-            className="mt-3 px-4 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700"
-          >
-            Retry
-          </button>
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="bg-white rounded-xl border border-red-200 p-8 max-w-md text-center shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-1">Unable to Connect</h3>
+            <p className="text-sm text-slate-500 mb-4">{error}</p>
+            <button 
+              onClick={() => fetchGL(searchTerm)}
+              className="px-5 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              Retry Connection
+            </button>
+          </div>
         </div>
       ) : (
         <>
@@ -180,54 +219,66 @@ export const GeneralLedgerPage: React.FC = () => {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Date</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Reference / Module</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider w-28">Date</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider w-44">Reference / Module</th>
                     <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Account & Description</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider text-right">Debit</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider text-right">Credit</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider text-center">Status</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider text-right w-32">Debit</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider text-right w-32">Credit</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider text-center w-24">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {isLoading ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500 font-medium">
-                        <div className="animate-pulse">Loading Ledger Entries...</div>
-                      </td>
-                    </tr>
+                    <>
+                      <SkeletonRow />
+                      <SkeletonRow />
+                      <SkeletonRow />
+                      <SkeletonRow />
+                      <SkeletonRow />
+                    </>
                   ) : entries.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                        No journal entries found.
+                      <td colSpan={6} className="px-4 py-12 text-center">
+                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                          <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-700">
+                          {searchTerm ? 'No entries match your search.' : 'No journal entries found.'}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {searchTerm ? 'Try adjusting your search terms.' : 'Approve transactions in the Approval Center to generate journal entries.'}
+                        </p>
                       </td>
                     </tr>
                   ) : (
                     entries.map((entry) => (
                       <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-3 align-top">
-                          <p className="text-slate-900 font-medium">{formatDate(entry.posted_at)}</p>
+                          <p className="text-slate-900 font-medium whitespace-nowrap">{formatDate(entry.posted_at)}</p>
                         </td>
                         <td className="px-4 py-3 align-top space-y-1">
                           <p className="font-mono text-xs font-bold text-indigo-700">{entry.entry_number}</p>
-                          <p className="font-mono text-[10px] text-slate-500">{entry.reference_number}</p>
+                          <p className="font-mono text-[10px] text-slate-500 truncate max-w-[160px]">{entry.reference_number}</p>
                           <span className={`inline-block px-2 py-0.5 border text-[9px] font-bold rounded ${getModuleBadge(entry.source_module)}`}>
                             {entry.source_module.replace('_', ' ')}
                           </span>
                         </td>
                         <td className="px-4 py-3 align-top max-w-md">
                           <p className="font-semibold text-slate-900 text-sm mb-0.5">{entry.account_name}</p>
-                          <p className="text-xs text-slate-500 leading-relaxed">{entry.description}</p>
+                          <p className="text-xs text-slate-500 leading-relaxed break-words">{entry.description}</p>
                         </td>
                         <td className="px-4 py-3 align-top text-right">
                           {entry.debit > 0 ? (
-                            <span className="font-mono text-slate-900">{formatCurrency(entry.debit)}</span>
+                            <span className="font-mono text-slate-900 whitespace-nowrap">{formatCurrency(entry.debit)}</span>
                           ) : (
                             <span className="text-slate-300">-</span>
                           )}
                         </td>
                         <td className="px-4 py-3 align-top text-right">
                           {entry.credit > 0 ? (
-                            <span className="font-mono text-slate-900">{formatCurrency(entry.credit)}</span>
+                            <span className="font-mono text-slate-900 whitespace-nowrap">{formatCurrency(entry.credit)}</span>
                           ) : (
                             <span className="text-slate-300">-</span>
                           )}
@@ -243,16 +294,16 @@ export const GeneralLedgerPage: React.FC = () => {
                 </tbody>
                 
                 {/* Totals Footer */}
-                {!isLoading && summary && (
+                {!isLoading && summary && entries.length > 0 && (
                   <tfoot className="bg-slate-50 border-t-2 border-gray-200">
                     <tr>
                       <td colSpan={3} className="px-4 py-4 text-right font-bold text-slate-900 uppercase text-xs tracking-wider">
                         Totals
                       </td>
-                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900">
+                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
                         {formatCurrency(summary.total_debit)}
                       </td>
-                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900">
+                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
                         {formatCurrency(summary.total_credit)}
                       </td>
                       <td></td>

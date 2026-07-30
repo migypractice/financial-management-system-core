@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt,
-  Bell, Mail, ChevronDown, Search, Menu, LogOut, Settings, ChevronLeft
+  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -16,7 +16,7 @@ interface DashboardLayoutProps {
 
 const navItems = [
   { path: '/dashboard',     label: 'Dashboard',          icon: LayoutDashboard },
-  { path: '/approvals',     label: 'AI Approvals',        icon: CheckSquare,    badge: '3' },
+  { path: '/approvals',     label: 'AI Approvals',        icon: CheckSquare },
   { path: '/gl',            label: 'General Ledger',      icon: BookOpen },
   { path: '/ap',            label: 'Accounts Payable',    icon: CreditCard },
   { path: '/ar',            label: 'Accounts Receivable', icon: DollarSign },
@@ -32,8 +32,8 @@ const navItems = [
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
   activePath = '/dashboard',
-  userRole = 'Scatter gods',
-  userName = 'Rexseme Rebot',
+  userRole = 'System User',
+  userName = 'User',
   onNavigate,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -160,6 +160,19 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </div>
             )}
           </div>
+
+          {/* Build Info (Hidden for now) */}
+          {/*
+          {!collapsed && (
+            <div className="pt-2 mt-2 border-t border-white/10">
+              <p className="text-[9px] text-blue-300/40 text-center leading-relaxed">
+                Hardware ERP &middot; Version 1.0.0-RC1<br/>
+                Laravel 12 &middot; React 19 &middot; TypeScript<br/>
+                Build July 30, 2026
+              </p>
+            </div>
+          )}
+          */}
         </div>
       </aside>
 
@@ -172,14 +185,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <button className="text-gray-400 hover:text-gray-600 transition-colors">
               <Menu size={18} />
             </button>
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search transactions, GL codes..."
-                className="pl-8 pr-4 py-2 text-xs rounded-lg bg-gray-50 border border-gray-200 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all w-72"
-              />
-            </div>
           </div>
 
           <div className="flex items-center gap-3">

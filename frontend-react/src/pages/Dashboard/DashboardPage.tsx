@@ -57,6 +57,16 @@ export const DashboardPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Analytics Context Note */}
+      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/60 rounded-lg border border-blue-100">
+        <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p className="text-[11px] text-blue-600 font-medium">
+          Analytics Module (Under Integration) — Live data is available in AI Approvals and General Ledger. Connected subsystem modules are being integrated by other teams.
+        </p>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[

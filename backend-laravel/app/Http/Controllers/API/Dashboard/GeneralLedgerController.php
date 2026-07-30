@@ -25,7 +25,8 @@ class GeneralLedgerController extends Controller
                   ->orWhereHas('transaction', function ($q2) use ($search) {
                       $q2->where('transaction_code', 'like', "%{$search}%")
                          ->orWhere('external_reference_id', 'like', "%{$search}%")
-                         ->orWhere('description', 'like', "%{$search}%");
+                         ->orWhere('description', 'like', "%{$search}%")
+                         ->orWhere('source_module', 'like', "%{$search}%");
                   });
             });
         }
