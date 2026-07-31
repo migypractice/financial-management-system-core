@@ -52,14 +52,14 @@ class IntegrationController extends Controller
     public function requestDisbursement(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'external_module'       => 'required|string|in:HRMS,SUPPLY_CHAIN,FLEET,FACILITIES_LEGAL,ECOMMERCE_CORE',
+            'external_module'       => 'required|string', // Tinanggal yung strict "in:HRMS..." para kahit anong module pwede
             'external_reference_id' => 'required|string|max:255',
             'category_type'         => 'required|string|max:100',
             'amount'                => 'required|numeric|min:0.01',
             'tax_amount'            => 'nullable|numeric|min:0',
             'fee_amount'            => 'nullable|numeric|min:0',
             'currency'              => 'nullable|string|size:3',
-            'payee_info'            => 'required|array',
+            'payee_info'            => 'nullable|array', // Ginawang optional (nullable) para hindi mag-error
             'description'           => 'required|string|max:1000',
             'metadata'              => 'nullable|array',
         ]);
