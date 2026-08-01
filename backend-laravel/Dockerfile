@@ -30,4 +30,4 @@ RUN a2enmod rewrite
 
 # Expose port and start Apache
 EXPOSE 80
-CMD ["apache2-foreground"]
+CMD php artisan migrate --force && php artisan db:seed --force && apache2-foreground
