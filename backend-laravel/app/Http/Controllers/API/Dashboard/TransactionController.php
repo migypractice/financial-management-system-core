@@ -45,8 +45,11 @@ class TransactionController extends Controller
         // TODO: Enforce Authorization using Policies or Middleware
         // $this->authorize('approve', $transaction);
 
-        // For the capstone demo, fallback to a system UUID if no user is authenticated
-        $userId = $request->user()?->id ?? '00000000-0000-0000-0000-000000000001';
+        $user = $request->user();
+        if (!$user) {
+            abort(401, 'Unauthorized');
+        }
+        $userId = $user->id;
 
         try {
             $this->financialService->approveTransaction($transaction->id, $userId);
@@ -58,9 +61,10 @@ class TransactionController extends Controller
                 'data'    => $result,
             ]);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Approval failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Unable to process transaction.',
             ], 400);
         }
     }
@@ -73,7 +77,11 @@ class TransactionController extends Controller
         // TODO: Enforce Authorization using Policies or Middleware
         // $this->authorize('reject', $transaction);
 
-        $userId = $request->user()?->id ?? '00000000-0000-0000-0000-000000000001';
+        $user = $request->user();
+        if (!$user) {
+            abort(401, 'Unauthorized');
+        }
+        $userId = $user->id;
         $reason = $request->input('reason');
 
         try {
@@ -85,9 +93,10 @@ class TransactionController extends Controller
                 'data'    => $result,
             ]);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Rejection failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Unable to process transaction.',
             ], 400);
         }
     }

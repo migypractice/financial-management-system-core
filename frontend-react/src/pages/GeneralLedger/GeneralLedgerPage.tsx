@@ -37,7 +37,8 @@ export const GeneralLedgerPage: React.FC = () => {
       setError(null);
       
       const queryParam = search ? `?search=${encodeURIComponent(search)}` : '';
-      const response = await fetch(`http://localhost:8000/api/v1/dashboard/gl${queryParam}`, {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+      const response = await fetch(`${API_BASE}/dashboard/gl${queryParam}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

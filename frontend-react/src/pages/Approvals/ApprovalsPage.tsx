@@ -75,7 +75,8 @@ export const ApprovalsPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch('http://localhost:8000/api/v1/dashboard/transactions', {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+      const response = await fetch(`${API_BASE}/dashboard/transactions`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -140,7 +141,8 @@ export const ApprovalsPage: React.FC = () => {
     setActionInProgress(id);
     
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/dashboard/transactions/${id}/${actionType}`, {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+      const response = await fetch(`${API_BASE}/dashboard/transactions/${id}/${actionType}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 

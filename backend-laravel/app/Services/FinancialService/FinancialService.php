@@ -117,6 +117,10 @@ class FinancialService
                 );
             }
 
+            if ($transaction->created_by && $transaction->created_by === $approvedByUserId) {
+                throw new \RuntimeException("Maker cannot be Checker. You cannot approve a transaction you created.");
+            }
+
             DB::table('transactions')
                 ->where('id', $transactionId)
                 ->update([
@@ -158,6 +162,10 @@ class FinancialService
                 throw new \RuntimeException(
                     "Transaction {$transaction->transaction_code} cannot be rejected (current status: {$transaction->status})."
                 );
+            }
+
+            if ($transaction->created_by && $transaction->created_by === $rejectedByUserId) {
+                throw new \RuntimeException("Maker cannot be Checker. You cannot reject a transaction you created.");
             }
 
             DB::table('transactions')
