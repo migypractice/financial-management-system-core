@@ -26,15 +26,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Rehydrate auth state on mount
-    const storedToken = localStorage.getItem('auth_token');
-    const storedUser = localStorage.getItem('auth_user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-    
+    // --- DEMO MODE BYPASS ---
+    // Automatically log in as Finance Manager for Vercel demo
+    const demoUser = {
+      id: "demo-manager-id",
+      name: "Demo Manager",
+      email: "manager@hw.com",
+      role: "finance_manager",
+      department: "Finance",
+      permissions: ["approve_transaction", "view_reports"]
+    };
+    setToken("demo-token-12345");
+    setUser(demoUser);
     setIsLoading(false);
   }, []);
 

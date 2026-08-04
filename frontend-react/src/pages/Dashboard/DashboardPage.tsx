@@ -68,7 +68,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
             label: 'Total Revenue (MTD)',
@@ -137,36 +137,41 @@ export const DashboardPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Table Header */}
-          <div className="px-5 py-2 grid grid-cols-4 text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-50 bg-gray-50/60">
-            <span>Transaction</span>
-            <span>Source</span>
-            <span>Status</span>
-            <span className="text-right">Amount</span>
-          </div>
+          {/* Table Container for Mobile Scrolling */}
+          <div className="overflow-x-auto">
+            <div className="min-w-[600px]">
+              {/* Table Header */}
+              <div className="px-5 py-2 grid grid-cols-4 text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-50 bg-gray-50/60">
+                <span>Transaction</span>
+                <span>Source</span>
+                <span>Status</span>
+                <span className="text-right">Amount</span>
+              </div>
 
-          <div className="divide-y divide-gray-50">
-            {recentTransactions.map((tx) => {
-              const s = statusConfig[tx.status] || statusConfig['pending_approval'];
-              return (
-                <div key={tx.code} className="px-5 py-3 grid grid-cols-4 items-center hover:bg-gray-50/60 transition-colors cursor-pointer">
-                  <div>
-                    <p className="font-mono text-[11px] font-semibold text-gray-800">{tx.code}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{tx.time}</p>
-                  </div>
-                  <span className="text-[11px] text-gray-500 font-medium">{tx.module}</span>
-                  <div>
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${s.bg} ${s.text} ${s.border}`}>
-                      {s.icon}
-                      {s.label}
-                    </span>
-                  </div>
-                  <span className="text-right font-mono text-xs font-bold text-gray-900">
-                    ₱{tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              );
-            })}
+              <div className="divide-y divide-gray-50">
+                {recentTransactions.map((tx) => {
+                  const s = statusConfig[tx.status] || statusConfig['pending_approval'];
+                  return (
+                    <div key={tx.code} className="px-5 py-3 grid grid-cols-4 items-center hover:bg-gray-50/60 transition-colors cursor-pointer">
+                      <div>
+                        <p className="font-mono text-[11px] font-semibold text-gray-800">{tx.code}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{tx.time}</p>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-medium">{tx.module}</span>
+                      <div>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${s.bg} ${s.text} ${s.border}`}>
+                          {s.icon}
+                          {s.label}
+                        </span>
+                      </div>
+                      <span className="text-right font-mono text-xs font-bold text-gray-900">
+                        ₱{tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -197,7 +202,7 @@ export const DashboardPage: React.FC = () => {
             <div className="px-5 py-4 border-b border-gray-100">
               <h2 className="text-sm font-bold text-gray-900">Quick Access</h2>
             </div>
-            <div className="p-4 grid grid-cols-4 gap-3">
+            <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
               {quickAccessItems.map((item) => {
                 const Icon = item.icon;
                 return (

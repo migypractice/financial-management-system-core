@@ -75,61 +75,61 @@ export const ApprovalsPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-      const response = await fetch(`${API_BASE}/dashboard/transactions`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
+      // --- DEMO MODE MOCK DATA ---
+      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate loading
+      
+      const mockData = [
+        {
+          id: 'mock-1',
+          transactionCode: 'TXN-DEMO-001',
+          flowType: 'OUTBOUND',
+          categoryType: 'EMPLOYEE_CLAIM',
+          externalModule: 'HRMS',
+          externalReferenceId: 'TEST-12345',
+          amount: 520000,
+          taxAmount: 0,
+          feeAmount: 0,
+          netAmount: 520000,
+          currency: 'PHP',
+          description: 'SUSPICIOUS unverified reimbursement claim',
+          status: 'ai_flagged',
+          aiConfidenceScore: 0.45,
+          aiSuggestedGlAccountName: 'Pending Classification',
+          aiAnomalyFlag: true,
+          aiAnomalyReason: 'High amount claim (520000) lacks standard verification context. Potential policy violation.',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'mock-2',
+          transactionCode: 'TXN-DEMO-002',
+          flowType: 'INBOUND',
+          categoryType: 'SALES_REVENUE',
+          externalModule: 'ECOMMERCE',
+          externalReferenceId: 'ORD-9988',
+          amount: 45000,
+          taxAmount: 4500,
+          feeAmount: 0,
+          netAmount: 40500,
+          currency: 'PHP',
+          description: 'Daily e-commerce batch settlement',
+          status: 'pending_approval',
+          aiConfidenceScore: 0.98,
+          aiSuggestedGlAccountName: 'Cash in Bank - BDO',
+          aiAnomalyFlag: false,
+          aiAnomalyReason: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         }
-      });
+      ];
       
-      if (response.status === 401) {
-        alert('Your session has expired. Please log in again.');
-        window.location.reload();
-        return;
-      }
-      
-      if (response.status === 403) {
-        throw new Error('Access Denied: You do not have permission to view transactions.');
-      }
-      
-      if (!response.ok) throw new Error('Failed to fetch transactions');
-      
-      const json = await response.json();
-      
-      if (json.success) {
-        const mapped = json.data.map((tx: any) => ({
-          id: tx.id,
-          transactionCode: tx.transaction_code,
-          flowType: tx.type === 'INCOME' ? 'INBOUND' : 'OUTBOUND',
-          categoryType: tx.category_type || 'UNKNOWN',
-          externalModule: tx.source_module,
-          externalReferenceId: tx.external_reference_id,
-          amount: parseFloat(tx.amount),
-          taxAmount: parseFloat(tx.tax_amount || 0),
-          feeAmount: parseFloat(tx.fee_amount || 0),
-          netAmount: parseFloat(tx.net_amount || 0),
-          currency: tx.currency,
-          description: tx.description,
-          status: tx.status,
-          aiConfidenceScore: parseFloat(tx.ai_confidence_score || 0),
-          aiSuggestedGlAccountName: tx.ai_suggested_gl_name || 'N/A',
-          aiAnomalyFlag: tx.ai_anomaly_flag === 1 || tx.ai_anomaly_flag === true,
-          aiAnomalyReason: tx.ai_anomaly_reason,
-          createdAt: tx.created_at,
-          updatedAt: tx.updated_at,
-        }));
-        
-        setTransactions(mapped);
-      } else {
-        throw new Error(json.message || 'Unknown error occurred');
-      }
+      setTransactions(mockData as Transaction[]);
     } catch (err: any) {
-      setError(err.message || 'Unable to connect to server. Please ensure the Laravel backend is running.');
+      setError(err.message || 'Unable to connect to server.');
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchTransactions();
@@ -141,31 +141,18 @@ export const ApprovalsPage: React.FC = () => {
     setActionInProgress(id);
     
     try {
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-      const response = await fetch(`${API_BASE}/dashboard/transactions/${id}/${actionType}`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
+      // --- DEMO MODE BYPASS ---
+      await new Promise(resolve => setTimeout(resolve, 600)); // Simulate loading
       
-      const json = await response.json();
-      
-      if (!response.ok || !json.success) {
-        setToast({ message: json.message || `Failed to ${actionType} transaction`, type: 'error' });
-        return;
-      }
+      // Remove from list
+      setTransactions(prev => prev.filter(tx => tx.id !== id));
       
       // Show success toast
       const successMsg = actionType === 'approve'
-        ? '✓ Transaction Approved — Journal Entry Posted'
-        : '✓ Transaction Rejected Successfully';
+        ? '✓ Transaction Approved (Demo Mode)'
+        : '✓ Transaction Rejected (Demo Mode)';
       setToast({ message: successMsg, type: 'success' });
       
-      // Re-fetch from backend (source of truth) — preserves current filter
-      await fetchTransactions();
     } catch (err) {
       setToast({ message: 'Network error while performing action.', type: 'error' });
     } finally {
@@ -357,21 +344,21 @@ export const ApprovalsPage: React.FC = () => {
                     </div>
 
                     {isActionable && (user?.role === 'finance_manager' || user?.role === 'super_admin') && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full lg:w-auto mt-2 lg:mt-0">
                         <button
                           onClick={() => handleAction(tx.id, 'reject')}
                           disabled={isAnyProcessing}
-                          className="px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
+                          className="flex-1 lg:flex-none flex items-center justify-center px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
                         >
                           {isProcessing ? 'Rejecting...' : 'Reject'}
                         </button>
                         <button
                           onClick={() => handleAction(tx.id, 'approve')}
                           disabled={isAnyProcessing}
-                          className="px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-900 flex items-center gap-1.5"
+                          className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
                         >
                           {isProcessing && (
-                            <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <svg className="w-3 h-3 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
                               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
                               <path d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" fill="currentColor" className="opacity-75" />
                             </svg>

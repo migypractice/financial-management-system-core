@@ -45,6 +45,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { logout, user } = useAuth();
 
   const activeUserName = user ? user.name : userName;
@@ -59,14 +60,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const handleNav = (path: string) => {
     if (onNavigate) onNavigate(path);
+    setMobileMenuOpen(false);
   };
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
 
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
       <aside
-        className="flex flex-col h-full shrink-0 transition-all duration-300"
+        className={`fixed md:relative flex flex-col h-full shrink-0 transition-all duration-300 z-50 ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
         style={{
           width: collapsed ? '72px' : '220px',
           background: 'linear-gradient(180deg, #1e2d4a 0%, #162038 100%)',
@@ -189,8 +201,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         {/* Top bar */}
         <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <button className="text-gray-400 hover:text-gray-600 transition-colors">
-              <Menu size={18} />
+            <button 
+              onClick={() => setMobileMenuOpen(true)}
+              className="text-gray-400 hover:text-gray-600 transition-colors md:hidden"
+            >
+              <Menu size={20} />
             </button>
           </div>
 

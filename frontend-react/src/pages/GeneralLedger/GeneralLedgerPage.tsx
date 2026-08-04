@@ -36,41 +36,77 @@ export const GeneralLedgerPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      const queryParam = search ? `?search=${encodeURIComponent(search)}` : '';
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-      const response = await fetch(`${API_BASE}/dashboard/gl${queryParam}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
+      // --- DEMO MODE MOCK DATA ---
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const mockEntries = [
+        {
+          id: 'gl-1',
+          entry_number: 'JRN-2026-9001',
+          posted_at: new Date().toISOString(),
+          description: 'Facility maintenance payment',
+          account_name: 'Maintenance Expense',
+          debit: 95000,
+          credit: 0,
+          reference_number: 'FAC-777',
+          source_module: 'FACILITIES_LEGAL',
+          status: 'POSTED'
+        },
+        {
+          id: 'gl-2',
+          entry_number: 'JRN-2026-9001',
+          posted_at: new Date().toISOString(),
+          description: 'Facility maintenance payment (Bank)',
+          account_name: 'Cash in Bank',
+          debit: 0,
+          credit: 95000,
+          reference_number: 'FAC-777',
+          source_module: 'FACILITIES_LEGAL',
+          status: 'POSTED'
+        },
+        {
+          id: 'gl-3',
+          entry_number: 'JRN-2026-9002',
+          posted_at: new Date(Date.now() - 3600000).toISOString(),
+          description: 'Fleet fuel expenses',
+          account_name: 'Transportation Expense',
+          debit: 12800,
+          credit: 0,
+          reference_number: 'FLT-889',
+          source_module: 'FLEET',
+          status: 'POSTED'
+        },
+        {
+          id: 'gl-4',
+          entry_number: 'JRN-2026-9002',
+          posted_at: new Date(Date.now() - 3600000).toISOString(),
+          description: 'Fleet fuel expenses (Bank)',
+          account_name: 'Cash in Bank',
+          debit: 0,
+          credit: 12800,
+          reference_number: 'FLT-889',
+          source_module: 'FLEET',
+          status: 'POSTED'
         }
+      ];
+      
+      const filtered = search 
+        ? mockEntries.filter(e => e.description.toLowerCase().includes(search.toLowerCase()) || e.account_name.toLowerCase().includes(search.toLowerCase())) 
+        : mockEntries;
+
+      setEntries(filtered);
+      setSummary({
+        total_entries: 145,
+        total_debit: 11340200,
+        total_credit: 11340200
       });
       
-      if (response.status === 401) {
-        alert('Your session has expired. Please log in again.');
-        logout();
-        return;
-      }
-      
-      if (response.status === 403) {
-        throw new Error('Access Denied: You do not have permission to view the General Ledger.');
-      }
-      
-      if (!response.ok) throw new Error('Failed to fetch General Ledger data');
-      
-      const json = await response.json();
-      
-      if (json.success) {
-        setEntries(json.data);
-        setSummary(json.summary);
-      } else {
-        throw new Error(json.message || 'Unknown error occurred');
-      }
     } catch (err: any) {
-      setError(err.message || 'Unable to connect to server. Please ensure the Laravel backend is running.');
+      setError(err.message || 'Unable to connect to server.');
     } finally {
       setIsLoading(false);
     }
-  }, [token, logout]);
+  }, []);
 
   useEffect(() => {
     fetchGL();
