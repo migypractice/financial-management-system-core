@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt,
-  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun
+  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -46,20 +46,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
-  });
   const { logout, user } = useAuth();
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
 
   const activeUserName = user ? user.name : userName;
   const activeUserRole = user ? user.role : userRole;
@@ -77,7 +64,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-slate-900 font-sans overflow-hidden" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+    <div className="flex h-screen bg-gray-50 font-sans overflow-hidden" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
 
       {/* Mobile Backdrop */}
       {mobileMenuOpen && (
@@ -98,23 +85,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         }}
       >
         {/* Brand */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
-          {/* Compact atom icon when collapsed */}
-          {collapsed ? (
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-white/10 overflow-hidden">
-              <img
-                src="/archon-nell-logo.png"
-                alt="ANI"
-                className="w-7 h-7 object-contain"
-              />
+        <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-white font-extrabold text-xs"
+            style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }}
+          >
+            FC
+          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="text-white font-bold text-sm tracking-tight leading-none">FIN-CORE</p>
+              <p className="text-blue-300/70 text-[10px] mt-0.5 tracking-wider uppercase">Transaction Engine</p>
             </div>
-          ) : (
-            <img
-              src="/archon-nell-logo.png"
-              alt="Archon Nell Incorporated"
-              className="h-10 w-auto object-contain flex-1 min-w-0"
-              style={{ maxWidth: '155px', filter: 'brightness(0) invert(1)' }}
-            />
           )}
         </div>
 
@@ -217,7 +199,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       <div className="flex-1 flex flex-col h-full overflow-hidden">
 
         {/* Top bar */}
-        <header className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-3 flex items-center justify-between shrink-0">
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setMobileMenuOpen(true)}
@@ -228,23 +210,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Dark Mode Toggle */}
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
-            >
-              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-
             {/* Notification Bell */}
-            <button className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300">
+            <button className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
               <Bell size={16} />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
             </button>
 
             {/* Mail */}
-            <button className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300">
+            <button className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
               <Mail size={16} />
               <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center px-1 bg-blue-600 text-white text-[9px] rounded-full font-bold">2</span>
             </button>
@@ -258,16 +231,16 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 {initials}
               </div>
               <div className="hidden sm:block text-right">
-                <p className="text-xs font-semibold text-gray-800 dark:text-slate-100">{activeUserName}</p>
-                <p className="text-[10px] text-gray-400 dark:text-slate-400">{activeUserRole}</p>
+                <p className="text-xs font-semibold text-gray-800">{activeUserName}</p>
+                <p className="text-[10px] text-gray-400">{activeUserRole}</p>
               </div>
-              <ChevronDown size={13} className="text-gray-400 dark:text-slate-400" />
+              <ChevronDown size={13} className="text-gray-400" />
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-900">
+        <main className="flex-1 overflow-y-auto bg-gray-50">
           {children}
         </main>
       </div>
