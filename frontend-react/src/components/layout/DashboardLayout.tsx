@@ -100,21 +100,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         {/* Brand — Archon Nell Logo */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
           {collapsed ? (
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-white/90 p-1">
-              <img
-                src="/archon-nell-logo.png"
-                alt="ANI"
-                className="w-full h-full object-contain"
-              />
+            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/20">
+              <span className="text-white font-bold text-sm tracking-wider">AN</span>
             </div>
           ) : (
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-white/90 p-1">
-                <img
-                  src="/archon-nell-logo.png"
-                  alt="ANI"
-                  className="w-full h-full object-contain"
-                />
+              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/20">
+                <span className="text-white font-bold text-sm tracking-wider">AN</span>
               </div>
               <div className="min-w-0">
                 <p className="text-white font-bold text-[11px] tracking-tight leading-none">ARCHON NELL</p>
