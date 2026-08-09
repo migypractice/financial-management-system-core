@@ -42,13 +42,13 @@ export const DashboardPage: React.FC = () => {
     <div className="p-6 space-y-5" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
 
       {/* Welcome Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">
-            Welcome back, Rexseme! 👋
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            Archon Nell Inc. — Financial Core
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Here's what's happening in your Transaction Core today.
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
+            Transaction Core Engine · Real-time overview
           </p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md transition-all hover:opacity-90"
@@ -103,15 +103,15 @@ export const DashboardPage: React.FC = () => {
             iconBg: 'bg-amber-100 text-amber-600',
           },
         ].map((kpi) => (
-          <div key={kpi.label} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div key={kpi.label} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpi.iconBg}`}>
                 {kpi.icon}
               </div>
-              <ArrowUpRight size={14} className="text-gray-300 mt-1" />
+              <ArrowUpRight size={14} className="text-gray-300 dark:text-slate-600 mt-1" />
             </div>
-            <p className="text-xs text-gray-500 mt-3 font-medium">{kpi.label}</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5 tracking-tight">{kpi.value}</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-3 font-medium">{kpi.label}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white mt-0.5 tracking-tight">{kpi.value}</p>
             <p className={`text-[11px] mt-1 font-medium ${kpi.positive ? 'text-green-500' : 'text-red-400'}`}>
               {kpi.change}
             </p>
@@ -123,14 +123,14 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* Recent Transactions */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Activity size={15} className="text-blue-500" />
                 Recent Transaction Activity
               </h2>
-              <p className="text-[11px] text-gray-400 mt-0.5">Latest inbound and outbound financial movements</p>
+              <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">Latest inbound and outbound financial movements</p>
             </div>
             <button className="text-[11px] text-blue-600 font-semibold hover:underline flex items-center gap-1">
               View All <ArrowUpRight size={11} />
@@ -141,30 +141,30 @@ export const DashboardPage: React.FC = () => {
           <div className="overflow-x-auto">
             <div className="min-w-[600px]">
               {/* Table Header */}
-              <div className="px-5 py-2 grid grid-cols-4 text-[10px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-50 bg-gray-50/60">
+              <div className="px-5 py-2 grid grid-cols-4 text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider border-b border-gray-50 dark:border-slate-700 bg-gray-50/60 dark:bg-slate-700/30">
                 <span>Transaction</span>
                 <span>Source</span>
                 <span>Status</span>
                 <span className="text-right">Amount</span>
               </div>
 
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-gray-50 dark:divide-slate-700">
                 {recentTransactions.map((tx) => {
                   const s = statusConfig[tx.status] || statusConfig['pending_approval'];
                   return (
-                    <div key={tx.code} className="px-5 py-3 grid grid-cols-4 items-center hover:bg-gray-50/60 transition-colors cursor-pointer">
+                    <div key={tx.code} className="px-5 py-3 grid grid-cols-4 items-center hover:bg-gray-50/60 dark:hover:bg-slate-700/30 transition-colors cursor-pointer">
                       <div>
-                        <p className="font-mono text-[11px] font-semibold text-gray-800">{tx.code}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{tx.time}</p>
+                        <p className="font-mono text-[11px] font-semibold text-gray-800 dark:text-slate-200">{tx.code}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">{tx.time}</p>
                       </div>
-                      <span className="text-[11px] text-gray-500 font-medium">{tx.module}</span>
+                      <span className="text-[11px] text-gray-500 dark:text-slate-400 font-medium">{tx.module}</span>
                       <div>
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${s.bg} ${s.text} ${s.border}`}>
                           {s.icon}
                           {s.label}
                         </span>
                       </div>
-                      <span className="text-right font-mono text-xs font-bold text-gray-900">
+                      <span className="text-right font-mono text-xs font-bold text-gray-900 dark:text-white">
                         ₱{tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -179,15 +179,15 @@ export const DashboardPage: React.FC = () => {
         <div className="space-y-5">
 
           {/* Module Health */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-gray-900">Module Status</h2>
-              <p className="text-[11px] text-gray-400 mt-0.5">All 9 Transaction Core subsystems</p>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">Module Status</h2>
+              <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">All 9 Transaction Core subsystems</p>
             </div>
-            <div className="divide-y divide-gray-50 px-2 py-1">
+            <div className="divide-y divide-gray-50 dark:divide-slate-700 px-2 py-1">
               {moduleHealth.map((m) => (
                 <div key={m} className="px-3 py-2 flex items-center justify-between">
-                  <span className="text-xs text-gray-700 font-medium">{m}</span>
+                  <span className="text-xs text-gray-700 dark:text-slate-300 font-medium">{m}</span>
                   <span className="flex items-center gap-1.5 text-[11px] text-green-600 font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                     Operational
@@ -198,9 +198,9 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* Quick Access */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-gray-900">Quick Access</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">Quick Access</h2>
             </div>
             <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
               {quickAccessItems.map((item) => {

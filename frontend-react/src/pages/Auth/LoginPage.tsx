@@ -40,24 +40,28 @@ export const LoginPage: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuc
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%)' }}>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center text-indigo-600">
-          <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
+        {/* Client Logo */}
+        <div className="flex justify-center mb-4">
+          <img
+            src="/archon-nell-logo.png"
+            alt="Archon Nell Incorporated"
+            className="h-20 w-auto object-contain"
+            style={{ maxWidth: '280px' }}
+          />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900">
-          Hardware System ERP
-        </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
-          Sign in to your account
-        </p>
+        <div className="text-center">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+            Financial Management System
+          </p>
+        </div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-slate-200">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-slate-200/60">
+          <h2 className="text-lg font-bold text-slate-800 mb-6">Sign in to your account</h2>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {error && (
               <div className="p-3 bg-red-50 text-red-700 text-sm font-medium rounded-md border border-red-200">
                 {error}
@@ -100,19 +104,23 @@ export const LoginPage: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuc
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 transition-colors"
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white transition-colors disabled:opacity-70"
+                style={{ background: isLoading ? '#64748b' : 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}
               >
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </button>
             </div>
           </form>
           
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Test Accounts</h4>
-            <ul className="text-xs text-slate-600 space-y-2">
-              <li><span className="font-medium text-slate-900">Admin:</span> admin@hw.com / password123</li>
-              <li><span className="font-medium text-slate-900">Finance Manager:</span> manager@hw.com / password123</li>
-              <li><span className="font-medium text-slate-900">Staff:</span> staff@hw.com / password123</li>
+          <div className="mt-5 pt-5 border-t border-slate-100">
+            <div className="flex items-center gap-2 mb-3">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Demo Accounts</h4>
+              <span className="px-1.5 py-0.5 text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-200 rounded uppercase">Demo Mode</span>
+            </div>
+            <ul className="text-xs text-slate-600 space-y-1.5">
+              <li className="flex items-center gap-2"><span className="font-medium text-slate-800 w-28">Admin:</span> admin@hw.com / password123</li>
+              <li className="flex items-center gap-2"><span className="font-medium text-slate-800 w-28">Finance Manager:</span> manager@hw.com / password123</li>
+              <li className="flex items-center gap-2"><span className="font-medium text-slate-800 w-28">Staff:</span> staff@hw.com / password123</li>
             </ul>
           </div>
         </div>
