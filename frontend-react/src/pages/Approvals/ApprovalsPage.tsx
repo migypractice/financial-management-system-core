@@ -220,15 +220,15 @@ export const ApprovalsPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6 bg-slate-50 min-h-full">
+    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full">
       {/* Toast notification */}
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
 
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-gray-200 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-gray-200 dark:border-slate-700 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Approval Center</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Approval Center</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Review AI-categorized transactions before General Ledger posting.
           </p>
         </div>
@@ -253,7 +253,7 @@ export const ApprovalsPage: React.FC = () => {
             className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               activeFilter === btn.key
                 ? btn.activeClass
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-gray-200'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600'
             }`}
           >
             {btn.label}
@@ -264,14 +264,14 @@ export const ApprovalsPage: React.FC = () => {
       {/* Transaction cards */}
       <div className="space-y-3">
         {filteredTransactions.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-12 text-center">
             <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
               <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
             </div>
-            <p className="text-sm font-semibold text-slate-700">No transactions match this filter.</p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">No transactions match this filter.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
               {activeFilter === 'PENDING' ? 'All transactions have been reviewed.' : 
                activeFilter === 'FLAGGED' ? 'No AI-flagged anomalies detected.' :
                'No transactions found in the system.'}
@@ -287,24 +287,24 @@ export const ApprovalsPage: React.FC = () => {
             return (
               <div
                 key={tx.id}
-                className={`bg-white rounded-xl border p-5 transition-all hover:shadow-sm ${
+                className={`bg-white dark:bg-slate-800 rounded-xl border p-5 transition-all hover:shadow-sm ${
                   isProcessing ? 'opacity-75' : ''
                 } ${
                   tx.status === 'ai_flagged'
                     ? 'border-red-200'
                     : tx.status === 'approved' || tx.status === 'posted'
                     ? 'border-emerald-200'
-                    : 'border-gray-150'
+                    : 'border-gray-150 dark:border-slate-700'
                 }`}
               >
                 <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                   {/* Left: metadata */}
                   <div className="flex-1 min-w-0 space-y-2.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 rounded">
+                      <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded">
                         {tx.transactionCode}
                       </span>
-                      <span className="text-[11px] text-slate-400 font-medium">
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                         {tx.externalModule} / {tx.externalReferenceId}
                       </span>
                       <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${statusCfg.bg} ${statusCfg.text}`}>
@@ -313,17 +313,17 @@ export const ApprovalsPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <p className="text-sm font-medium text-slate-800 leading-snug">{tx.description}</p>
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">{tx.description}</p>
 
                     {/* AI recommendation panel */}
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-2">
-                      <div className="flex items-center justify-between text-xs text-slate-600">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-600 space-y-2">
+                      <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                         <span>
-                          Suggested GL: <strong className="text-slate-800">{tx.aiSuggestedGlAccountName}</strong>
+                          Suggested GL: <strong className="text-slate-800 dark:text-white">{tx.aiSuggestedGlAccountName}</strong>
                         </span>
                       </div>
                       <div>
-                        <p className="text-[11px] text-slate-500 mb-1">AI Confidence</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">AI Confidence</p>
                         <ConfidenceBar score={tx.aiConfidenceScore} />
                       </div>
                       {tx.aiAnomalyFlag && tx.aiAnomalyReason && (
@@ -337,8 +337,8 @@ export const ApprovalsPage: React.FC = () => {
                   {/* Right: amount + actions */}
                   <div className="flex flex-col items-start lg:items-end gap-3 shrink-0 lg:min-w-[180px]">
                     <div className="lg:text-right">
-                      <p className="text-[11px] text-slate-400 uppercase font-medium tracking-wide">Amount</p>
-                      <p className="text-lg font-bold text-slate-900 font-mono tabular-nums">
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-medium tracking-wide">Amount</p>
+                      <p className="text-lg font-bold text-slate-900 dark:text-white font-mono tabular-nums">
                         {tx.currency} {tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </p>
                     </div>

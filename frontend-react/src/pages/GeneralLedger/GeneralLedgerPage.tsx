@@ -183,12 +183,12 @@ export const GeneralLedgerPage: React.FC = () => {
   );
 
   return (
-    <div className="p-6 bg-slate-50 min-h-full">
+    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full">
       {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-gray-200 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-gray-200 dark:border-slate-700 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">General Ledger</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">General Ledger</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Simplified journal entry view of all posted financial transactions.
           </p>
         </div>
@@ -201,7 +201,7 @@ export const GeneralLedgerPage: React.FC = () => {
               value={searchTerm}
               onChange={handleSearchChange}
               placeholder="Search by entry, reference, module, description..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-slate-400 dark:placeholder-slate-500"
             />
             <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
           </form>
@@ -210,14 +210,14 @@ export const GeneralLedgerPage: React.FC = () => {
 
       {error ? (
         <div className="flex flex-col items-center justify-center py-16">
-          <div className="bg-white rounded-xl border border-red-200 p-8 max-w-md text-center shadow-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-red-200 dark:border-red-800 p-8 max-w-md text-center shadow-sm">
             <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
               <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <h3 className="text-base font-bold text-slate-900 mb-1">Unable to Connect</h3>
-            <p className="text-sm text-slate-500 mb-4">{error}</p>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Unable to Connect</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{error}</p>
             <button 
               onClick={() => fetchGL(searchTerm)}
               className="px-5 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
@@ -231,19 +231,19 @@ export const GeneralLedgerPage: React.FC = () => {
           {/* Summary Panel */}
           {summary && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Total Entries</p>
-                <p className="text-2xl font-bold text-slate-900">{summary.total_entries}</p>
+              <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Entries</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{summary.total_entries}</p>
               </div>
-              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Last Posted</p>
-                <p className="text-xl font-bold text-slate-900">
+              <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Last Posted</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
                   {entries.length > 0 ? formatDate(entries[0].posted_at) : 'N/A'}
                 </p>
               </div>
-              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Current Period</p>
-                <p className="text-xl font-bold text-slate-900">
+              <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Current Period</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
                   {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </p>
               </div>
@@ -251,20 +251,20 @@ export const GeneralLedgerPage: React.FC = () => {
           )}
 
           {/* Ledger Table */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 border-b border-gray-200">
+                <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-slate-600">
                   <tr>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider w-28">Date</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider w-44">Reference / Module</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Account & Description</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider text-right w-32">Debit</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider text-right w-32">Credit</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider text-center w-24">Status</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider w-28">Date</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider w-44">Reference / Module</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider">Account & Description</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider text-right w-32">Debit</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider text-right w-32">Credit</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider text-center w-24">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                   {isLoading ? (
                     <>
                       <SkeletonRow />
@@ -291,9 +291,9 @@ export const GeneralLedgerPage: React.FC = () => {
                     </tr>
                   ) : (
                     entries.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={entry.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
                         <td className="px-4 py-3 align-top">
-                          <p className="text-slate-900 font-medium whitespace-nowrap">{formatDate(entry.posted_at)}</p>
+                          <p className="text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap">{formatDate(entry.posted_at)}</p>
                         </td>
                         <td className="px-4 py-3 align-top space-y-1">
                           <p className="font-mono text-xs font-bold text-indigo-700">{entry.entry_number}</p>
@@ -303,19 +303,19 @@ export const GeneralLedgerPage: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3 align-top max-w-md">
-                          <p className="font-semibold text-slate-900 text-sm mb-0.5">{entry.account_name}</p>
-                          <p className="text-xs text-slate-500 leading-relaxed break-words">{entry.description}</p>
+                          <p className="font-semibold text-slate-900 dark:text-white text-sm mb-0.5">{entry.account_name}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed break-words">{entry.description}</p>
                         </td>
                         <td className="px-4 py-3 align-top text-right">
                           {entry.debit > 0 ? (
-                            <span className="font-mono text-slate-900 whitespace-nowrap">{formatCurrency(entry.debit)}</span>
+                            <span className="font-mono text-slate-900 dark:text-slate-100 whitespace-nowrap">{formatCurrency(entry.debit)}</span>
                           ) : (
                             <span className="text-slate-300">-</span>
                           )}
                         </td>
                         <td className="px-4 py-3 align-top text-right">
                           {entry.credit > 0 ? (
-                            <span className="font-mono text-slate-900 whitespace-nowrap">{formatCurrency(entry.credit)}</span>
+                            <span className="font-mono text-slate-900 dark:text-slate-100 whitespace-nowrap">{formatCurrency(entry.credit)}</span>
                           ) : (
                             <span className="text-slate-300">-</span>
                           )}
@@ -332,15 +332,15 @@ export const GeneralLedgerPage: React.FC = () => {
                 
                 {/* Totals Footer */}
                 {!isLoading && summary && entries.length > 0 && (
-                  <tfoot className="bg-slate-50 border-t-2 border-gray-200">
+                  <tfoot className="bg-slate-50 dark:bg-slate-700/50 border-t-2 border-gray-200 dark:border-slate-600">
                     <tr>
-                      <td colSpan={3} className="px-4 py-4 text-right font-bold text-slate-900 uppercase text-xs tracking-wider">
+                      <td colSpan={3} className="px-4 py-4 text-right font-bold text-slate-900 dark:text-white uppercase text-xs tracking-wider">
                         Totals
                       </td>
-                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
+                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
                         {formatCurrency(summary.total_debit)}
                       </td>
-                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 whitespace-nowrap">
+                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
                         {formatCurrency(summary.total_credit)}
                       </td>
                       <td></td>
