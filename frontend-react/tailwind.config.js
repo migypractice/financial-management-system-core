@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // Force class-based dark mode (Fixes Vercel caching issue)
   darkMode: 'class',
   theme: {
     extend: {},
