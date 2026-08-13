@@ -5,10 +5,10 @@ import axios from 'axios';
  * Intercepts JWT session tokens for User requests
  * and System API Keys for machine-to-machine integrations.
  */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -19,7 +19,7 @@ export const apiClient = axios.create({
 // Request Interceptor: Attach JWT Token if available
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('jwt_token');
+    const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -34,7 +34,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Clear token and redirect to login if session expired
-      localStorage.removeItem('jwt_token');
+      localStorage.removeItem('auth_token');
     }
     return Promise.reject(error);
   }

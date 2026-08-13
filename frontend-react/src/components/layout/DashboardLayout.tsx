@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
-  Send, Inbox, PieChart, Landmark, BarChart2, Receipt,
+  Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
   Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -33,8 +33,10 @@ const navItems: NavItem[] = [
   { path: '/cash',          label: 'Cash Management',     icon: Landmark },
   { path: '/reports',       label: 'Financial Reports',   icon: BarChart2 },
   { path: '/tax',           label: 'Tax Management',      icon: Receipt },
-
+  { path: '/audit-logs',    label: 'Audit Trail',         icon: ShieldCheck },
+  { path: '/simulator',     label: 'M2M Simulator',       icon: Settings },
 ];
+
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,

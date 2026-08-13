@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Transaction, TransactionStatus } from '../../types/financial';
 import { useAuth } from '../../context/AuthContext';
+import apiClient from '../../services/apiClient';
 
 /**
  * Maker-Checker AI Approvals Center
@@ -68,64 +69,45 @@ export const ApprovalsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const { user, token } = useAuth();
+  const { user } = useAuth();
 
   const fetchTransactions = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // --- DEMO MODE MOCK DATA ---
-      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate loading
-      
-      const mockData = [
-        {
-          id: 'mock-1',
-          transactionCode: 'TXN-DEMO-001',
-          flowType: 'OUTBOUND',
-          categoryType: 'EMPLOYEE_CLAIM',
-          externalModule: 'HRMS',
-          externalReferenceId: 'TEST-12345',
-          amount: 520000,
-          taxAmount: 0,
-          feeAmount: 0,
-          netAmount: 520000,
-          currency: 'PHP',
-          description: 'SUSPICIOUS unverified reimbursement claim',
-          status: 'ai_flagged',
-          aiConfidenceScore: 0.45,
-          aiSuggestedGlAccountName: 'Pending Classification',
-          aiAnomalyFlag: true,
-          aiAnomalyReason: 'High amount claim (520000) lacks standard verification context. Potential policy violation.',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'mock-2',
-          transactionCode: 'TXN-DEMO-002',
-          flowType: 'INBOUND',
-          categoryType: 'SALES_REVENUE',
-          externalModule: 'ECOMMERCE',
-          externalReferenceId: 'ORD-9988',
-          amount: 45000,
-          taxAmount: 4500,
-          feeAmount: 0,
-          netAmount: 40500,
-          currency: 'PHP',
-          description: 'Daily e-commerce batch settlement',
-          status: 'pending_approval',
-          aiConfidenceScore: 0.98,
-          aiSuggestedGlAccountName: 'Cash in Bank - BDO',
-          aiAnomalyFlag: false,
-          aiAnomalyReason: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-      ];
-      
-      setTransactions(mockData as Transaction[]);
+
+      const response = await apiClient.get('/dashboard/transactions');
+      const rows: any[] = response.data?.data ?? [];
+
+      const mapped: Transaction[] = rows.map((row) => ({
+        id: row.id,
+        transactionCode: row.transaction_code,
+        flowType: row.type === 'INCOME' ? 'INBOUND' : 'OUTBOUND',
+        categoryType: row.type,
+        externalModule: row.source_module,
+        externalReferenceId: row.external_reference_id,
+        amount: Number(row.amount),
+        taxAmount: Number(row.tax_amount ?? 0),
+        feeAmount: Number(row.fee_amount ?? 0),
+        netAmount: Number(row.net_amount ?? 0),
+        currency: row.currency,
+        description: row.description,
+        status: row.status,
+        aiConfidenceScore: Number(row.ai_confidence_score ?? 0),
+        aiSuggestedGlAccountId: row.ai_suggested_gl_code,
+        aiSuggestedGlAccountName: row.ai_suggested_gl_name,
+        aiAnomalyFlag: !!row.ai_anomaly_flag,
+        aiAnomalyReason: row.ai_anomaly_reason,
+        approvedBy: row.approved_by,
+        approvedAt: row.approved_at,
+        postedAt: row.posted_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+
+      setTransactions(mapped);
     } catch (err: any) {
-      setError(err.message || 'Unable to connect to server.');
+      setError(err.response?.data?.message || err.message || 'Unable to connect to server.');
     } finally {
       setIsLoading(false);
     }
@@ -137,24 +119,20 @@ export const ApprovalsPage: React.FC = () => {
 
   const handleAction = async (id: string, actionType: 'approve' | 'reject') => {
     if (actionInProgress) return; // Guard against double-click
-    
+
     setActionInProgress(id);
-    
+
     try {
-      // --- DEMO MODE BYPASS ---
-      await new Promise(resolve => setTimeout(resolve, 600)); // Simulate loading
-      
-      // Remove from list
-      setTransactions(prev => prev.filter(tx => tx.id !== id));
-      
-      // Show success toast
-      const successMsg = actionType === 'approve'
-        ? '✓ Transaction Approved (Demo Mode)'
-        : '✓ Transaction Rejected (Demo Mode)';
-      setToast({ message: successMsg, type: 'success' });
-      
-    } catch (err) {
-      setToast({ message: 'Network error while performing action.', type: 'error' });
+      await apiClient.post(`/dashboard/transactions/${id}/${actionType}`);
+
+      await fetchTransactions();
+
+      setToast({
+        message: actionType === 'approve' ? 'Transaction approved successfully.' : 'Transaction rejected successfully.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      setToast({ message: err.response?.data?.message || 'Network error while performing action.', type: 'error' });
     } finally {
       setActionInProgress(null);
     }
@@ -272,7 +250,7 @@ export const ApprovalsPage: React.FC = () => {
             </div>
             <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">No transactions match this filter.</p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              {activeFilter === 'PENDING' ? 'All transactions have been reviewed.' : 
+              {activeFilter === 'PENDING' ? 'All transactions have been reviewed.' :
                activeFilter === 'FLAGGED' ? 'No AI-flagged anomalies detected.' :
                'No transactions found in the system.'}
             </p>

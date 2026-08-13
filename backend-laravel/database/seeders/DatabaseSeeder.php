@@ -50,6 +50,17 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // System integration user — used as created_by for M2M ingestion (Maker-Checker)
+        if ($superAdminRole && !\App\Models\User::where('email', 'system@hw.com')->exists()) {
+            \App\Models\User::create([
+                'name' => 'System Integration',
+                'email' => 'system@hw.com',
+                'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32)),
+                'role_id' => $superAdminRole->id,
+                'department' => 'System',
+            ]);
+        }
+
         // Transactions (25+ realistic hardware-store records)
         $this->call([
             TransactionSeeder::class,

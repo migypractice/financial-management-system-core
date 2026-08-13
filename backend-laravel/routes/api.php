@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\Integration\IntegrationController;
+use App\Models\User;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,8 +15,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// M2M Integration Routes (Simulator / External Modules)
-Route::prefix('v1/integration')->group(function () {
+// M2M Integration Routes (Simulator / External Modules) — Protected by ApiKeyMiddleware
+Route::prefix('v1/integration')->middleware('api.key')->group(function () {
     Route::post('/inbound-revenue', [IntegrationController::class, 'inboundRevenue']);
     Route::post('/request-disbursement', [IntegrationController::class, 'requestDisbursement']);
 });
@@ -45,5 +46,11 @@ Route::prefix('v1/dashboard/transactions')->middleware('auth:sanctum')->group(fu
 Route::prefix('v1/dashboard/gl')->middleware('auth:sanctum')->group(function () {
     Route::middleware('role:super_admin,finance_manager,accountant')->group(function () {
         Route::get('/', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'index']);
+    });
+});
+
+Route::prefix('v1/dashboard/audit-logs')->middleware('auth:sanctum')->group(function () {
+    Route::middleware('role:super_admin,finance_manager')->group(function () {
+        Route::get('/', [\App\Http\Controllers\API\Dashboard\AuditLogController::class, 'index']);
     });
 });

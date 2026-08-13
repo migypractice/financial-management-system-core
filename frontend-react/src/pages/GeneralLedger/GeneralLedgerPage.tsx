@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { Search } from 'lucide-react';
+import apiClient from '../../services/apiClient';
 
 interface GLEntry {
   id: string;
@@ -19,6 +19,7 @@ interface GLSummary {
   total_entries: number;
   total_debit: number;
   total_credit: number;
+  net: number;
 }
 
 export const GeneralLedgerPage: React.FC = () => {
@@ -28,81 +29,32 @@ export const GeneralLedgerPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  const { token, logout } = useAuth();
 
   const fetchGL = useCallback(async (search: string = '') => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // --- DEMO MODE MOCK DATA ---
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const mockEntries = [
-        {
-          id: 'gl-1',
-          entry_number: 'JRN-2026-9001',
-          posted_at: new Date().toISOString(),
-          description: 'Facility maintenance payment',
-          account_name: 'Maintenance Expense',
-          debit: 95000,
-          credit: 0,
-          reference_number: 'FAC-777',
-          source_module: 'FACILITIES_LEGAL',
-          status: 'POSTED'
-        },
-        {
-          id: 'gl-2',
-          entry_number: 'JRN-2026-9001',
-          posted_at: new Date().toISOString(),
-          description: 'Facility maintenance payment (Bank)',
-          account_name: 'Cash in Bank',
-          debit: 0,
-          credit: 95000,
-          reference_number: 'FAC-777',
-          source_module: 'FACILITIES_LEGAL',
-          status: 'POSTED'
-        },
-        {
-          id: 'gl-3',
-          entry_number: 'JRN-2026-9002',
-          posted_at: new Date(Date.now() - 3600000).toISOString(),
-          description: 'Fleet fuel expenses',
-          account_name: 'Transportation Expense',
-          debit: 12800,
-          credit: 0,
-          reference_number: 'FLT-889',
-          source_module: 'FLEET',
-          status: 'POSTED'
-        },
-        {
-          id: 'gl-4',
-          entry_number: 'JRN-2026-9002',
-          posted_at: new Date(Date.now() - 3600000).toISOString(),
-          description: 'Fleet fuel expenses (Bank)',
-          account_name: 'Cash in Bank',
-          debit: 0,
-          credit: 12800,
-          reference_number: 'FLT-889',
-          source_module: 'FLEET',
-          status: 'POSTED'
-        }
-      ];
-      
-      const filtered = search 
-        ? mockEntries.filter(e => e.description.toLowerCase().includes(search.toLowerCase()) || e.account_name.toLowerCase().includes(search.toLowerCase())) 
-        : mockEntries;
 
-      setEntries(filtered);
-      setSummary({
-        total_entries: 145,
-        total_debit: 11340200,
-        total_credit: 11340200
+      const response = await apiClient.get('/dashboard/gl', {
+        params: search ? { search } : {},
       });
-      
+
+      const rows: GLEntry[] = response.data?.data ?? [];
+      setEntries(rows);
+
+      // Compute summary totals dynamically from the fetched rows
+      const totalDebit = rows.reduce((sum, e) => sum + Number(e.debit || 0), 0);
+      const totalCredit = rows.reduce((sum, e) => sum + Number(e.credit || 0), 0);
+
+      setSummary({
+        total_entries: rows.length,
+        total_debit: totalDebit,
+        total_credit: totalCredit,
+        net: totalCredit - totalDebit,
+      });
+
     } catch (err: any) {
-      setError(err.message || 'Unable to connect to server.');
+      setError(err.response?.data?.message || err.message || 'Unable to connect to server.');
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +68,7 @@ export const GeneralLedgerPage: React.FC = () => {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       fetchGL(value);
@@ -192,7 +144,7 @@ export const GeneralLedgerPage: React.FC = () => {
             Simplified journal entry view of all posted financial transactions.
           </p>
         </div>
-        
+
         {/* Search Bar — instant debounced search */}
         <div className="mt-4 md:mt-0 relative w-full md:w-80">
           <form onSubmit={handleSearchSubmit}>
@@ -218,7 +170,7 @@ export const GeneralLedgerPage: React.FC = () => {
             </div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Unable to Connect</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{error}</p>
-            <button 
+            <button
               onClick={() => fetchGL(searchTerm)}
               className="px-5 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
             >
@@ -329,13 +281,13 @@ export const GeneralLedgerPage: React.FC = () => {
                     ))
                   )}
                 </tbody>
-                
+
                 {/* Totals Footer */}
                 {!isLoading && summary && entries.length > 0 && (
                   <tfoot className="bg-slate-50 dark:bg-slate-700/50 border-t-2 border-gray-200 dark:border-slate-600">
                     <tr>
                       <td colSpan={3} className="px-4 py-4 text-right font-bold text-slate-900 dark:text-white uppercase text-xs tracking-wider">
-                        Totals
+                        Totals <span className="text-slate-400 dark:text-slate-500 font-normal normal-case">(Net: {formatCurrency(summary.net)})</span>
                       </td>
                       <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
                         {formatCurrency(summary.total_debit)}

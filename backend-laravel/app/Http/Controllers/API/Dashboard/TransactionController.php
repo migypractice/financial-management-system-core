@@ -42,13 +42,11 @@ class TransactionController extends Controller
      */
     public function approve(Transaction $transaction, Request $request): JsonResponse
     {
-        // TODO: Enforce Authorization using Policies or Middleware
-        // $this->authorize('approve', $transaction);
-
         $user = $request->user();
         if (!$user) {
             abort(401, 'Unauthorized');
         }
+        $this->authorize('approve', $transaction);
         $userId = $user->id;
 
         try {
@@ -74,13 +72,11 @@ class TransactionController extends Controller
      */
     public function reject(Transaction $transaction, Request $request): JsonResponse
     {
-        // TODO: Enforce Authorization using Policies or Middleware
-        // $this->authorize('reject', $transaction);
-
         $user = $request->user();
         if (!$user) {
             abort(401, 'Unauthorized');
         }
+        $this->authorize('reject', $transaction);
         $userId = $user->id;
         $reason = $request->input('reason');
 

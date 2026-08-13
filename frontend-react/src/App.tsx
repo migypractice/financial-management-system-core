@@ -11,6 +11,8 @@ import BudgetPage from './pages/Budget/BudgetPage';
 import CashManagementPage from './pages/Cash/CashManagementPage';
 import ReportsPage from './pages/Reports/ReportsPage';
 import TaxManagementPage from './pages/Tax/TaxManagementPage';
+import SimulatorPage from './pages/Simulator/SimulatorPage';
+import AuditLogPage from './pages/AuditLog/AuditLogPage';
 
 
 import { useAuth } from './context/AuthContext';
@@ -28,6 +30,8 @@ type AppRoute =
   | '/cash' 
   | '/reports' 
   | '/tax'
+  | '/simulator'
+  | '/audit-logs'
 ;
 
 export const App: React.FC = () => {
@@ -70,6 +74,10 @@ export const App: React.FC = () => {
         return <ReportsPage />;
       case '/tax':
         return <TaxManagementPage />;
+      case '/simulator':
+        return <SimulatorPage />;
+      case '/audit-logs':
+        return <AuditLogPage />;
 
       default:
         return (
