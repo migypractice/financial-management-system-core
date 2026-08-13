@@ -3,9 +3,10 @@ FROM php:8.5-apache
 # Install dependencies
 RUN apt-get update && apt-get install -y \
     libzip-dev \
+    libpq-dev \
     zip \
     unzip \
-    && docker-php-ext-install pdo pdo_mysql zip
+    && docker-php-ext-install pdo pdo_pgsql zip
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -28,6 +29,8 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 RUN a2enmod rewrite
 
-# Expose port and start Apache
+# Expose port and start Apache.
+# Migrations only — safe to re-run on every boot (only applies pending ones).
+# Seeding is a one-time manual step (see deployment docs), not run automatically.
 EXPOSE 80
-CMD php artisan migrate --force && php artisan db:seed --force && apache2-foreground
+CMD php artisan config:cache && php artisan migrate --force && apache2-foreground

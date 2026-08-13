@@ -16,6 +16,12 @@ class TransactionSeeder extends Seeder
 {
     public function run(): void
     {
+        // Idempotency guard: don't duplicate demo transactions if this seeder
+        // runs more than once against the same database (e.g. redeploys).
+        if (DB::table('transactions')->exists()) {
+            return;
+        }
+
         // Grab subsystem IDs
         $subsystems = DB::table('subsystems')->pluck('id', 'slug')->toArray();
         $glId   = $subsystems['general-ledger'] ?? null;
