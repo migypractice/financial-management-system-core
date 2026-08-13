@@ -38,10 +38,10 @@ export const CollectionPage: React.FC = () => {
   const filtered = filter === 'ALL' ? collections : collections.filter((c) => c.status === filter);
 
   return (
-    <div className="p-6 bg-slate-50 min-h-full space-y-6">
+    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Collection Management</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Automated invoice matching, deposit reconciliation, and unallocated fund tracking.</p>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Collection Management</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Automated invoice matching, deposit reconciliation, and unallocated fund tracking.</p>
       </div>
 
       {/* Summary */}
@@ -59,7 +59,9 @@ export const CollectionPage: React.FC = () => {
             key={key}
             onClick={() => setFilter(key)}
             className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-              filter === key ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 border border-gray-200'
+              filter === key
+                ? 'bg-slate-900 text-white'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600'
             }`}
           >
             {key === 'ALL' ? `All (${collections.length})` : `${STATUS_CONFIG[key].label} (${collections.filter((c) => c.status === key).length})`}
@@ -68,9 +70,9 @@ export const CollectionPage: React.FC = () => {
       </div>
 
       {/* Collections Table */}
-      <div className="bg-white rounded-xl border border-gray-150 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 overflow-hidden">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50/80 text-[11px] text-slate-500 uppercase border-b border-gray-200 font-semibold tracking-wider">
+          <thead className="bg-slate-50/80 dark:bg-slate-700/50 text-[11px] text-slate-500 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-600 font-semibold tracking-wider">
             <tr>
               <th className="px-5 py-3">Deposit Ref</th>
               <th className="px-5 py-3">Source Bank/Gateway</th>
@@ -81,25 +83,25 @@ export const CollectionPage: React.FC = () => {
               <th className="px-5 py-3 text-right">Amount</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
             {filtered.map((col) => {
                const s = STATUS_CONFIG[col.status];
                return (
-                <tr key={col.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="px-5 py-3.5 font-mono font-semibold text-slate-700">{col.depositReference}</td>
-                  <td className="px-5 py-3.5 font-medium text-slate-800">{col.source}</td>
-                  <td className="px-5 py-3.5 text-slate-600">{col.date}</td>
+                <tr key={col.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors">
+                  <td className="px-5 py-3.5 font-mono font-semibold text-slate-700 dark:text-slate-300">{col.depositReference}</td>
+                  <td className="px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200">{col.source}</td>
+                  <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">{col.date}</td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${s.bg} ${s.text}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
                       {s.label}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 font-mono text-slate-500">{col.matchedInvoice || '-'}</td>
-                  <td className="px-5 py-3.5 text-slate-600">
+                  <td className="px-5 py-3.5 font-mono text-slate-500 dark:text-slate-400">{col.matchedInvoice || '-'}</td>
+                  <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">
                     {col.confidenceScore ? `${(col.confidenceScore * 100).toFixed(0)}%` : '-'}
                   </td>
-                  <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 tabular-nums">
+                  <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white tabular-nums">
                     PHP {col.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>

@@ -53,7 +53,7 @@ export const App: React.FC = () => {
   const renderPage = () => {
     switch (activePath) {
       case '/dashboard':
-        return <DashboardPage />;
+        return <DashboardPage onNavigate={(path) => setActivePath(path as AppRoute)} />;
       case '/approvals':
         return <ApprovalsPage />;
       case '/gl':
@@ -93,7 +93,9 @@ export const App: React.FC = () => {
 
   return (
     <DashboardLayout activePath={activePath} onNavigate={(path) => setActivePath(path as AppRoute)}>
-      {renderPage()}
+      <div key={activePath} className="h-full animate-fadeIn">
+        {renderPage()}
+      </div>
     </DashboardLayout>
   );
 };

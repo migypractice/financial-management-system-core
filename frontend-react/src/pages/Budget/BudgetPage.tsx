@@ -25,10 +25,10 @@ export const BudgetPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-6 bg-slate-50 min-h-full space-y-6">
+    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Budget Management</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Departmental allocations, encumbrances, and variance alerts (FY 2026).</p>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Budget Management</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Departmental allocations, encumbrances, and variance alerts (FY 2026).</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -39,33 +39,33 @@ export const BudgetPage: React.FC = () => {
           const isWarning = pct > 90;
 
           return (
-            <div key={b.id} className={`bg-white rounded-xl border p-5 ${isWarning ? 'border-red-200 shadow-sm' : 'border-gray-150'}`}>
+            <div key={b.id} className={`bg-white dark:bg-slate-800 rounded-xl border p-5 ${isWarning ? 'border-red-200 dark:border-red-800 shadow-sm' : 'border-gray-150 dark:border-slate-700'}`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-800">{b.department}</h3>
+                <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{b.department}</h3>
                 {isWarning && (
-                  <span className="px-2 py-0.5 bg-red-50 text-red-700 text-[10px] font-bold uppercase rounded border border-red-100">
+                  <span className="px-2 py-0.5 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] font-bold uppercase rounded border border-red-100 dark:border-red-800">
                     Nearing Limit
                   </span>
                 )}
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <ProgressBar value={totalUtilized} max={b.allocated} size="md" />
                 </div>
-                
+
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <p className="text-slate-500 mb-1">Allocated</p>
-                    <p className="font-mono font-bold text-slate-900">PHP {(b.allocated / 1000000).toFixed(1)}M</p>
+                    <p className="text-slate-500 dark:text-slate-400 mb-1">Allocated</p>
+                    <p className="font-mono font-bold text-slate-900 dark:text-white">PHP {(b.allocated / 1000000).toFixed(1)}M</p>
                   </div>
                   <div>
-                    <p className="text-slate-500 mb-1">Utilized</p>
-                    <p className="font-mono font-semibold text-slate-700">PHP {(totalUtilized / 1000000).toFixed(1)}M</p>
+                    <p className="text-slate-500 dark:text-slate-400 mb-1">Utilized</p>
+                    <p className="font-mono font-semibold text-slate-700 dark:text-slate-300">PHP {(totalUtilized / 1000000).toFixed(1)}M</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-slate-500 mb-1">Remaining</p>
-                    <p className={`font-mono font-bold ${isWarning ? 'text-red-600' : 'text-emerald-600'}`}>
+                    <p className="text-slate-500 dark:text-slate-400 mb-1">Remaining</p>
+                    <p className={`font-mono font-bold ${isWarning ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                       PHP {(remaining / 1000000).toFixed(1)}M
                     </p>
                   </div>

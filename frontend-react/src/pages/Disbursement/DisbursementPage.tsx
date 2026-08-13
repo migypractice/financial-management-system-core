@@ -39,29 +39,29 @@ export const DisbursementPage: React.FC = () => {
   const filtered = filter === 'ALL' ? batches : batches.filter((b) => b.status === filter);
 
   return (
-    <div className="p-6 bg-slate-50 min-h-full space-y-6">
+    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Disbursement Management</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Outbound payment batches, payroll execution, and settlement tracking.</p>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Disbursement Management</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Outbound payment batches, payroll execution, and settlement tracking.</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-150 p-4">
-          <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mb-2">Pending Execution</p>
-          <p className="text-xl font-bold text-slate-900 font-mono tabular-nums">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 p-4">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-2">Pending Execution</p>
+          <p className="text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             PHP {batches.filter(b => b.status === 'pending_execution').reduce((sum, b) => sum + b.totalAmount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-150 p-4 border-l-4 border-l-blue-500">
-          <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mb-2">Processing (Bank Queue)</p>
-          <p className="text-xl font-bold text-slate-900 font-mono tabular-nums">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 p-4 border-l-4 border-l-blue-500">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-2">Processing (Bank Queue)</p>
+          <p className="text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             PHP {batches.filter(b => b.status === 'processing').reduce((sum, b) => sum + b.totalAmount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-150 p-4 border-l-4 border-l-red-500">
-          <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mb-2">Failed Disbursements</p>
-          <p className="text-xl font-bold text-slate-900 font-mono tabular-nums">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 p-4 border-l-4 border-l-red-500">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mb-2">Failed Disbursements</p>
+          <p className="text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             PHP {batches.filter(b => b.status === 'failed').reduce((sum, b) => sum + b.totalAmount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
         </div>
@@ -74,7 +74,9 @@ export const DisbursementPage: React.FC = () => {
             key={key}
             onClick={() => setFilter(key)}
             className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-              filter === key ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 border border-gray-200'
+              filter === key
+                ? 'bg-slate-900 text-white'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600'
             }`}
           >
             {key === 'ALL' ? `All (${batches.length})` : `${STATUS_CONFIG[key].label} (${batches.filter((b) => b.status === key).length})`}
@@ -83,9 +85,9 @@ export const DisbursementPage: React.FC = () => {
       </div>
 
       {/* Batches Table */}
-      <div className="bg-white rounded-xl border border-gray-150 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 overflow-hidden">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50/80 text-[11px] text-slate-500 uppercase border-b border-gray-200 font-semibold tracking-wider">
+          <thead className="bg-slate-50/80 dark:bg-slate-700/50 text-[11px] text-slate-500 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-600 font-semibold tracking-wider">
             <tr>
               <th className="px-5 py-3">Batch Ref</th>
               <th className="px-5 py-3">Category</th>
@@ -96,23 +98,23 @@ export const DisbursementPage: React.FC = () => {
               <th className="px-5 py-3 text-right">Total Amount</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
             {filtered.map((batch) => {
                const s = STATUS_CONFIG[batch.status];
                return (
-                <tr key={batch.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="px-5 py-3.5 font-mono font-semibold text-slate-700">{batch.batchReference}</td>
-                  <td className="px-5 py-3.5 font-medium text-slate-800">{batch.category}</td>
-                  <td className="px-5 py-3.5 font-mono text-slate-500">{batch.bankAccount}</td>
-                  <td className="px-5 py-3.5 text-slate-600">{batch.scheduledDate}</td>
-                  <td className="px-5 py-3.5 text-center font-mono text-slate-600">{batch.recipientCount}</td>
+                <tr key={batch.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors">
+                  <td className="px-5 py-3.5 font-mono font-semibold text-slate-700 dark:text-slate-300">{batch.batchReference}</td>
+                  <td className="px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200">{batch.category}</td>
+                  <td className="px-5 py-3.5 font-mono text-slate-500 dark:text-slate-400">{batch.bankAccount}</td>
+                  <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">{batch.scheduledDate}</td>
+                  <td className="px-5 py-3.5 text-center font-mono text-slate-600 dark:text-slate-400">{batch.recipientCount}</td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${s.bg} ${s.text}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
                       {s.label}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 tabular-nums">
+                  <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white tabular-nums">
                     PHP {batch.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>

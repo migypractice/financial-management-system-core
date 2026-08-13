@@ -47,7 +47,7 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; onDismiss: (
   }, [onDismiss]);
 
   return (
-    <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold transition-all ${
+    <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold transition-all animate-slideInRight ${
       type === 'success'
         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
         : 'bg-red-50 text-red-700 border-red-200'
@@ -265,7 +265,7 @@ export const ApprovalsPage: React.FC = () => {
             return (
               <div
                 key={tx.id}
-                className={`bg-white dark:bg-slate-800 rounded-xl border p-5 transition-all hover:shadow-sm ${
+                className={`card-hover bg-white dark:bg-slate-800 rounded-xl border p-5 hover:shadow-md ${
                   isProcessing ? 'opacity-75' : ''
                 } ${
                   tx.status === 'ai_flagged'

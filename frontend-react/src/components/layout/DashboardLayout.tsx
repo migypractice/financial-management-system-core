@@ -79,7 +79,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-slate-900 font-sans overflow-hidden" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+    <div className="print:block print:h-auto flex h-screen bg-gray-50 dark:bg-slate-900 font-sans overflow-hidden" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
 
       {/* Mobile Backdrop */}
       {mobileMenuOpen && (
@@ -91,7 +91,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
       {/* ── Sidebar ── */}
       <aside
-        className={`fixed md:relative flex flex-col h-full shrink-0 transition-all duration-300 z-50 ${
+        className={`print:hidden fixed md:relative flex flex-col h-full shrink-0 transition-all duration-300 z-50 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
         style={{
@@ -100,26 +100,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         }}
       >
         {/* Brand — Archon Nell Logo */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
+        <div className="px-3 py-3 border-b border-white/10">
           {collapsed ? (
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/20">
-              <span className="text-white font-bold text-sm tracking-wider">AN</span>
+            <div className="w-10 h-10 shrink-0 rounded-lg bg-white p-1 shadow-sm flex items-center justify-center overflow-hidden mx-auto">
+              <img src="/archon-nell-logo.png" alt="Archon Nell Incorporated" className="w-full h-full object-contain" />
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/20">
-                <span className="text-white font-bold text-sm tracking-wider">AN</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-white font-bold text-[11px] tracking-tight leading-none">ARCHON NELL</p>
-                <p className="text-blue-300/70 text-[9px] mt-0.5 tracking-wider uppercase">Financial System</p>
-              </div>
+            <div className="w-full h-16 rounded-lg bg-white shadow-sm overflow-hidden">
+              <img
+                src="/archon-nell-logo.png"
+                alt="Archon Nell Incorporated"
+                className="w-full h-full object-cover"
+                style={{ objectPosition: 'center 47%' }}
+              />
             </div>
           )}
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activePath === item.path;
@@ -128,9 +127,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 key={item.path}
                 onClick={() => handleNav(item.path)}
                 title={collapsed ? item.label : undefined}
-                className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg transition-all duration-150 text-left group relative ${
+                style={isActive ? { background: 'linear-gradient(135deg, #4f46e5, #2563eb)' } : undefined}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left group relative ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30'
+                    ? 'text-white shadow-md shadow-blue-900/30'
                     : 'text-blue-200/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
@@ -214,10 +214,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       </aside>
 
       {/* ── Main ── */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="print:block print:h-auto flex-1 flex flex-col h-full overflow-hidden">
 
         {/* Top bar */}
-        <header className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-3 flex items-center justify-between shrink-0">
+        <header className="print:hidden bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setMobileMenuOpen(true)}
@@ -267,7 +267,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-900">
+        <main className="print:overflow-visible print:h-auto flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-900">
           {children}
         </main>
       </div>

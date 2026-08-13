@@ -5,6 +5,11 @@ import {
   BookOpen, CreditCard, Send, PieChart, BarChart2,
   Receipt, Inbox, Activity
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+
+interface DashboardPageProps {
+  onNavigate?: (path: string) => void;
+}
 
 const recentTransactions = [
   { code: 'TXN-2026-8801', module: 'SUPPLY_CHAIN', amount: 685000, status: 'ai_flagged', time: '2 min ago' },
@@ -22,22 +27,32 @@ const statusConfig: Record<string, { bg: string; text: string; border: string; i
 };
 
 const quickAccessItems = [
-  { label: 'General Ledger', icon: BookOpen, color: 'bg-blue-50 text-blue-600' },
-  { label: 'Accounts Payable', icon: CreditCard, color: 'bg-orange-50 text-orange-600' },
-  { label: 'Disbursement', icon: Send, color: 'bg-purple-50 text-purple-600' },
-  { label: 'Reports', icon: BarChart2, color: 'bg-teal-50 text-teal-600' },
-  { label: 'Budget', icon: PieChart, color: 'bg-pink-50 text-pink-600' },
-  { label: 'Collections', icon: Inbox, color: 'bg-indigo-50 text-indigo-600' },
-  { label: 'Cash Mgmt', icon: Landmark, color: 'bg-green-50 text-green-600' },
-  { label: 'Tax', icon: Receipt, color: 'bg-red-50 text-red-600' },
+  { label: 'General Ledger', icon: BookOpen, color: 'bg-blue-50 text-blue-600', path: '/gl' },
+  { label: 'Accounts Payable', icon: CreditCard, color: 'bg-orange-50 text-orange-600', path: '/ap' },
+  { label: 'Disbursement', icon: Send, color: 'bg-purple-50 text-purple-600', path: '/disbursements' },
+  { label: 'Reports', icon: BarChart2, color: 'bg-teal-50 text-teal-600', path: '/reports' },
+  { label: 'Budget', icon: PieChart, color: 'bg-pink-50 text-pink-600', path: '/budget' },
+  { label: 'Collections', icon: Inbox, color: 'bg-indigo-50 text-indigo-600', path: '/collections' },
+  { label: 'Cash Mgmt', icon: Landmark, color: 'bg-green-50 text-green-600', path: '/cash' },
+  { label: 'Tax', icon: Receipt, color: 'bg-red-50 text-red-600', path: '/tax' },
 ];
 
 const moduleHealth = [
-  'General Ledger', 'Accounts Payable', 'Accounts Receivable',
-  'Disbursement', 'Collections', 'Budget Mgmt', 'Cash Mgmt', 'Fin. Reports', 'Tax Mgmt',
+  { label: 'General Ledger', path: '/gl' },
+  { label: 'Accounts Payable', path: '/ap' },
+  { label: 'Accounts Receivable', path: '/ar' },
+  { label: 'Disbursement', path: '/disbursements' },
+  { label: 'Collections', path: '/collections' },
+  { label: 'Budget Mgmt', path: '/budget' },
+  { label: 'Cash Mgmt', path: '/cash' },
+  { label: 'Fin. Reports', path: '/reports' },
+  { label: 'Tax Mgmt', path: '/tax' },
 ];
 
-export const DashboardPage: React.FC = () => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
+  const { user } = useAuth();
+  const firstName = user?.name?.split(' ')[0] || 'there';
+
   return (
     <div className="p-6 space-y-5" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
 
@@ -45,14 +60,17 @@ export const DashboardPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            Welcome back, Rexseme! 👋
+            Welcome back, {firstName}! 👋
           </h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
             Here's what's happening in your Transaction Core today.
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}>
+        <button
+          onClick={() => onNavigate?.('/simulator')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md transition-all hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}
+        >
           + Add New
         </button>
       </div>
@@ -103,7 +121,7 @@ export const DashboardPage: React.FC = () => {
             iconBg: 'bg-amber-100 text-amber-600',
           },
         ].map((kpi) => (
-          <div key={kpi.label} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div key={kpi.label} className="card-hover bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm hover:shadow-md">
             <div className="flex items-start justify-between">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpi.iconBg}`}>
                 {kpi.icon}
@@ -119,6 +137,30 @@ export const DashboardPage: React.FC = () => {
         ))}
       </div>
 
+      {/* Quick Access — kept above the fold, right under the KPIs, so it never requires scrolling */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-slate-700">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white">Quick Access</h2>
+        </div>
+        <div className="p-3 grid grid-cols-4 sm:grid-cols-8 gap-2">
+          {quickAccessItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.label}
+                onClick={() => onNavigate?.(item.path)}
+                className="flex flex-col items-center gap-1.5 group py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors"
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform shadow-sm`}>
+                  <Icon size={16} />
+                </div>
+                <span className="text-[9px] font-medium text-gray-500 dark:text-slate-400 text-center leading-tight">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Main 3-column grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
@@ -132,7 +174,10 @@ export const DashboardPage: React.FC = () => {
               </h2>
               <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">Latest inbound and outbound financial movements</p>
             </div>
-            <button className="text-[11px] text-blue-600 font-semibold hover:underline flex items-center gap-1">
+            <button
+              onClick={() => onNavigate?.('/approvals')}
+              className="text-[11px] text-blue-600 font-semibold hover:underline flex items-center gap-1"
+            >
               View All <ArrowUpRight size={11} />
             </button>
           </div>
@@ -175,46 +220,26 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right column: Module Status + Quick Access */}
-        <div className="space-y-5">
-
-          {/* Module Health */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white">Module Status</h2>
-              <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">All 9 Transaction Core subsystems</p>
-            </div>
-            <div className="divide-y divide-gray-50 dark:divide-slate-700 px-2 py-1">
-              {moduleHealth.map((m) => (
-                <div key={m} className="px-3 py-2 flex items-center justify-between">
-                  <span className="text-xs text-gray-700 dark:text-slate-300 font-medium">{m}</span>
-                  <span className="flex items-center gap-1.5 text-[11px] text-green-600 font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    Operational
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Right column: Module Status */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden h-fit">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white">Module Status</h2>
+            <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">All 9 Transaction Core subsystems</p>
           </div>
-
-          {/* Quick Access */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white">Quick Access</h2>
-            </div>
-            <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {quickAccessItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button key={item.label} className="flex flex-col items-center gap-1.5 group">
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform shadow-sm`}>
-                      <Icon size={18} />
-                    </div>
-                    <span className="text-[9px] font-medium text-gray-500 dark:text-slate-400 text-center leading-tight">{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="divide-y divide-gray-50 dark:divide-slate-700 px-2 py-1">
+            {moduleHealth.map((m) => (
+              <button
+                key={m.label}
+                onClick={() => onNavigate?.(m.path)}
+                className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/40 rounded-lg transition-colors text-left"
+              >
+                <span className="text-xs text-gray-700 dark:text-slate-300 font-medium">{m.label}</span>
+                <span className="flex items-center gap-1.5 text-[11px] text-green-600 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Operational
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       </div>

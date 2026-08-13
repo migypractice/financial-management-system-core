@@ -47,24 +47,24 @@ export const AccountsPayablePage: React.FC = () => {
   const filtered = filter === 'ALL' ? invoices : invoices.filter((i) => i.status === filter);
 
   return (
-    <div className="p-6 bg-slate-50 min-h-full space-y-6">
+    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Accounts Payable</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Supplier invoices, vendor aging analysis, and payout authorization.</p>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Accounts Payable</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Supplier invoices, vendor aging analysis, and payout authorization.</p>
       </div>
 
       {/* Aging buckets */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {agingBuckets.map((b) => (
-          <div key={b.label} className="bg-white rounded-xl border border-gray-150 p-4">
+          <div key={b.label} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">{b.label}</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">{b.label}</span>
               <span className={`w-2 h-2 rounded-full ${b.color}`} />
             </div>
-            <p className="text-lg font-bold text-slate-900 font-mono tabular-nums">
+            <p className="text-lg font-bold text-slate-900 dark:text-white font-mono tabular-nums">
               PHP {b.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">{b.count} invoice{b.count !== 1 ? 's' : ''} &middot; {b.range}</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{b.count} invoice{b.count !== 1 ? 's' : ''} &middot; {b.range}</p>
           </div>
         ))}
       </div>
@@ -76,7 +76,9 @@ export const AccountsPayablePage: React.FC = () => {
             key={key}
             onClick={() => setFilter(key)}
             className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-              filter === key ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 border border-gray-200'
+              filter === key
+                ? 'bg-slate-900 text-white'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600'
             }`}
           >
             {key === 'ALL' ? `All (${invoices.length})` : `${STATUS_CONFIG[key].label} (${invoices.filter((i) => i.status === key).length})`}
@@ -85,9 +87,9 @@ export const AccountsPayablePage: React.FC = () => {
       </div>
 
       {/* Invoice table */}
-      <div className="bg-white rounded-xl border border-gray-150 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 overflow-hidden">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50/80 text-[11px] text-slate-500 uppercase border-b border-gray-200 font-semibold tracking-wider">
+          <thead className="bg-slate-50/80 dark:bg-slate-700/50 text-[11px] text-slate-500 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-600 font-semibold tracking-wider">
             <tr>
               <th className="px-5 py-3">Vendor</th>
               <th className="px-5 py-3">Invoice #</th>
@@ -98,23 +100,23 @@ export const AccountsPayablePage: React.FC = () => {
               <th className="px-5 py-3 text-right">Amount</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
             {filtered.map((inv) => {
               const s = STATUS_CONFIG[inv.status];
               return (
-                <tr key={inv.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-slate-800">{inv.vendorName}</td>
-                  <td className="px-5 py-3.5 font-mono text-slate-600">{inv.invoiceNumber}</td>
-                  <td className="px-5 py-3.5 font-mono text-slate-400">{inv.poReference}</td>
-                  <td className="px-5 py-3.5 text-slate-500">{inv.department}</td>
-                  <td className="px-5 py-3.5 font-mono text-slate-600">{inv.dueDate}</td>
+                <tr key={inv.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors">
+                  <td className="px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200">{inv.vendorName}</td>
+                  <td className="px-5 py-3.5 font-mono text-slate-600 dark:text-slate-400">{inv.invoiceNumber}</td>
+                  <td className="px-5 py-3.5 font-mono text-slate-400 dark:text-slate-500">{inv.poReference}</td>
+                  <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400">{inv.department}</td>
+                  <td className="px-5 py-3.5 font-mono text-slate-600 dark:text-slate-400">{inv.dueDate}</td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${s.bg} ${s.text}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
                       {s.label}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 tabular-nums">
+                  <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white tabular-nums">
                     PHP {inv.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>

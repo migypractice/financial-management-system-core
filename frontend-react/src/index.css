@@ -10,3 +10,23 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Give every clickable button a tactile press response app-wide, so
+   interactive elements read as "pressable" even without a bespoke style. */
+@layer base {
+  button:not(:disabled) {
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+}
+
+@layer utilities {
+  .card-hover {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+  }
+}
