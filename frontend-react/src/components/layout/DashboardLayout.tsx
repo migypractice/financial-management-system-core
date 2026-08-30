@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
@@ -37,6 +37,17 @@ const navItems: NavItem[] = [
   { path: '/simulator',     label: 'M2M Simulator',       icon: Settings },
 ];
 
+const representativeNotifications = [
+  { id: 1, title: 'Transaction Flagged', desc: 'AI flagged TXN-2026-8801. Awaiting manager review.', time: '2 min ago', type: 'alert', action: 'View Approvals', path: '/approvals' },
+  { id: 2, title: 'GL Aggregation', desc: 'Daily SQL aggregation completed successfully.', time: '1 hr ago', type: 'info' },
+  { id: 3, title: 'System Update', desc: 'M2M Simulator v1.0 deployed to staging environment.', time: '3 hrs ago', type: 'info' },
+];
+
+const representativeMessages = [
+  { id: 1, sender: 'Supply Chain Team', subject: 'M2M Integration Sync', preview: 'We updated the API keys for the outbound simulator. Please check the documentation when you have a moment.', time: '10:30 AM' },
+  { id: 2, sender: 'System Admin', subject: 'Scheduled Maintenance', preview: 'The analytics DB will be paused tonight for indexing. Core transactions will not be affected.', time: 'Yesterday' },
+];
+
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
@@ -51,6 +62,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
+  
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [mailOpen, setMailOpen] = useState(false);
+  
+  const headerRef = useRef<HTMLDivElement>(null);
   const { logout, user } = useAuth();
 
   useEffect(() => {
@@ -62,6 +78,27 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+        setMailOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setNotificationsOpen(false);
+        setMailOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   const activeUserName = user ? user.name : userName;
   const activeUserRole = user ? user.role : userRole;
@@ -76,6 +113,16 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const handleNav = (path: string) => {
     if (onNavigate) onNavigate(path);
     setMobileMenuOpen(false);
+  };
+
+  const toggleNotifications = () => {
+    setNotificationsOpen(!notificationsOpen);
+    setMailOpen(false);
+  };
+
+  const toggleMail = () => {
+    setMailOpen(!mailOpen);
+    setNotificationsOpen(false);
   };
 
   return (
@@ -227,7 +274,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" ref={headerRef}>
             {/* Dark Mode Toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
@@ -238,16 +285,107 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </button>
 
             {/* Notification Bell */}
-            <button className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300">
-              <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={toggleNotifications}
+                aria-label="Notifications"
+                aria-expanded={notificationsOpen}
+                className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
+              >
+                <Bell size={16} />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+              </button>
+
+              {notificationsOpen && (
+                <div className="absolute top-full mt-2 right-0 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
+                    <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Notifications</h3>
+                    <span className="text-[10px] text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-full border border-gray-200 dark:border-slate-600">3 New</span>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-700/50">
+                    {representativeNotifications.map(n => (
+                      <div key={n.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${n.type === 'alert' ? 'bg-red-500' : 'bg-blue-500'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.title}</p>
+                            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-snug">{n.desc}</p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500">{n.time}</span>
+                              {n.action && (
+                                <button 
+                                  onClick={() => {
+                                    handleNav(n.path!);
+                                    setNotificationsOpen(false);
+                                  }}
+                                  className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  {n.action}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-2 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+                    <button 
+                      onClick={() => setNotificationsOpen(false)}
+                      className="w-full py-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    >
+                      Mark all as read
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Mail */}
-            <button className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300">
-              <Mail size={16} />
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center px-1 bg-blue-600 text-white text-[9px] rounded-full font-bold">2</span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={toggleMail}
+                aria-label="Messages"
+                aria-expanded={mailOpen}
+                className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
+              >
+                <Mail size={16} />
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center px-1 bg-blue-600 text-white text-[9px] rounded-full font-bold">2</span>
+              </button>
+
+              {mailOpen && (
+                <div className="absolute top-full mt-2 right-0 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
+                    <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Messages</h3>
+                    <span className="text-[10px] text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-full border border-gray-200 dark:border-slate-600">2 Unread</span>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-700/50">
+                    {representativeMessages.map(m => (
+                      <button 
+                        key={m.id} 
+                        className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" 
+                        onClick={() => setMailOpen(false)}
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <p className="text-xs font-bold text-gray-900 dark:text-white">{m.sender}</p>
+                          <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 shrink-0 ml-2">{m.time}</span>
+                        </div>
+                        <p className="text-xs font-semibold text-gray-800 dark:text-slate-200 truncate">{m.subject}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-snug">{m.preview}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="p-2 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+                    <button 
+                      onClick={() => setMailOpen(false)}
+                      className="w-full py-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    >
+                      View all messages
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Divider */}
             <div className="w-px h-6 bg-gray-200 dark:bg-slate-600" />
