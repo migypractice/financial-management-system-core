@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Send, Zap, CheckCircle2, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Send, Zap, CheckCircle2, AlertTriangle, XCircle, Loader2, RotateCcw, Copy } from 'lucide-react';
 
 /**
  * M2M API Simulator (Dev Mode)
@@ -91,7 +91,7 @@ interface ApiResponse {
   transaction_id: string;
   transaction_code: string;
   workflow_status: string;
-  ai_evaluation: {
+  ai_evaluation?: {
     confidence_score: number;
     suggested_gl_code: string;
     anomaly_detected: boolean;
@@ -102,9 +102,18 @@ interface LogEntry {
   id: string;
   timestamp: string;
   scenario: string;
-  status: 'success' | 'error' | 'flagged';
+  status: 'success' | 'error' | 'flagged' | 'duplicate' | 'conflict';
+  httpStatus?: number;
   response?: ApiResponse;
   error?: string;
+}
+
+/** Stored snapshot of the last successfully sent request for idempotency testing */
+interface LastRequest {
+  url: string;
+  body: Record<string, unknown>;
+  idempotencyKey: string;
+  scenarioLabel: string;
 }
 
 export const SimulatorPage: React.FC = () => {
@@ -116,6 +125,9 @@ export const SimulatorPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
+  // Stores the last successful request for idempotency resend
+  const lastRequestRef = useRef<LastRequest | null>(null);
+
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
   // Dev-only shared secret for /api/v1/integration/* (ApiKeyMiddleware). Set in
@@ -124,6 +136,115 @@ export const SimulatorPage: React.FC = () => {
   const INTEGRATION_API_KEY = (import.meta.env.VITE_INTEGRATION_API_KEY || '').trim();
   const isSimulatorConfigured = INTEGRATION_API_KEY.length > 0;
 
+  /**
+   * Core send function. Accepts a pre-built URL, body, idempotency key, and label.
+   * Handles HTTP error classification (FIX 1), error message extraction (FIX 3),
+   * and AI response safety (FIX 4).
+   */
+  const executeSend = async (
+    url: string,
+    body: Record<string, unknown>,
+    idempotencyKey: string,
+    scenarioLabel: string,
+  ) => {
+    setLoading(true);
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Idempotency-Key': idempotencyKey,
+          'X-API-KEY': INTEGRATION_API_KEY,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const httpStatus = res.status;
+
+      // FIX 3: Parse JSON safely — some error responses may not be valid JSON
+      let data: Record<string, unknown>;
+      try {
+        data = await res.json();
+      } catch {
+        data = { message: res.statusText || 'Unexpected server response' };
+      }
+
+      // FIX 1: Check res.ok — route non-2xx responses to error UI
+      if (!res.ok) {
+        // Extract the most useful error message from the backend response
+        let errorMessage = (data.message as string) || `HTTP ${httpStatus}`;
+
+        // Laravel validation errors come as { errors: { field: ["msg"] } }
+        if (data.errors && typeof data.errors === 'object') {
+          const fieldErrors = Object.values(data.errors as Record<string, string[]>)
+            .flat()
+            .join('; ');
+          if (fieldErrors) errorMessage += ` — ${fieldErrors}`;
+        }
+
+        // Classify the error type for the log icon
+        let logStatus: LogEntry['status'] = 'error';
+        if (httpStatus === 409) logStatus = 'conflict';
+        else if (httpStatus === 200 && (data.message as string)?.includes('Duplicate')) logStatus = 'duplicate';
+
+        const logEntry: LogEntry = {
+          id: crypto.randomUUID(),
+          timestamp: new Date().toLocaleTimeString(),
+          scenario: scenarioLabel,
+          status: logStatus,
+          httpStatus,
+          error: errorMessage,
+          response: data as unknown as ApiResponse,
+        };
+
+        setLogs((prev) => [logEntry, ...prev]);
+        return;
+      }
+
+      const apiData = data as unknown as ApiResponse;
+
+      // Classify: duplicate 200 vs flagged vs normal success
+      let logStatus: LogEntry['status'] = 'success';
+      if (httpStatus === 200 && apiData.message?.includes('Duplicate')) {
+        logStatus = 'duplicate';
+      } else if (apiData.ai_evaluation?.anomaly_detected) {
+        logStatus = 'flagged';
+      }
+
+      const logEntry: LogEntry = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toLocaleTimeString(),
+        scenario: scenarioLabel,
+        status: logStatus,
+        httpStatus,
+        response: apiData,
+      };
+
+      setLogs((prev) => [logEntry, ...prev]);
+
+      // Store the successful request for idempotency resend (FIX 2)
+      lastRequestRef.current = { url, body, idempotencyKey, scenarioLabel };
+
+    } catch (err: unknown) {
+      // True network errors (CORS, DNS, backend not running)
+      const logEntry: LogEntry = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toLocaleTimeString(),
+        scenario: scenarioLabel,
+        status: 'error',
+        error: err instanceof Error ? err.message : 'Network error — Is the Laravel backend running?',
+      };
+      setLogs((prev) => [logEntry, ...prev]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Build the request payload from form state and send it.
+   */
   const sendTransaction = async (
     module: string,
     category: string,
@@ -132,8 +253,6 @@ export const SimulatorPage: React.FC = () => {
     endpoint: string,
     scenarioLabel: string
   ) => {
-    setLoading(true);
-
     const idempotencyKey = `SIM-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const isRevenue = endpoint === 'revenue';
 
@@ -161,41 +280,7 @@ export const SimulatorPage: React.FC = () => {
       ? `${API_BASE}/integration/inbound-revenue`
       : `${API_BASE}/integration/request-disbursement`;
 
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'Idempotency-Key': idempotencyKey,
-          'X-API-KEY': INTEGRATION_API_KEY,
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data: ApiResponse = await res.json();
-
-      const logEntry: LogEntry = {
-        id: crypto.randomUUID(),
-        timestamp: new Date().toLocaleTimeString(),
-        scenario: scenarioLabel,
-        status: data.ai_evaluation?.anomaly_detected ? 'flagged' : 'success',
-        response: data,
-      };
-
-      setLogs((prev) => [logEntry, ...prev]);
-    } catch (err: unknown) {
-      const logEntry: LogEntry = {
-        id: crypto.randomUUID(),
-        timestamp: new Date().toLocaleTimeString(),
-        scenario: scenarioLabel,
-        status: 'error',
-        error: err instanceof Error ? err.message : 'Network error — Is the Laravel backend running?',
-      };
-      setLogs((prev) => [logEntry, ...prev]);
-    } finally {
-      setLoading(false);
-    }
+    await executeSend(url, body, idempotencyKey, scenarioLabel);
   };
 
   const handleScenarioClick = (index: number) => {
@@ -224,6 +309,37 @@ export const SimulatorPage: React.FC = () => {
       endpoint,
       selectedScenario !== null ? SCENARIOS[selectedScenario].label : `Custom: ${customModule}`
     );
+  };
+
+  // FIX 2: Resend the exact last request (same idempotency key + same payload)
+  const handleResendLast = () => {
+    if (!lastRequestRef.current || loading) return;
+    const { url, body, idempotencyKey, scenarioLabel } = lastRequestRef.current;
+    executeSend(url, body, idempotencyKey, `♻️ Resend: ${scenarioLabel}`);
+  };
+
+  // FIX 2: Resend with same idempotency key but modified payload → triggers 409
+  const handleResendModified = () => {
+    if (!lastRequestRef.current || loading) return;
+    const { url, body, idempotencyKey, scenarioLabel } = lastRequestRef.current;
+    const modifiedBody = { ...body, amount: (body.amount as number) + 1, description: body.description + ' [MODIFIED]' };
+    executeSend(url, modifiedBody, idempotencyKey, `⚡ Conflict Test: ${scenarioLabel}`);
+  };
+
+  /** Get the status badge styling for a log entry */
+  const getStatusBadge = (status: LogEntry['status'], httpStatus?: number) => {
+    switch (status) {
+      case 'success':
+        return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: `${httpStatus || 202} Accepted` };
+      case 'flagged':
+        return { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: `${httpStatus || 202} AI Flagged` };
+      case 'duplicate':
+        return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: `${httpStatus || 200} Duplicate` };
+      case 'conflict':
+        return { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', label: '409 Conflict' };
+      case 'error':
+        return { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', label: httpStatus ? `${httpStatus} Error` : 'Network Error' };
+    }
   };
 
   return (
@@ -327,11 +443,14 @@ export const SimulatorPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Amount (PHP)</label>
+                {/* FIX 5: min and step attributes for client-side validation */}
                 <input
                   type="number"
                   value={customAmount}
                   onChange={(e) => setCustomAmount(e.target.value)}
                   placeholder="e.g. 500000"
+                  min="0.01"
+                  step="0.01"
                   className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 text-slate-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none font-mono"
                 />
               </div>
@@ -357,25 +476,50 @@ export const SimulatorPage: React.FC = () => {
               />
             </div>
 
-            <button
-              onClick={handleSend}
-              disabled={loading || !customAmount || !customDescription || !isSimulatorConfigured}
-              title={!isSimulatorConfigured ? 'Set VITE_INTEGRATION_API_KEY in .env.local first' : undefined}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Sending to Core API...
-                </>
-              ) : (
-                <>
-                  <Send size={16} />
-                  Send to Transaction Core
-                </>
+            {/* Send + Idempotency Buttons */}
+            <div className="space-y-2">
+              <button
+                onClick={handleSend}
+                disabled={loading || !customAmount || !customDescription || !isSimulatorConfigured}
+                title={!isSimulatorConfigured ? 'Set VITE_INTEGRATION_API_KEY in .env.local first' : undefined}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Sending to Core API...
+                  </>
+                ) : (
+                  <>
+                    <Send size={16} />
+                    Send to Transaction Core
+                  </>
+                )}
+              </button>
+
+              {/* FIX 2: Idempotency testing buttons */}
+              {lastRequestRef.current && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={handleResendLast}
+                    disabled={loading}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RotateCcw size={12} />
+                    Resend Last Request
+                  </button>
+                  <button
+                    onClick={handleResendModified}
+                    disabled={loading}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Copy size={12} />
+                    Same Key + Modified Payload
+                  </button>
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
 
@@ -402,60 +546,91 @@ export const SimulatorPage: React.FC = () => {
                   <p className="text-[10px] text-gray-300 mt-1">Click a scenario and hit "Send to Core"</p>
                 </div>
               ) : (
-                logs.map((log) => (
-                  <div key={log.id} className="p-4 hover:bg-slate-50/50 transition-colors">
-                    <div className="flex items-start gap-2 mb-2">
-                      {log.status === 'success' && <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 shrink-0" />}
-                      {log.status === 'flagged' && <AlertTriangle size={14} className="text-red-500 mt-0.5 shrink-0" />}
-                      {log.status === 'error' && <XCircle size={14} className="text-gray-400 mt-0.5 shrink-0" />}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-slate-700 leading-snug">{log.scenario}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{log.timestamp}</p>
+                logs.map((log) => {
+                  const badge = getStatusBadge(log.status, log.httpStatus);
+
+                  return (
+                    <div key={log.id} className="p-4 hover:bg-slate-50/50 transition-colors">
+                      <div className="flex items-start gap-2 mb-2">
+                        {log.status === 'success' && <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 shrink-0" />}
+                        {log.status === 'flagged' && <AlertTriangle size={14} className="text-red-500 mt-0.5 shrink-0" />}
+                        {log.status === 'duplicate' && <RotateCcw size={14} className="text-blue-500 mt-0.5 shrink-0" />}
+                        {log.status === 'conflict' && <XCircle size={14} className="text-orange-500 mt-0.5 shrink-0" />}
+                        {log.status === 'error' && <XCircle size={14} className="text-red-400 mt-0.5 shrink-0" />}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-slate-700 leading-snug">{log.scenario}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-[10px] text-slate-400">{log.timestamp}</p>
+                            <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border ${badge.bg} ${badge.text} ${badge.border}`}>
+                              {badge.label}
+                            </span>
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Success / Flagged / Duplicate — show transaction details */}
+                      {log.response && (log.status === 'success' || log.status === 'flagged' || log.status === 'duplicate') && (
+                        <div className={`rounded-lg p-3 mt-2 space-y-1.5 ${
+                          log.status === 'duplicate' ? 'bg-blue-50/50' : 'bg-slate-50'
+                        }`}>
+                          {log.response.message && (
+                            <p className={`text-[10px] font-medium mb-1 ${
+                              log.status === 'duplicate' ? 'text-blue-600' : 'text-slate-500'
+                            }`}>{log.response.message}</p>
+                          )}
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-500">Transaction Code</span>
+                            <span className="font-mono font-bold text-slate-800">{log.response.transaction_code}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-500">Workflow Status</span>
+                            <span className={`font-semibold ${
+                              log.response.workflow_status === 'ai_flagged' ? 'text-red-600' : 'text-amber-600'
+                            }`}>
+                              {log.response.workflow_status}
+                            </span>
+                          </div>
+                          {/* FIX 4: Only render AI evaluation when it actually exists */}
+                          {log.response.ai_evaluation && (
+                            <>
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-slate-500">AI Confidence</span>
+                                <span className="font-mono font-semibold text-slate-700">
+                                  {((log.response.ai_evaluation.confidence_score || 0) * 100).toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-slate-500">GL Code</span>
+                                <span className="font-mono text-slate-600">
+                                  {log.response.ai_evaluation.suggested_gl_code}
+                                </span>
+                              </div>
+                              {log.response.ai_evaluation.anomaly_detected && (
+                                <p className="text-[10px] text-red-600 font-medium mt-1 pt-1.5 border-t border-red-100">
+                                  🚨 AI Anomaly Detected — Flagged for human review
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Error / Conflict — show error message with HTTP status */}
+                      {(log.status === 'error' || log.status === 'conflict') && log.error && (
+                        <div className={`rounded-lg p-3 mt-2 ${
+                          log.status === 'conflict' ? 'bg-orange-50' : 'bg-red-50'
+                        }`}>
+                          <p className={`text-[11px] font-medium ${
+                            log.status === 'conflict' ? 'text-orange-700' : 'text-red-600'
+                          }`}>{log.error}</p>
+                          {!log.httpStatus && (
+                            <p className="text-[10px] text-red-400 mt-1">Run: php artisan serve</p>
+                          )}
+                        </div>
+                      )}
                     </div>
-
-                    {log.response && (
-                      <div className="bg-slate-50 rounded-lg p-3 mt-2 space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500">Transaction Code</span>
-                          <span className="font-mono font-bold text-slate-800">{log.response.transaction_code}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500">Workflow Status</span>
-                          <span className={`font-semibold ${
-                            log.response.workflow_status === 'ai_flagged' ? 'text-red-600' : 'text-amber-600'
-                          }`}>
-                            {log.response.workflow_status}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500">AI Confidence</span>
-                          <span className="font-mono font-semibold text-slate-700">
-                            {((log.response.ai_evaluation?.confidence_score || 0) * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500">GL Code</span>
-                          <span className="font-mono text-slate-600">
-                            {log.response.ai_evaluation?.suggested_gl_code}
-                          </span>
-                        </div>
-                        {log.response.ai_evaluation?.anomaly_detected && (
-                          <p className="text-[10px] text-red-600 font-medium mt-1 pt-1.5 border-t border-red-100">
-                            🚨 AI Anomaly Detected — Flagged for human review
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {log.error && (
-                      <div className="bg-red-50 rounded-lg p-3 mt-2">
-                        <p className="text-[11px] text-red-600 font-medium">{log.error}</p>
-                        <p className="text-[10px] text-red-400 mt-1">Run: php artisan serve</p>
-                      </div>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
