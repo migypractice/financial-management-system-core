@@ -10,6 +10,11 @@ vendor/
 .env
 .env.backup
 .env.production
+
+# Vite local env overrides (frontend-react) — VITE_INTEGRATION_API_KEY and
+# similar dev-only secrets live here and must never be committed.
+.env.local
+.env.*.local
 storage/*.key
 .phpunit.result.cache
 Homestead.json

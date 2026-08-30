@@ -50,8 +50,7 @@ class TransactionController extends Controller
         $userId = $user->id;
 
         try {
-            $this->financialService->approveTransaction($transaction->id, $userId);
-            $result = $this->financialService->postTransactionToGeneralLedger($transaction->id, $userId);
+            $result = $this->financialService->approveAndPost($transaction->id, $userId);
 
             return response()->json([
                 'success' => true,

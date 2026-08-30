@@ -136,4 +136,41 @@ class RbacTest extends TestCase
             ->getJson('/api/v1/dashboard/audit-logs')
             ->assertStatus(200);
     }
+
+    /**
+     * Regression coverage for the audit finding that the M2M system-attribution
+     * account (system@hw.com) was seeded with super_admin, which meant the
+     * "maker" identity stamped on every M2M transaction could also act as
+     * "checker". system_integration is now the account's role and carries no
+     * entry in any route's role: allow-list — these three assertions prove
+     * that holds for every gated route a checker identity would need.
+     */
+    public function test_system_integration_role_cannot_approve_or_reject_transactions(): void
+    {
+        $systemRoleUser = $this->makeUser('system_integration');
+        $transaction = $this->makeTransaction();
+
+        $this->actingAs($systemRoleUser, 'sanctum')
+            ->postJson("/api/v1/dashboard/transactions/{$transaction->id}/approve")
+            ->assertStatus(403);
+
+        $this->actingAs($systemRoleUser, 'sanctum')
+            ->postJson("/api/v1/dashboard/transactions/{$transaction->id}/reject")
+            ->assertStatus(403);
+
+        $this->assertSame('pending_approval', $transaction->fresh()->status);
+    }
+
+    public function test_system_integration_role_cannot_access_general_ledger_or_audit_logs(): void
+    {
+        $systemRoleUser = $this->makeUser('system_integration');
+
+        $this->actingAs($systemRoleUser, 'sanctum')
+            ->getJson('/api/v1/dashboard/gl')
+            ->assertStatus(403);
+
+        $this->actingAs($systemRoleUser, 'sanctum')
+            ->getJson('/api/v1/dashboard/audit-logs')
+            ->assertStatus(403);
+    }
 }

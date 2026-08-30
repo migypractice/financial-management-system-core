@@ -118,6 +118,12 @@ export const SimulatorPage: React.FC = () => {
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
+  // Dev-only shared secret for /api/v1/integration/* (ApiKeyMiddleware). Set in
+  // frontend-react/.env.local (see .env.example) — must match the backend's
+  // INTEGRATION_API_KEY. Never hardcode a real key here; this file is committed.
+  const INTEGRATION_API_KEY = (import.meta.env.VITE_INTEGRATION_API_KEY || '').trim();
+  const isSimulatorConfigured = INTEGRATION_API_KEY.length > 0;
+
   const sendTransaction = async (
     module: string,
     category: string,
@@ -162,6 +168,7 @@ export const SimulatorPage: React.FC = () => {
           'Content-Type': 'application/json',
           Accept: 'application/json',
           'Idempotency-Key': idempotencyKey,
+          'X-API-KEY': INTEGRATION_API_KEY,
         },
         body: JSON.stringify(body),
       });
@@ -201,7 +208,7 @@ export const SimulatorPage: React.FC = () => {
   };
 
   const handleSend = () => {
-    if (!customAmount || !customDescription) return;
+    if (!customAmount || !customDescription || !isSimulatorConfigured) return;
 
     const endpoint =
       customModule === 'ECOMMERCE_CORE' &&
@@ -239,6 +246,16 @@ export const SimulatorPage: React.FC = () => {
           <span className="text-[11px] font-medium text-slate-400">{logs.length} sent</span>
         </div>
       </div>
+
+      {!isSimulatorConfigured && (
+        <div className="mb-6 flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800">
+          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+          <p className="text-xs leading-relaxed">
+            <strong>Simulator not configured.</strong> <code className="font-mono bg-amber-100 px-1 rounded">VITE_INTEGRATION_API_KEY</code> is not set, so requests will be rejected with 401 by the backend's API-key middleware.
+            Copy <code className="font-mono bg-amber-100 px-1 rounded">frontend-react/.env.example</code> to <code className="font-mono bg-amber-100 px-1 rounded">.env.local</code>, set it to match <code className="font-mono bg-amber-100 px-1 rounded">INTEGRATION_API_KEY</code> in the backend's <code className="font-mono bg-amber-100 px-1 rounded">.env</code>, and restart the dev server.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── Left: Scenario Picker + Form ── */}
@@ -342,7 +359,8 @@ export const SimulatorPage: React.FC = () => {
 
             <button
               onClick={handleSend}
-              disabled={loading || !customAmount || !customDescription}
+              disabled={loading || !customAmount || !customDescription || !isSimulatorConfigured}
+              title={!isSimulatorConfigured ? 'Set VITE_INTEGRATION_API_KEY in .env.local first' : undefined}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}
             >

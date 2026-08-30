@@ -46,7 +46,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Accounts Payable — Trade Suppliers',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SUPPLIER_INVOICE',
+
             ],
             [
                 'subsystem_id' => $apId,
@@ -63,7 +63,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Accounts Payable — Trade Suppliers',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SUPPLIER_INVOICE',
+
             ],
             [
                 'subsystem_id' => $apId,
@@ -80,7 +80,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Accounts Payable — Trade Suppliers',
                 'ai_anomaly_flag' => true,
                 'ai_anomaly_reason' => 'High-value transaction (PHP 750,000.00) exceeds threshold of PHP 500,000.00. Requires mandatory human review.',
-                'category_type' => 'SUPPLIER_INVOICE',
+
             ],
             [
                 'subsystem_id' => $apId,
@@ -97,7 +97,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Accounts Payable — Trade Suppliers',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SUPPLIER_INVOICE',
+
             ],
             [
                 'subsystem_id' => $apId,
@@ -114,7 +114,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Accounts Payable — Trade Suppliers',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SUPPLIER_INVOICE',
+
             ],
             [
                 'subsystem_id' => $apId,
@@ -131,7 +131,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Accounts Payable — Trade Suppliers',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SUPPLIER_INVOICE',
+
             ],
 
             // ───── E-COMMERCE (Sales Revenue → AR) ─────
@@ -150,7 +150,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'E-Commerce Sales Revenue',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SALES_REVENUE',
+
             ],
             [
                 'subsystem_id' => $arId,
@@ -167,7 +167,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'E-Commerce Sales Revenue',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SALES_REVENUE',
+
             ],
             [
                 'subsystem_id' => $arId,
@@ -184,7 +184,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'E-Commerce Sales Revenue',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SALES_REVENUE',
+
             ],
             [
                 'subsystem_id' => $arId,
@@ -201,7 +201,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'E-Commerce Sales Revenue',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SALES_REVENUE',
+
             ],
             [
                 'subsystem_id' => $arId,
@@ -218,7 +218,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Customer Refunds and Returns',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'CUSTOMER_REFUND',
+
             ],
 
             // ───── HRMS (Payroll & Claims → Disbursement) ─────
@@ -237,7 +237,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Salaries and Compensation Expense',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'PAYROLL_SALARY',
+
             ],
             [
                 'subsystem_id' => $disbId,
@@ -254,7 +254,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Salaries and Compensation Expense',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'PAYROLL_SALARY',
+
             ],
             [
                 'subsystem_id' => $disbId,
@@ -271,7 +271,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Employee Reimbursement Claims',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'EMPLOYEE_CLAIM',
+
             ],
             [
                 'subsystem_id' => $disbId,
@@ -288,7 +288,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Employee Reimbursement Claims',
                 'ai_anomaly_flag' => true,
                 'ai_anomaly_reason' => "Risk keyword detected in description: 'SUSPICIOUS'.",
-                'category_type' => 'EMPLOYEE_CLAIM',
+
             ],
 
             // ───── FLEET (Fuel & Maintenance → Disbursement) ─────
@@ -307,7 +307,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Transportation and Logistics Expense',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'FLEET_FUEL',
+
             ],
             [
                 'subsystem_id' => $disbId,
@@ -324,7 +324,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Fleet Maintenance and Repairs',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'FLEET_MAINTENANCE',
+
             ],
 
             // ───── FACILITIES / LEGAL → Disbursement ─────
@@ -343,7 +343,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Occupancy and Facility Lease Expense',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'FACILITY_RENT',
+
             ],
             [
                 'subsystem_id' => $disbId,
@@ -360,7 +360,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Legal and Professional Services',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'LEGAL_BILLING',
+
             ],
 
             // ───── MORE FLAGGED (for demo drama) ─────
@@ -379,7 +379,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Accounts Payable — Trade Suppliers',
                 'ai_anomaly_flag' => true,
                 'ai_anomaly_reason' => "Risk keyword detected in description: 'OFFSHORE'. High-value transaction (PHP 1,200,000.00) exceeds threshold.",
-                'category_type' => 'SUPPLIER_INVOICE',
+
             ],
             [
                 'subsystem_id' => $arId,
@@ -396,7 +396,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'E-Commerce Sales Revenue',
                 'ai_anomaly_flag' => true,
                 'ai_anomaly_reason' => 'High-value transaction (PHP 890,000.00) exceeds threshold of PHP 500,000.00. Requires mandatory human review.',
-                'category_type' => 'SALES_REVENUE',
+
             ],
 
             // ───── EXTRA approved for volume ─────
@@ -415,7 +415,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'E-Commerce Sales Revenue',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SALES_REVENUE',
+
             ],
             [
                 'subsystem_id' => $apId,
@@ -432,7 +432,7 @@ class TransactionSeeder extends Seeder
                 'ai_suggested_gl_name' => 'Accounts Payable — Trade Suppliers',
                 'ai_anomaly_flag' => false,
                 'ai_anomaly_reason' => null,
-                'category_type' => 'SUPPLIER_INVOICE',
+
             ],
         ];
 

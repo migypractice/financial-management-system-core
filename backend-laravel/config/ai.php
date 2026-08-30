@@ -30,35 +30,100 @@ return [
     | Risk Keywords
     |--------------------------------------------------------------------------
     |
-    | Keywords found in a transaction description that instantly trigger
-    | an anomaly flag. These are checked case-insensitively against the
-    | uppercased description. Editable without code changes.
+    | Each rule fires against the uppercased transaction description using
+    | two optional term groups, both matched as case-insensitive substrings
+    | (so plurals, "-ed"/"-ing" forms, and British spellings are covered by
+    | the same stem for free):
+    |
+    |   'all_of' — every term in this list must be present (AND). Use this to
+    |               require two concepts to co-occur, e.g. "duplicate" AND
+    |               "invoice", so realistic free-text phrasing like "possible
+    |               duplicate invoice from the vendor" still triggers the
+    |               rule, without a fragile exact-phrase match.
+    |   'any_of' — at least one term in this list must be present (OR). Use
+    |               this for interchangeable synonyms, e.g. "vendor" or
+    |               "supplier".
+    |
+    | A rule with only 'all_of' containing one term behaves like the original
+    | single-keyword match. This is still a deterministic, config-driven,
+    | rule-based match — no ML/LLM involved.
     |
     */
     'risk_keywords' => [
         // Critical Risk - Fraud or Compliance Violations
-        'DUPLICATE_INVOICE'         => 'CRITICAL',
-        'INVALID_SUPPLIER'          => 'CRITICAL',
-        'UNAUTHORIZED_PURCHASE_ORDER' => 'CRITICAL',
-        'OFFSHORE'                  => 'CRITICAL',
+        'DUPLICATE_INVOICE' => [
+            'severity' => 'CRITICAL',
+            'all_of'   => ['DUPLICAT', 'INVOIC'],
+        ],
+        'INVALID_SUPPLIER' => [
+            'severity' => 'CRITICAL',
+            'all_of'   => ['INVALID'],
+            'any_of'   => ['SUPPLIER', 'VENDOR'],
+        ],
+        'UNAUTHORIZED_PURCHASE_ORDER' => [
+            'severity' => 'CRITICAL',
+            'all_of'   => ['UNAUTHORI', 'PURCHASE'],
+        ],
+        'OFFSHORE' => [
+            'severity' => 'CRITICAL',
+            'all_of'   => ['OFFSHORE'],
+        ],
 
         // High Risk - Financial Impact or Major Errors
-        'NEGATIVE_INVENTORY'        => 'HIGH',
-        'INVENTORY_VARIANCE'        => 'HIGH',
-        'DUPLICATE_PAYMENT'         => 'HIGH',
-        'UNKNOWN_VEND'              => 'HIGH',
+        'NEGATIVE_INVENTORY' => [
+            'severity' => 'HIGH',
+            'all_of'   => ['NEGATIVE', 'INVENTORY'],
+        ],
+        'INVENTORY_VARIANCE' => [
+            'severity' => 'HIGH',
+            'all_of'   => ['INVENTORY', 'VARIANC'],
+        ],
+        'DUPLICATE_PAYMENT' => [
+            'severity' => 'HIGH',
+            'all_of'   => ['DUPLICAT', 'PAYMENT'],
+        ],
+        'UNKNOWN_VEND' => [
+            'severity' => 'HIGH',
+            'all_of'   => ['UNKNOWN'],
+            'any_of'   => ['VENDOR', 'SUPPLIER'],
+        ],
 
         // Medium Risk - Operational Anomalies
-        'UNAUTHORIZED_DISCOUNT'     => 'MEDIUM',
-        'PURCHASE_PRICE_VARIANCE'   => 'MEDIUM',
-        'INVENTORY_COUNT_MISMATCH'  => 'MEDIUM',
-        'EXCEEDS_BUDGET_LIMIT'      => 'MEDIUM',
-        
+        'UNAUTHORIZED_DISCOUNT' => [
+            'severity' => 'MEDIUM',
+            'all_of'   => ['UNAUTHORI', 'DISCOUNT'],
+        ],
+        'PURCHASE_PRICE_VARIANCE' => [
+            'severity' => 'MEDIUM',
+            'all_of'   => ['PRICE', 'VARIANC'],
+        ],
+        'INVENTORY_COUNT_MISMATCH' => [
+            'severity' => 'MEDIUM',
+            'all_of'   => ['INVENTORY', 'MISMATCH'],
+        ],
+        'EXCEEDS_BUDGET_LIMIT' => [
+            'severity' => 'MEDIUM',
+            'all_of'   => ['BUDGET'],
+            'any_of'   => ['EXCEED', 'OVER BUDGET', 'OVER LIMIT'],
+        ],
+
         // Review - Needs Human Verification
-        'GHOST_EMPLOYEE'            => 'REVIEW',
-        'BACKDATED_TRANSACTION'     => 'REVIEW',
-        'UNVERIFIED_ACCOUNT'        => 'REVIEW',
-        'SUSPICIOUS'                => 'REVIEW',
+        'GHOST_EMPLOYEE' => [
+            'severity' => 'REVIEW',
+            'all_of'   => ['GHOST', 'EMPLOYEE'],
+        ],
+        'BACKDATED_TRANSACTION' => [
+            'severity' => 'REVIEW',
+            'all_of'   => ['BACKDAT'],
+        ],
+        'UNVERIFIED_ACCOUNT' => [
+            'severity' => 'REVIEW',
+            'all_of'   => ['UNVERIFI', 'ACCOUNT'],
+        ],
+        'SUSPICIOUS' => [
+            'severity' => 'REVIEW',
+            'all_of'   => ['SUSPICIOUS'],
+        ],
     ],
 
     /*

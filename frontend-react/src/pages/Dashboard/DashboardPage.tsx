@@ -57,22 +57,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     <div className="p-6 space-y-5" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
 
       {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            Welcome back, {firstName}! 👋
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
-            Here's what's happening in your Transaction Core today.
-          </p>
-        </div>
-        <button
-          onClick={() => onNavigate?.('/simulator')}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #1e3a5f, #1d4ed8)' }}
-        >
-          + Add New
-        </button>
+      <div>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+          Welcome back, {firstName}! 👋
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
+          Here's what's happening in your Transaction Core today.
+        </p>
       </div>
 
       {/* Analytics Context Note */}

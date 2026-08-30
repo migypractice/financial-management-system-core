@@ -50,13 +50,18 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // System integration user — used as created_by for M2M ingestion (Maker-Checker)
-        if ($superAdminRole && !\App\Models\User::where('email', 'system@hw.com')->exists()) {
+        // System integration user — used as created_by for M2M ingestion (Maker-Checker).
+        // Deliberately NOT super_admin: this account is only ever used for attribution
+        // (never logged into), and must carry zero approval/checker privileges so it
+        // can never act as its own checker. See the system_integration role migration.
+        $systemIntegrationRole = \App\Models\Role::where('slug', 'system_integration')->first();
+
+        if ($systemIntegrationRole && !\App\Models\User::where('email', 'system@hw.com')->exists()) {
             \App\Models\User::create([
                 'name' => 'System Integration',
                 'email' => 'system@hw.com',
                 'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32)),
-                'role_id' => $superAdminRole->id,
+                'role_id' => $systemIntegrationRole->id,
                 'department' => 'System',
             ]);
         }

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\AIService\AIService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class AIServiceTest extends TestCase
@@ -73,5 +74,57 @@ class AIServiceTest extends TestCase
 
         // Strictly greater-than threshold triggers the flag; exactly-at should not.
         $this->assertStringNotContainsString('High-value transaction', $result['ai_anomaly_reason'] ?? '');
+    }
+
+    /**
+     * Regression coverage for the audit finding that risk keywords written as
+     * enum-style tokens (DUPLICATE_INVOICE) never matched realistic
+     * free-text descriptions. detectKeywordAnomaly() now matches on
+     * co-occurring term groups (all_of/any_of) instead of one exact phrase.
+     */
+    #[DataProvider('naturalLanguageRiskDescriptions')]
+    public function test_natural_language_descriptions_trigger_the_intended_risk_rule(string $description, string $expectedRuleCode): void
+    {
+        $ai = new AIService();
+        $result = $ai->evaluateTransaction($this->payload(['description' => $description]));
+
+        $this->assertTrue($result['ai_anomaly_flag'], "Expected description to be flagged: {$description}");
+        $this->assertSame('ai_flagged', $result['status']);
+        $this->assertStringContainsString($expectedRuleCode, $result['ai_anomaly_reason']);
+    }
+
+    public static function naturalLanguageRiskDescriptions(): array
+    {
+        return [
+            'duplicate invoice, natural phrasing' => [
+                'This appears to be a duplicate invoice from the vendor.',
+                'DUPLICATE_INVOICE',
+            ],
+            'possible duplicate invoice' => [
+                'Possible duplicate invoice flagged by accounts payable.',
+                'DUPLICATE_INVOICE',
+            ],
+            'inventory variance' => [
+                'Inventory variance detected during the monthly stock count.',
+                'INVENTORY_VARIANCE',
+            ],
+            'unauthorized discount' => [
+                'Unauthorized discount applied at checkout without manager approval.',
+                'UNAUTHORIZED_DISCOUNT',
+            ],
+        ];
+    }
+
+    public function test_mentioning_invoice_alone_does_not_trigger_the_duplicate_invoice_rule(): void
+    {
+        // "invoice" without "duplicate" must not false-positive under the
+        // all_of(DUPLICAT, INVOIC) rule.
+        $ai = new AIService();
+        $result = $ai->evaluateTransaction($this->payload([
+            'description' => 'Payment for invoice INV-2026-441 from National Hardware Supply',
+        ]));
+
+        $this->assertFalse($result['ai_anomaly_flag']);
+        $this->assertSame('pending_approval', $result['status']);
     }
 }

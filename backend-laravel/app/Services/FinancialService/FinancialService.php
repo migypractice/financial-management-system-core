@@ -45,18 +45,10 @@ class FinancialService
                 );
             }
 
-            // 2. Generate a sequential journal entry number
-            $lastEntry = DB::table('journal_entries')
-                ->where('entry_number', 'like', 'JE-' . date('Ym') . '-%')
-                ->orderByDesc('entry_number')
-                ->value('entry_number');
-
-            $sequence = 1;
-            if ($lastEntry) {
-                $parts = explode('-', $lastEntry);
-                $sequence = ((int) end($parts)) + 1;
-            }
-            $entryNumber = sprintf('JE-%s-%04d', date('Ym'), $sequence);
+            // 2. Generate a sequential journal entry number — concurrency-safe via a
+            // locked per-period counter row (see journal_entry_sequences), so two
+            // approvals racing in the same month can never compute the same number.
+            $entryNumber = $this->nextJournalEntryNumber(now()->format('Ym'));
 
             // 3. Create the journal entry
             $journalEntryId = (string) Str::uuid();
@@ -91,6 +83,27 @@ class FinancialService
                 'transaction_code' => $transaction->transaction_code,
                 'posted_at'        => now()->toIso8601String(),
             ];
+        });
+    }
+
+    /**
+     * Approve and post a transaction atomically.
+     *
+     * Approval and GL posting were previously two independent DB transactions
+     * called back to back from the controller. If posting failed after
+     * approval had already committed (e.g. a journal-number collision under
+     * concurrency), the transaction was left stranded at status=approved with
+     * no journal entry and no way back into the Approvals queue. Wrapping
+     * both calls in one outer transaction makes Laravel run the inner
+     * DB::transaction() calls as SAVEPOINTs: if posting throws, the whole
+     * unit — including the approval — rolls back together.
+     */
+    public function approveAndPost(string $transactionId, string $approvedByUserId): array
+    {
+        return DB::transaction(function () use ($transactionId, $approvedByUserId) {
+            $this->approveTransaction($transactionId, $approvedByUserId);
+
+            return $this->postTransactionToGeneralLedger($transactionId, $approvedByUserId);
         });
     }
 
@@ -183,5 +196,44 @@ class FinancialService
                 'new_status'       => 'rejected',
             ];
         });
+    }
+
+    private function nextJournalEntryNumber(string $period): string
+    {
+        $maxEntry = DB::table('journal_entries')
+            ->where('entry_number', 'like', "JE-{$period}-%")
+            ->orderBy('entry_number', 'desc')
+            ->value('entry_number');
+
+        $startSequence = 0;
+        if ($maxEntry) {
+            $parts = explode('-', $maxEntry);
+            if (count($parts) === 3) {
+                $startSequence = (int)$parts[2];
+            }
+        }
+
+        DB::table('journal_entry_sequences')->insertOrIgnore([
+            'period'        => $period,
+            'last_sequence' => $startSequence,
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
+
+        $sequenceRow = DB::table('journal_entry_sequences')
+            ->where('period', $period)
+            ->lockForUpdate()
+            ->first();
+
+        $nextSequence = $sequenceRow->last_sequence + 1;
+
+        DB::table('journal_entry_sequences')
+            ->where('period', $period)
+            ->update([
+                'last_sequence' => $nextSequence,
+                'updated_at'    => now(),
+            ]);
+
+        return sprintf('JE-%s-%04d', $period, $nextSequence);
     }
 }

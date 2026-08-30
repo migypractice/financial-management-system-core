@@ -100,6 +100,12 @@ class AIService
 
         // 4. Determine Maker-Checker status
         $status = 'pending_approval';
+        
+        // If an anomaly was detected via keywords or thresholds, penalize the confidence score
+        if ($anomaly['detected']) {
+            $confidenceScore = min($confidenceScore, 0.45); // Force it below the threshold
+        }
+
         if ($anomaly['detected'] || $confidenceScore < $this->confidenceThreshold) {
             $status = 'ai_flagged';
 
@@ -133,28 +139,66 @@ class AIService
     }
 
     /**
-     * Scan the description for known risk keywords.
+     * Scan the description for known risk rules.
      *
-     * Keywords are loaded from config/ai.php and matched
-     * case-insensitively against the uppercased description.
+     * Rules are loaded from config/ai.php → risk_keywords and matched
+     * case-insensitively against the uppercased description using an
+     * all_of/any_of term-group match (see the config file for the rule
+     * schema) rather than a single exact-phrase substring. This lets a
+     * rule like DUPLICATE_INVOICE (all_of: DUPLICAT, INVOIC) fire on
+     * realistic free text — "possible duplicate invoice from the vendor" —
+     * not just the literal enum-style token. Still fully deterministic and
+     * config-driven; no ML/LLM involved.
      */
     private function detectKeywordAnomaly(string $description): array
     {
-        foreach ($this->anomalyKeywords as $keyword => $severity) {
-            $normalizedKeyword = strtoupper(trim($keyword));
+        foreach ($this->anomalyKeywords as $ruleCode => $rule) {
+            $severity = $rule['severity'] ?? 'REVIEW';
+            $allOf    = array_map('strtoupper', $rule['all_of'] ?? []);
+            $anyOf    = array_map('strtoupper', $rule['any_of'] ?? []);
+            $matched  = [];
 
-            if (str_contains($description, $normalizedKeyword)) {
-                Log::warning('Risk keyword detected', [
-                    'keyword'     => $keyword,
-                    'severity'    => $severity,
-                    'description' => substr($description, 0, 200),
-                ]);
-
-                return [
-                    'detected' => true,
-                    'reason'   => "[{$severity}] Risk keyword detected in description: '{$keyword}'.",
-                ];
+            $allSatisfied = true;
+            foreach ($allOf as $term) {
+                if (str_contains($description, $term)) {
+                    $matched[] = $term;
+                } else {
+                    $allSatisfied = false;
+                    break;
+                }
             }
+            if (!$allSatisfied) {
+                continue;
+            }
+
+            $anySatisfied = empty($anyOf);
+            foreach ($anyOf as $term) {
+                if (str_contains($description, $term)) {
+                    $matched[] = $term;
+                    $anySatisfied = true;
+                    break;
+                }
+            }
+            if (!$anySatisfied) {
+                continue;
+            }
+
+            Log::warning('Risk keyword rule matched', [
+                'rule'          => $ruleCode,
+                'severity'      => $severity,
+                'matched_terms' => $matched,
+                'description'   => substr($description, 0, 200),
+            ]);
+
+            return [
+                'detected' => true,
+                'reason'   => sprintf(
+                    "[%s] Risk rule '%s' triggered by term(s) %s in transaction description.",
+                    $severity,
+                    $ruleCode,
+                    implode(', ', $matched)
+                ),
+            ];
         }
 
         return ['detected' => false, 'reason' => null];

@@ -61,7 +61,11 @@ class IntegrationController extends Controller
             'tax_amount'            => 'nullable|numeric|min:0',
             'fee_amount'            => 'nullable|numeric|min:0',
             'currency'              => 'nullable|string|size:3',
-            'payee_info'            => 'nullable|array', // Ginawang optional (nullable) para hindi mag-error
+            // Required: an outbound disbursement must record who the money is going to.
+            'payee_info'            => 'required|array',
+            'payee_info.name'       => 'required|string|max:255',
+            'payee_info.account'    => 'nullable|string|max:255',
+            'payee_info.bank'       => 'nullable|string|max:255',
             'description'           => 'required|string|max:1000',
             'metadata'              => 'nullable|array',
         ]);
@@ -91,7 +95,9 @@ class IntegrationController extends Controller
                 ->first();
 
             if ($existing) {
-                return $this->duplicateResponse($existing);
+                return $this->payloadMatchesExisting($existing, $validated)
+                    ? $this->duplicateResponse($existing)
+                    : $this->idempotencyConflictResponse($existing);
             }
         }
 
@@ -128,6 +134,7 @@ class IntegrationController extends Controller
                     'subsystem_id'          => $subsystemId,
                     'created_by'            => $systemUser?->id,
                     'source_module'         => $validated['external_module'],
+                    'category_type'         => $validated['category_type'] ?? null,
                     'external_reference_id' => $validated['external_reference_id'],
                     'type'                  => $validated['type'],
                     'amount'                => $amount,
@@ -166,7 +173,9 @@ class IntegrationController extends Controller
             if ($idempotencyKey && $e->getCode() === '23505') {
                 $existing = DB::table('transactions')->where('idempotency_key', $idempotencyKey)->first();
                 if ($existing) {
-                    return $this->duplicateResponse($existing);
+                    return $this->payloadMatchesExisting($existing, $validated)
+                        ? $this->duplicateResponse($existing)
+                        : $this->idempotencyConflictResponse($existing);
                 }
             }
             throw $e;
@@ -203,6 +212,45 @@ class IntegrationController extends Controller
                 'anomaly_detected'   => $existing->ai_anomaly_flag,
             ],
         ], 200);
+    }
+
+    /**
+     * Compare the significant fields of a newly-submitted payload against an
+     * already-persisted transaction sharing the same idempotency key.
+     *
+     * Money fields are compared as fixed 2-decimal strings (matching the
+     * DECIMAL(15,2) column precision) to avoid spurious float-formatting
+     * mismatches between the stored value and the freshly-validated one.
+     */
+    private function payloadMatchesExisting(object $existing, array $validated): bool
+    {
+        $money = fn ($value) => number_format((float) ($value ?? 0), 2, '.', '');
+
+        return (string) $existing->source_module === (string) ($validated['external_module'] ?? '')
+            && (string) $existing->external_reference_id === (string) ($validated['external_reference_id'] ?? '')
+            && (string) ($existing->category_type ?? '') === (string) ($validated['category_type'] ?? '')
+            && (string) $existing->type === (string) ($validated['type'] ?? '')
+            && $money($existing->amount) === $money($validated['amount'] ?? 0)
+            && $money($existing->tax_amount) === $money($validated['tax_amount'] ?? 0)
+            && $money($existing->fee_amount) === $money($validated['fee_amount'] ?? 0)
+            && (string) $existing->currency === (string) ($validated['currency'] ?? 'PHP')
+            && (string) $existing->description === (string) ($validated['description'] ?? '');
+    }
+
+    /**
+     * Response returned when an idempotency key is reused with materially
+     * different request data. The original transaction is left untouched and
+     * no new transaction is created — the caller must use a new key for a
+     * genuinely different transaction.
+     */
+    private function idempotencyConflictResponse(object $existing): JsonResponse
+    {
+        return response()->json([
+            'status'            => 'error',
+            'message'           => 'Idempotency-Key conflict: this key was already used for a transaction with different request data. Use a new Idempotency-Key for a genuinely different transaction.',
+            'transaction_id'    => $existing->id,
+            'transaction_code'  => $existing->transaction_code,
+        ], 409);
     }
 
     /**
