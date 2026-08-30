@@ -218,7 +218,24 @@ export const AuditLogPage: React.FC = () => {
                           )}
                         </td>
                         <td className="px-4 py-3 align-top text-right">
-                          <span className="font-mono text-slate-900 dark:text-slate-100 whitespace-nowrap">{formatCurrency(log.amount)}</span>
+                          <span className="font-mono text-slate-900 dark:text-slate-100 whitespace-nowrap block">{formatCurrency(log.amount)}</span>
+                          <span className={`inline-block mt-1.5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full border ${
+                            {
+                              ai_flagged: 'bg-red-50 text-red-700 border-red-200',
+                              pending_approval: 'bg-amber-50 text-amber-700 border-amber-200',
+                              approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                              rejected: 'bg-slate-100 text-slate-600 border-slate-300',
+                              posted: 'bg-blue-50 text-blue-700 border-blue-200',
+                            }[log.transaction_status] || 'bg-gray-50 text-gray-600 border-gray-200'
+                          }`}>
+                            {{
+                              ai_flagged: 'AI Flagged',
+                              pending_approval: 'Pending Approval',
+                              approved: 'Approved',
+                              rejected: 'Rejected',
+                              posted: 'Posted',
+                            }[log.transaction_status] || log.transaction_status.replace('_', ' ')}
+                          </span>
                         </td>
                         <td className="px-4 py-3 align-top text-center">
                           <span className={`inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded-full border uppercase tracking-wider ${

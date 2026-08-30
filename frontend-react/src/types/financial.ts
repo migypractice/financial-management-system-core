@@ -49,6 +49,7 @@ export interface Transaction {
   postedAt?: string;
   createdAt: string;
   updatedAt: string;
+  createdBy?: string | number;
 }
 
 export interface ChartOfAccount {

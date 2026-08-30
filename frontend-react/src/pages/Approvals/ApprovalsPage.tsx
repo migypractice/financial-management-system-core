@@ -109,6 +109,7 @@ export const ApprovalsPage: React.FC = () => {
         postedAt: row.posted_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        createdBy: row.created_by,
       }));
 
       setTransactions(mapped);
@@ -301,6 +302,9 @@ export const ApprovalsPage: React.FC = () => {
                         {tx.transactionCode}
                       </span>
                       <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                        {new Date(tx.createdAt).toLocaleString()}
+                      </span>
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                         {tx.externalModule} / {tx.externalReferenceId}
                       </span>
                       <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${statusCfg.bg} ${statusCfg.text}`}>
@@ -341,26 +345,44 @@ export const ApprovalsPage: React.FC = () => {
 
                     {isActionable && (user?.role === 'finance_manager' || user?.role === 'super_admin') && (
                       <div className="flex items-center gap-2 w-full lg:w-auto mt-2 lg:mt-0">
-                        <button
-                          onClick={() => handleAction(tx.id, 'reject')}
-                          disabled={isAnyProcessing}
-                          className="flex-1 lg:flex-none flex items-center justify-center px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
-                        >
-                          {isProcessing ? 'Rejecting...' : 'Reject'}
-                        </button>
-                        <button
-                          onClick={() => handleAction(tx.id, 'approve')}
-                          disabled={isAnyProcessing}
-                          className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
-                        >
-                          {isProcessing && (
-                            <svg className="w-3 h-3 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
-                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
-                              <path d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" fill="currentColor" className="opacity-75" />
-                            </svg>
-                          )}
-                          {isProcessing ? 'Processing...' : 'Approve'}
-                        </button>
+                        {tx.createdBy === user?.id ? (
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            Maker-Checker: Another manager must approve
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleAction(tx.id, 'reject')}
+                              disabled={isAnyProcessing}
+                              className="flex-1 lg:flex-none flex items-center justify-center px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
+                            >
+                              {isProcessing ? 'Rejecting...' : 'Reject'}
+                            </button>
+                            <button
+                              onClick={() => handleAction(tx.id, 'approve')}
+                              disabled={isAnyProcessing}
+                              className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
+                            >
+                              {isProcessing && (
+                                <svg className="w-3 h-3 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+                                  <path d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" fill="currentColor" className="opacity-75" />
+                                </svg>
+                              )}
+                              {isProcessing ? 'Processing...' : 'Approve'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    
+                    {isActionable && !(user?.role === 'finance_manager' || user?.role === 'super_admin') && (
+                      <div className="flex items-center gap-2 w-full lg:w-auto mt-2 lg:mt-0">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                          Restricted: Awaiting Manager Review
+                        </span>
                       </div>
                     )}
                   </div>
