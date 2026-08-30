@@ -130,7 +130,11 @@ class FinancialService
                 );
             }
 
-            if ($transaction->created_by && $transaction->created_by === $approvedByUserId) {
+            if (!$transaction->created_by) {
+                throw new \RuntimeException("Orphaned transaction lacks a Maker identity.");
+            }
+
+            if ($transaction->created_by === $approvedByUserId) {
                 throw new \RuntimeException("Maker cannot be Checker. You cannot approve a transaction you created.");
             }
 
@@ -177,7 +181,11 @@ class FinancialService
                 );
             }
 
-            if ($transaction->created_by && $transaction->created_by === $rejectedByUserId) {
+            if (!$transaction->created_by) {
+                throw new \RuntimeException("Orphaned transaction lacks a Maker identity.");
+            }
+
+            if ($transaction->created_by === $rejectedByUserId) {
                 throw new \RuntimeException("Maker cannot be Checker. You cannot reject a transaction you created.");
             }
 

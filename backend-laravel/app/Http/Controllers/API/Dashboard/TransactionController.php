@@ -28,12 +28,26 @@ class TransactionController extends Controller
             $query->where('status', $status);
         }
 
-        $transactions = $query->get();
+        $paginated = $query->paginate(50);
+
+        $flaggedCount = Transaction::where('status', 'ai_flagged')->count();
+        $pendingCount = Transaction::where('status', 'pending_approval')->count();
+        $allCount = Transaction::count();
 
         return response()->json([
             'success' => true,
             'message' => 'Transactions retrieved successfully.',
-            'data'    => $transactions,
+            'data'    => $paginated->items(),
+            'meta'    => [
+                'current_page' => $paginated->currentPage(),
+                'last_page'    => $paginated->lastPage(),
+                'total_items'  => $paginated->total(),
+            ],
+            'summary' => [
+                'all_count'     => $allCount,
+                'flagged_count' => $flaggedCount,
+                'pending_count' => $pendingCount,
+            ]
         ]);
     }
 

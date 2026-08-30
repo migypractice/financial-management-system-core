@@ -52,6 +52,7 @@ class FinancialServiceTest extends TestCase
             'status'                => 'pending_approval',
             'ai_confidence_score'   => 0.9,
             'ai_anomaly_flag'       => false,
+            'created_by'            => $this->makeUser('system_integration')->id,
         ], $overrides));
     }
 
@@ -251,5 +252,24 @@ class FinancialServiceTest extends TestCase
             'A failed journal-entry creation must not leave the transaction stranded in "approved" status.'
         );
         $this->assertDatabaseCount('journal_entries', 1); // only the pre-seeded bystander row
+    }
+
+    public function test_maker_checker_fails_closed_when_maker_is_null(): void
+    {
+        $checker = $this->makeUser('finance_manager');
+        // Simulate a transaction ingested via M2M without an origin user (e.g., system user was deleted)
+        $transaction = $this->makeTransaction(['created_by' => null]);
+        $originalStatus = $transaction->status;
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Orphaned transaction lacks a Maker identity');
+
+        try {
+            $this->service->approveTransaction($transaction->id, $checker->id);
+        } finally {
+            // Verify status didn't change and no GL entry was created
+            $this->assertSame($originalStatus, $transaction->fresh()->status);
+            $this->assertDatabaseCount('journal_entries', 0);
+        }
     }
 }

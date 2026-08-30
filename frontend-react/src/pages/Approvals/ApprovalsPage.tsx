@@ -69,14 +69,20 @@ export const ApprovalsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [counts, setCounts] = useState({ all: 0, flagged: 0, pending: 0 });
   const { user } = useAuth();
 
-  const fetchTransactions = useCallback(async () => {
+  const fetchTransactions = useCallback(async (filter: string = 'ALL', page: number = 1) => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await apiClient.get('/dashboard/transactions');
+      const statusParam = filter === 'ALL' ? 'all' : (filter === 'FLAGGED' ? 'ai_flagged' : 'pending_approval');
+      const response = await apiClient.get('/dashboard/transactions', {
+        params: { status: statusParam, page }
+      });
       const rows: any[] = response.data?.data ?? [];
 
       const mapped: Transaction[] = rows.map((row) => ({
@@ -106,6 +112,22 @@ export const ApprovalsPage: React.FC = () => {
       }));
 
       setTransactions(mapped);
+
+      const meta = response.data?.meta;
+      if (meta) {
+        setCurrentPage(meta.current_page || 1);
+        setTotalPages(meta.last_page || 1);
+      }
+
+      const summary = response.data?.summary;
+      if (summary) {
+        setCounts({
+          all: summary.all_count || 0,
+          flagged: summary.flagged_count || 0,
+          pending: summary.pending_count || 0,
+        });
+      }
+
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Unable to connect to server.');
     } finally {
@@ -114,7 +136,7 @@ export const ApprovalsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchTransactions();
+    fetchTransactions('ALL', 1);
   }, [fetchTransactions]);
 
   const handleAction = async (id: string, actionType: 'approve' | 'reject') => {
@@ -125,7 +147,7 @@ export const ApprovalsPage: React.FC = () => {
     try {
       await apiClient.post(`/dashboard/transactions/${id}/${actionType}`);
 
-      await fetchTransactions();
+      await fetchTransactions(activeFilter, currentPage);
 
       setToast({
         message: actionType === 'approve' ? 'Transaction approved successfully.' : 'Transaction rejected successfully.',
@@ -138,19 +160,15 @@ export const ApprovalsPage: React.FC = () => {
     }
   };
 
-  const filteredTransactions = transactions.filter((t) => {
-    if (activeFilter === 'FLAGGED') return t.status === 'ai_flagged';
-    if (activeFilter === 'PENDING') return t.status === 'pending_approval';
-    return true;
-  });
-
-  const flaggedCount = transactions.filter((t) => t.status === 'ai_flagged').length;
-  const pendingCount = transactions.filter((t) => t.status === 'pending_approval').length;
+  const handleFilterChange = (filter: 'ALL' | 'FLAGGED' | 'PENDING') => {
+    setActiveFilter(filter);
+    fetchTransactions(filter, 1);
+  };
 
   const filterButtons = [
-    { key: 'ALL' as const, label: `All (${transactions.length})`, activeClass: 'bg-slate-900 text-white' },
-    { key: 'FLAGGED' as const, label: `Flagged (${flaggedCount})`, activeClass: 'bg-red-600 text-white' },
-    { key: 'PENDING' as const, label: `Pending (${pendingCount})`, activeClass: 'bg-amber-600 text-white' },
+    { key: 'ALL' as const, label: `All (${counts.all})`, activeClass: 'bg-slate-900 text-white' },
+    { key: 'FLAGGED' as const, label: `Flagged (${counts.flagged})`, activeClass: 'bg-red-600 text-white' },
+    { key: 'PENDING' as const, label: `Pending (${counts.pending})`, activeClass: 'bg-amber-600 text-white' },
   ];
 
   if (isLoading) {
@@ -189,7 +207,7 @@ export const ApprovalsPage: React.FC = () => {
           </div>
           <h3 className="text-base font-bold text-slate-900 mb-1">Unable to Connect</h3>
           <p className="text-sm text-slate-500 mb-4">{error}</p>
-          <button onClick={fetchTransactions} className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors">
+          <button onClick={() => fetchTransactions(activeFilter, currentPage)} className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors">
             Retry Connection
           </button>
         </div>
@@ -211,13 +229,13 @@ export const ApprovalsPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2 mt-3 md:mt-0">
-          {flaggedCount > 0 && (
+          {counts.flagged > 0 && (
             <span className="px-2.5 py-1 bg-red-50 text-red-700 text-[11px] font-semibold rounded-full border border-red-200">
-              {flaggedCount} flagged
+              {counts.flagged} flagged
             </span>
           )}
           <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded-full border border-blue-200">
-            {pendingCount} pending
+            {counts.pending} pending
           </span>
         </div>
       </div>
@@ -227,7 +245,7 @@ export const ApprovalsPage: React.FC = () => {
         {filterButtons.map((btn) => (
           <button
             key={btn.key}
-            onClick={() => setActiveFilter(btn.key)}
+            onClick={() => handleFilterChange(btn.key)}
             className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               activeFilter === btn.key
                 ? btn.activeClass
@@ -241,7 +259,7 @@ export const ApprovalsPage: React.FC = () => {
 
       {/* Transaction cards */}
       <div className="space-y-3">
-        {filteredTransactions.length === 0 ? (
+        {transactions.length === 0 ? (
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-12 text-center">
             <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
               <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -256,7 +274,7 @@ export const ApprovalsPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          filteredTransactions.map((tx) => {
+          transactions.map((tx) => {
             const statusCfg = STATUS_CONFIG[tx.status];
             const isActionable = tx.status === 'pending_approval' || tx.status === 'ai_flagged';
             const isProcessing = actionInProgress === tx.id;
@@ -352,6 +370,59 @@ export const ApprovalsPage: React.FC = () => {
           })
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {!isLoading && totalPages > 1 && (
+        <div className="mt-6 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 py-3 rounded-xl flex items-center justify-between sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => fetchTransactions(activeFilter, currentPage - 1)}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => fetchTransactions(activeFilter, currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700 dark:text-slate-300">
+                Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => fetchTransactions(activeFilter, currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+                >
+                  <span className="sr-only">Previous</span>
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => fetchTransactions(activeFilter, currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+                >
+                  <span className="sr-only">Next</span>
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

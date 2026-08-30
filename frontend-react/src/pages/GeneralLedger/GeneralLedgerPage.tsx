@@ -28,30 +28,47 @@ export const GeneralLedgerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchGL = useCallback(async (search: string = '') => {
+  const fetchGL = useCallback(async (search: string = '', page: number = 1) => {
     try {
       setIsLoading(true);
       setError(null);
 
       const response = await apiClient.get('/dashboard/gl', {
-        params: search ? { search } : {},
+        params: { search: search || undefined, page },
       });
 
       const rows: GLEntry[] = response.data?.data ?? [];
       setEntries(rows);
 
-      // Compute summary totals dynamically from the fetched rows
-      const totalDebit = rows.reduce((sum, e) => sum + Number(e.debit || 0), 0);
-      const totalCredit = rows.reduce((sum, e) => sum + Number(e.credit || 0), 0);
+      const backendSummary = response.data?.summary;
+      if (backendSummary) {
+        setSummary({
+          total_entries: backendSummary.total_entries,
+          total_debit: backendSummary.total_debit,
+          total_credit: backendSummary.total_credit,
+          net: backendSummary.total_credit - backendSummary.total_debit,
+        });
+      } else {
+        const totalDebit = rows.reduce((sum, e) => sum + Number(e.debit || 0), 0);
+        const totalCredit = rows.reduce((sum, e) => sum + Number(e.credit || 0), 0);
 
-      setSummary({
-        total_entries: rows.length,
-        total_debit: totalDebit,
-        total_credit: totalCredit,
-        net: totalCredit - totalDebit,
-      });
+        setSummary({
+          total_entries: rows.length,
+          total_debit: totalDebit,
+          total_credit: totalCredit,
+          net: totalCredit - totalDebit,
+        });
+      }
+
+      const backendMeta = response.data?.meta;
+      if (backendMeta) {
+        setTotalPages(backendMeta.last_page || 1);
+        setCurrentPage(backendMeta.current_page || 1);
+      }
 
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Unable to connect to server.');
@@ -71,7 +88,7 @@ export const GeneralLedgerPage: React.FC = () => {
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchGL(value);
+      fetchGL(value, 1);
     }, 300);
   };
 
@@ -79,7 +96,7 @@ export const GeneralLedgerPage: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    fetchGL(searchTerm);
+    fetchGL(searchTerm, 1);
   };
 
   const formatDate = (isoString: string) => {
@@ -171,7 +188,7 @@ export const GeneralLedgerPage: React.FC = () => {
             <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Unable to Connect</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{error}</p>
             <button
-              onClick={() => fetchGL(searchTerm)}
+              onClick={() => fetchGL(searchTerm, currentPage)}
               className="px-5 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
             >
               Retry Connection
@@ -301,6 +318,59 @@ export const GeneralLedgerPage: React.FC = () => {
                 )}
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {!isLoading && totalPages > 1 && (
+              <div className="bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between sm:px-6">
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => fetchGL(searchTerm, currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => fetchGL(searchTerm, currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700 dark:text-slate-300">
+                      Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        onClick={() => fetchGL(searchTerm, currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+                      >
+                        <span className="sr-only">Previous</span>
+                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => fetchGL(searchTerm, currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+                      >
+                        <span className="sr-only">Next</span>
+                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

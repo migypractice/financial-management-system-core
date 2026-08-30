@@ -31,33 +31,47 @@ class GeneralLedgerController extends Controller
             });
         }
 
+        // Calculate totals using SQL aggregation instead of fetching all into memory
+        $summaryQuery = \Illuminate\Support\Facades\DB::table('journal_entries')
+            ->join('transactions', 'journal_entries.transaction_id', '=', 'transactions.id')
+            ->where('journal_entries.status', 'POSTED');
+
+        if ($search) {
+            $summaryQuery->where(function ($q) use ($search) {
+                $q->where('journal_entries.entry_number', 'like', "%{$search}%")
+                  ->orWhere('transactions.transaction_code', 'like', "%{$search}%")
+                  ->orWhere('transactions.external_reference_id', 'like', "%{$search}%")
+                  ->orWhere('transactions.description', 'like', "%{$search}%")
+                  ->orWhere('transactions.source_module', 'like', "%{$search}%");
+            });
+        }
+
+        $totals = $summaryQuery->selectRaw("
+            COUNT(*) as total_entries,
+            SUM(CASE WHEN transactions.type = 'EXPENSE' THEN transactions.amount ELSE 0 END) as total_debit,
+            SUM(CASE WHEN transactions.type = 'INCOME' THEN transactions.amount ELSE 0 END) as total_credit
+        ")->first();
+
         // Newest first sorting
         $query->orderByDesc('entry_date')
               ->orderByDesc('created_at');
 
-        $entries = $query->get();
-
-        // Calculate totals based on the fetched data
-        $totalDebit = 0;
-        $totalCredit = 0;
-
-        foreach ($entries as $entry) {
-            $amount = (float) $entry->transaction->amount;
-            if ($entry->transaction->type === 'EXPENSE') {
-                $totalDebit += $amount;
-            } else {
-                $totalCredit += $amount;
-            }
-        }
+        $paginated = $query->paginate(50);
 
         return response()->json([
             'success' => true,
             'message' => 'General ledger entries retrieved successfully.',
-            'data'    => GeneralLedgerResource::collection($entries),
+            'data'    => GeneralLedgerResource::collection($paginated->items()),
             'summary' => [
-                'total_entries' => $entries->count(),
-                'total_debit'   => $totalDebit,
-                'total_credit'  => $totalCredit,
+                'total_entries' => (int) $totals->total_entries,
+                'total_debit'   => (float) $totals->total_debit,
+                'total_credit'  => (float) $totals->total_credit,
+            ],
+            'meta' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page'    => $paginated->lastPage(),
+                'total_pages'  => $paginated->lastPage(),
+                'total_items'  => $paginated->total(),
             ]
         ]);
     }

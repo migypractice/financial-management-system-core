@@ -43,6 +43,7 @@ class RbacTest extends TestCase
             'status'                => 'pending_approval',
             'ai_confidence_score'   => 0.9,
             'ai_anomaly_flag'       => false,
+            'created_by'            => $this->makeUser('system_integration')->id,
         ], $overrides));
     }
 
