@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TrendingUp, TrendingDown, DollarSign, Landmark,
   ArrowUpRight, CheckCircle, Clock, AlertTriangle,
@@ -6,6 +6,28 @@ import {
   Receipt, Inbox, Activity
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+
+const Toast: React.FC<{ message: string; type: 'success' | 'info'; onDismiss: () => void }> = ({ message, type, onDismiss }) => {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold transition-all animate-slideInRight ${
+      type === 'success'
+        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+        : 'bg-blue-50 text-blue-700 border-blue-200'
+    }`}>
+      {type === 'success' ? (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+      ) : (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      )}
+      {message}
+    </div>
+  );
+};
 
 interface DashboardPageProps {
   onNavigate?: (path: string) => void;
@@ -52,9 +74,21 @@ const moduleHealth = [
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0] || 'there';
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+
+  const CORE_ROUTES = ['/dashboard', '/approvals', '/gl', '/simulator', '/audit-logs'];
+
+  const handleNavigate = (path: string) => {
+    if (CORE_ROUTES.includes(path)) {
+      onNavigate?.(path);
+    } else {
+      setToast({ message: 'Module under integration — not part of the current Transaction Core implementation.', type: 'info' });
+    }
+  };
 
   return (
-    <div className="p-6 space-y-5" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+    <div className="p-6 space-y-5">
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
 
       {/* Welcome Header */}
       <div>
@@ -139,12 +173,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             return (
               <button
                 key={item.label}
-                onClick={() => onNavigate?.(item.path)}
-                className="flex flex-col items-center gap-1.5 group py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors"
+                onClick={() => handleNavigate(item.path)}
+                className="flex flex-col items-center gap-1.5 group py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors relative"
               >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform shadow-sm`}>
                   <Icon size={16} />
                 </div>
+                {!CORE_ROUTES.includes(item.path) && (
+                  <div className="absolute top-0 right-1 lg:right-3 xl:right-5 text-slate-400 bg-white dark:bg-slate-800 rounded-full border border-slate-100 dark:border-slate-700">
+                    <svg className="w-3.5 h-3.5 p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  </div>
+                )}
                 <span className="text-[9px] font-medium text-gray-500 dark:text-slate-400 text-center leading-tight">{item.label}</span>
               </button>
             );
@@ -161,15 +200,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             <div>
               <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Activity size={15} className="text-blue-500" />
-                Recent Transaction Activity
+                Recent Transaction Activity <span className="text-gray-400 dark:text-slate-500 text-xs font-medium">(Representative Data)</span>
               </h2>
               <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">Latest inbound and outbound financial movements</p>
             </div>
             <button
-              onClick={() => onNavigate?.('/approvals')}
+              onClick={() => handleNavigate('/approvals')}
               className="text-[11px] text-blue-600 font-semibold hover:underline flex items-center gap-1"
             >
-              View All <ArrowUpRight size={11} />
+              View Live Approvals Queue <ArrowUpRight size={11} />
             </button>
           </div>
 
@@ -221,10 +260,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             {moduleHealth.map((m) => (
               <button
                 key={m.label}
-                onClick={() => onNavigate?.(m.path)}
+                onClick={() => handleNavigate(m.path)}
                 className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/40 rounded-lg transition-colors text-left"
               >
-                <span className="text-xs text-gray-700 dark:text-slate-300 font-medium">{m.label}</span>
+                <span className="text-xs text-gray-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
+                  {m.label}
+                  {!CORE_ROUTES.includes(m.path) && (
+                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  )}
+                </span>
                 <span className="flex items-center gap-1.5 text-[11px] text-green-600 font-semibold">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                   Operational
