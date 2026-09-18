@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
-  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun
+  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -65,6 +65,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mailOpen, setMailOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   
   const headerRef = useRef<HTMLDivElement>(null);
   const { logout, user } = useAuth();
@@ -78,6 +84,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  useEffect(() => {
+    const handleThemeToggle = () => {
+      setDarkMode(prev => {
+        const next = !prev;
+        if (next) {
+          localStorage.setItem('theme', 'dark');
+        } else {
+          localStorage.setItem('theme', 'light');
+        }
+        return next;
+      });
+      // Small delay to let state settle before notifying children
+      setTimeout(() => window.dispatchEvent(new Event('themeToggleSync')), 10);
+    };
+    
+    window.addEventListener('themeToggle', handleThemeToggle);
+    return () => window.removeEventListener('themeToggle', handleThemeToggle);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -229,7 +254,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </button>
             {userMenuOpen && !collapsed && (
               <div className="absolute bottom-full left-0 w-full mb-1 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50">
-                <button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+                <button 
+                  onClick={() => {
+                    handleNav('/settings');
+                    setUserMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700"
+                >
                   <Settings size={14} /> Settings
                 </button>
                 <button 
@@ -272,6 +303,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             >
               <Menu size={20} />
             </button>
+            <div className="hidden sm:flex items-center gap-2 text-slate-500 dark:text-slate-400 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700">
+              <Clock size={14} className="text-blue-500" />
+              <span className="text-xs font-semibold tabular-nums tracking-wide">
+                {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3" ref={headerRef}>
@@ -399,7 +436,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 <p className="text-xs font-semibold text-gray-800 dark:text-slate-100">{activeUserName}</p>
                 <p className="text-[10px] text-gray-400 dark:text-slate-400">{activeUserRole}</p>
               </div>
-              <ChevronDown size={13} className="text-gray-400 dark:text-slate-400" />
             </div>
           </div>
         </header>

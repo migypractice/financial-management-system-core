@@ -13,6 +13,7 @@ import ReportsPage from './pages/Reports/ReportsPage';
 import TaxManagementPage from './pages/Tax/TaxManagementPage';
 import SimulatorPage from './pages/Simulator/SimulatorPage';
 import AuditLogPage from './pages/AuditLog/AuditLogPage';
+import SettingsPage from './pages/Settings/SettingsPage';
 
 
 import { useAuth } from './context/AuthContext';
@@ -32,6 +33,7 @@ type AppRoute =
   | '/tax'
   | '/simulator'
   | '/audit-logs'
+  | '/settings'
 ;
 
 export const App: React.FC = () => {
@@ -78,6 +80,8 @@ export const App: React.FC = () => {
         return <SimulatorPage />;
       case '/audit-logs':
         return <AuditLogPage />;
+      case '/settings':
+        return <SettingsPage />;
 
       default:
         return (
