@@ -12,7 +12,7 @@ class ApiKeyMiddleware
     {
         $providedKey = $request->header('X-API-KEY');
 
-        if (!$providedKey || $providedKey !== env('INTEGRATION_API_KEY')) {
+        if (!$providedKey || $providedKey !== config('services.integration_api_key')) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Unauthorized. Invalid or missing API key.',

@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | M2M Integration API Key
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret required via X-API-KEY header on /api/v1/integration/*
+    | endpoints (verified by ApiKeyMiddleware). Must be set in the environment;
+    | never hardcode the production value here.
+    |
+    */
+
+    'integration_api_key' => env('INTEGRATION_API_KEY'),
+
 ];
