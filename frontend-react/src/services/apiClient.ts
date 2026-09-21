@@ -5,7 +5,7 @@ import axios from 'axios';
  * Intercepts JWT session tokens for User requests
  * and System API Keys for machine-to-machine integrations.
  */
-const BASE_URL = 'https://traditional-longest-kevin-pill.trycloudflare.com/api/v1';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
