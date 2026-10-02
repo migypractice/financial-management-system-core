@@ -18,6 +18,8 @@ import SettingsPage from './pages/Settings/SettingsPage';
 
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/Auth/LoginPage';
+import MpinPage from './pages/Auth/MpinPage';
+import { ShieldAlert } from 'lucide-react';
 
 type AppRoute = 
   | '/dashboard' 
@@ -38,7 +40,56 @@ type AppRoute =
 
 export const App: React.FC = () => {
   const [activePath, setActivePath] = useState<AppRoute>('/dashboard');
-  const { isAuthenticated, isLoading } = useAuth();
+  const [isMpinVerified, setIsMpinVerified] = useState(false);
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
+  const [countdown, setCountdown] = useState(30);
+
+  const { isAuthenticated, isLoading, logout } = useAuth();
+
+  // Session Timeout Logic (3 minutes total: 2.5m idle + 30s warning)
+  useEffect(() => {
+    if (!isAuthenticated || !isMpinVerified) return;
+
+    let idleTimer: ReturnType<typeof setTimeout>;
+    let countdownInterval: ReturnType<typeof setInterval>;
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimer);
+      clearInterval(countdownInterval);
+      setShowTimeoutWarning(false);
+      setCountdown(30);
+
+      // Trigger warning after 2.5 minutes (150,000 ms) of inactivity
+      idleTimer = setTimeout(() => {
+        setShowTimeoutWarning(true);
+        
+        // Start 30 second live countdown
+        countdownInterval = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(countdownInterval);
+              logout();
+              setIsMpinVerified(false);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }, 150000); // 2.5 mins
+    };
+
+    // Attach listeners for any user activity
+    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
+    events.forEach((e) => window.addEventListener(e, resetIdleTimer));
+
+    resetIdleTimer();
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, resetIdleTimer));
+      clearTimeout(idleTimer);
+      clearInterval(countdownInterval);
+    };
+  }, [isAuthenticated, isMpinVerified, logout]);
 
   if (isLoading) {
     return (
@@ -50,6 +101,11 @@ export const App: React.FC = () => {
 
   if (!isAuthenticated) {
     return <LoginPage onLoginSuccess={() => setActivePath('/dashboard')} />;
+  }
+
+  // Show MPIN verification after successful login, before allowing access
+  if (!isMpinVerified) {
+    return <MpinPage onSuccess={() => setIsMpinVerified(true)} />;
   }
 
   const renderPage = () => {
@@ -96,11 +152,41 @@ export const App: React.FC = () => {
   };
 
   return (
-    <DashboardLayout activePath={activePath} onNavigate={(path) => setActivePath(path as AppRoute)}>
-      <div key={activePath} className="h-full animate-fadeIn">
-        {renderPage()}
-      </div>
-    </DashboardLayout>
+    <>
+      <DashboardLayout activePath={activePath} onNavigate={(path) => setActivePath(path as AppRoute)}>
+        <div key={activePath} className="h-full animate-fadeIn">
+          {renderPage()}
+        </div>
+      </DashboardLayout>
+
+      {/* Session Timeout Warning Modal */}
+      {showTimeoutWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border border-red-100 p-6 max-w-sm w-full mx-4 text-center animate-fadeIn">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 text-red-600 mb-4">
+              <ShieldAlert size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Session Expiring</h3>
+            <p className="text-sm text-slate-500 mb-6">
+              For your security, your session will automatically log out due to inactivity in:
+            </p>
+            <div className="text-4xl font-black text-red-600 mb-6">
+              00:{countdown.toString().padStart(2, '0')}
+            </div>
+            <button
+              onClick={() => {
+                setShowTimeoutWarning(false);
+                setCountdown(30);
+                // The global event listeners will automatically reset the timer
+              }}
+              className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-colors"
+            >
+              Keep Me Signed In
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

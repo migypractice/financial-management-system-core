@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             \App\Models\User::create([
                 'name' => 'System Admin',
                 'email' => 'admin@hw.com',
-                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                'password' => \Illuminate\Support\Facades\Hash::make('Admin@123!'),
                 'role_id' => $superAdminRole->id,
                 'department' => 'Executive',
             ]);
@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
             \App\Models\User::create([
                 'name' => 'Finance Manager',
                 'email' => 'manager@hw.com',
-                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                'password' => \Illuminate\Support\Facades\Hash::make('Admin@123!'),
                 'role_id' => $financeManagerRole->id,
                 'department' => 'Finance',
             ]);
@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
             \App\Models\User::create([
                 'name' => 'HR Staff',
                 'email' => 'staff@hw.com',
-                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                'password' => \Illuminate\Support\Facades\Hash::make('Admin@123!'),
                 'role_id' => $departmentViewerRole->id,
                 'department' => 'HR',
             ]);
