@@ -70,7 +70,7 @@ export const DisbursementPage: React.FC = () => {
     <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Disbursement Management</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Outbound payment batches, payroll execution, and settlement tracking.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Outbound payments and settlement tracking</p>
       </div>
 
       {/* Summary Cards */}

@@ -60,7 +60,7 @@ export const LoginPage: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuc
           </div>
         </div>
         <p className="mt-4 text-center text-sm text-slate-600">
-          Sign in to your Financial System account
+          Financial Management System
         </p>
       </div>
 

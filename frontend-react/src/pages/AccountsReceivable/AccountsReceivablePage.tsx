@@ -82,7 +82,7 @@ export const AccountsReceivablePage: React.FC = () => {
     <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Accounts Receivable</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Payment gateway settlements, merchant receipts, and collection tracking.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Receivables and payment settlements</p>
       </div>
 
       {/* Summary cards */}
