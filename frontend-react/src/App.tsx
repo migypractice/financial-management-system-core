@@ -46,6 +46,13 @@ export const App: React.FC = () => {
 
   const { isAuthenticated, isLoading, logout } = useAuth();
 
+  // Reset MPIN verification whenever the user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsMpinVerified(false);
+    }
+  }, [isAuthenticated]);
+
   // Session Timeout Logic (3 minutes total: 2.5m idle + 30s warning)
   useEffect(() => {
     if (!isAuthenticated || !isMpinVerified) return;
