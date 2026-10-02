@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from './components/layout/DashboardLayout';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ApprovalsPage from './pages/Approvals/ApprovalsPage';
