@@ -12,7 +12,7 @@ import { Send, Zap, CheckCircle2, AlertTriangle, XCircle, Loader2, RotateCcw, Co
 // Pre-built scenario templates for quick demo
 const SCENARIOS = [
   {
-    label: '🏗️ Cement Purchase (Normal)',
+    label: 'Cement Purchase (Normal)',
     module: 'SUPPLY_CHAIN',
     category: 'SUPPLIER_INVOICE',
     amount: '185000',
@@ -20,7 +20,7 @@ const SCENARIOS = [
     endpoint: 'disbursement',
   },
   {
-    label: '💰 Online Sales Revenue',
+    label: 'Online Sales Revenue',
     module: 'ECOMMERCE_CORE',
     category: 'SALES_REVENUE',
     amount: '45600',
@@ -28,7 +28,7 @@ const SCENARIOS = [
     endpoint: 'revenue',
   },
   {
-    label: '👷 Payroll (1st Half July)',
+    label: 'Payroll (1st Half July)',
     module: 'HRMS',
     category: 'PAYROLL_SALARY',
     amount: '285000',
@@ -36,7 +36,7 @@ const SCENARIOS = [
     endpoint: 'disbursement',
   },
   {
-    label: '⚠️ SUSPICIOUS Employee Claim',
+    label: 'SUSPICIOUS Employee Claim',
     module: 'HRMS',
     category: 'EMPLOYEE_CLAIM',
     amount: '520000',
@@ -44,7 +44,7 @@ const SCENARIOS = [
     endpoint: 'disbursement',
   },
   {
-    label: '🚨 OFFSHORE Steel Import (High Risk)',
+    label: 'OFFSHORE Steel Import (High Risk)',
     module: 'SUPPLY_CHAIN',
     category: 'SUPPLIER_INVOICE',
     amount: '1200000',
@@ -52,7 +52,7 @@ const SCENARIOS = [
     endpoint: 'disbursement',
   },
   {
-    label: '⛽ Fleet Diesel Fuel',
+    label: 'Fleet Diesel Fuel',
     module: 'FLEET',
     category: 'FLEET_FUEL',
     amount: '42000',
@@ -60,7 +60,7 @@ const SCENARIOS = [
     endpoint: 'disbursement',
   },
   {
-    label: '🏠 Warehouse Rent',
+    label: 'Warehouse Rent',
     module: 'FACILITIES_LEGAL',
     category: 'FACILITY_RENT',
     amount: '150000',
@@ -68,7 +68,7 @@ const SCENARIOS = [
     endpoint: 'disbursement',
   },
   {
-    label: '↩️ Customer Refund (Defective)',
+    label: 'Customer Refund (Defective)',
     module: 'ECOMMERCE_CORE',
     category: 'CUSTOMER_REFUND',
     amount: '12500',
@@ -317,7 +317,7 @@ export const SimulatorPage: React.FC = () => {
   const handleResendLast = () => {
     if (!lastRequestRef.current || loading) return;
     const { url, body, idempotencyKey, scenarioLabel } = lastRequestRef.current;
-    executeSend(url, body, idempotencyKey, `♻️ Resend: ${scenarioLabel}`);
+    executeSend(url, body, idempotencyKey, `Resend: ${scenarioLabel}`);
   };
 
   // FIX 2: Resend with same idempotency key but modified payload → triggers 409
@@ -325,7 +325,7 @@ export const SimulatorPage: React.FC = () => {
     if (!lastRequestRef.current || loading) return;
     const { url, body, idempotencyKey, scenarioLabel } = lastRequestRef.current;
     const modifiedBody = { ...body, amount: (body.amount as number) + 1, description: body.description + ' [MODIFIED]' };
-    executeSend(url, modifiedBody, idempotencyKey, `⚡ Conflict Test: ${scenarioLabel}`);
+    executeSend(url, modifiedBody, idempotencyKey, `Conflict Test: ${scenarioLabel}`);
   };
 
   /** Get the status badge styling for a log entry */
@@ -621,7 +621,7 @@ export const SimulatorPage: React.FC = () => {
                               </div>
                               {log.response.ai_evaluation.anomaly_detected && (
                                 <p className="text-[10px] text-red-600 font-medium mt-1 pt-1.5 border-t border-red-100">
-                                  🚨 AI Anomaly Detected — Flagged for human review
+                                  AI Anomaly Detected — Flagged for human review
                                 </p>
                               )}
                             </>
