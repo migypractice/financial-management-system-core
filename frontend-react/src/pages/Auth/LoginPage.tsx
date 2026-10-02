@@ -8,9 +8,6 @@ export const LoginPage: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuc
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
-  // Strong Password Regex: At least 8 chars, 1 uppercase, 1 number, 1 special char
-  const isStrongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);

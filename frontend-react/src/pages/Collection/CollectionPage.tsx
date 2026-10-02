@@ -69,10 +69,10 @@ export const CollectionPage: React.FC = () => {
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Collections Today" value="PHP 1,990,000" accentColor="bg-blue-500" />
-        <StatCard title="Auto-Matched" value="PHP 1,860,500" accentColor="bg-emerald-500" subtitle="93.5% match rate" />
-        <StatCard title="Unmatched Deposits" value="PHP 89,000" accentColor="bg-amber-500" isPositive={false} />
-        <StatCard title="Processing" value="PHP 450,000" accentColor="bg-slate-400" />
+        <StatCard title="Total Collections" value={`PHP ${collections.reduce((s, c) => s + c.amount, 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`} accentColor="bg-blue-500" />
+        <StatCard title="Auto-Matched" value={`PHP ${collections.filter(c => c.status === 'matched').reduce((s, c) => s + c.amount, 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`} accentColor="bg-emerald-500" subtitle={`${collections.length > 0 ? ((collections.filter(c => c.status === 'matched').length / collections.length) * 100).toFixed(1) : 0}% match rate`} />
+        <StatCard title="Unmatched Deposits" value={`PHP ${collections.filter(c => c.status === 'unmatched').reduce((s, c) => s + c.amount, 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`} accentColor="bg-amber-500" isPositive={false} />
+        <StatCard title="Processing" value={`PHP ${collections.filter(c => c.status === 'processing').reduce((s, c) => s + c.amount, 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`} accentColor="bg-slate-400" />
       </div>
 
        {/* Filters */}

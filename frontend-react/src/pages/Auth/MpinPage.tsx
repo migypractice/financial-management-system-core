@@ -113,11 +113,6 @@ export const MpinPage: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => 
           <div className="flex items-center justify-center gap-2 text-xs text-slate-400 mt-6 bg-slate-800/50 py-3 px-4 rounded-lg border border-slate-700">
             <Lock size={14} className="text-blue-400" />
             <span>2-Factor Authentication Required by Corporate IT Policy</span>
-          </div>
-          
-          <div className="mt-4 text-[10px] text-slate-500">
-            Demo Note: Use PIN 1111
-          </div>
         </div>
       </div>
     </div>

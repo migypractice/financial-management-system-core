@@ -48,7 +48,7 @@ export const ReportsPage: React.FC = () => {
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 overflow-hidden">
              <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-700/30">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Income Statement (MTD)</h2>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium bg-white dark:bg-slate-800 px-2 py-1 rounded border border-gray-200 dark:border-slate-600">July 2026</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium bg-white dark:bg-slate-800 px-2 py-1 rounded border border-gray-200 dark:border-slate-600">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
              </div>
              <div className="p-5 space-y-4 text-sm">
                 <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2">

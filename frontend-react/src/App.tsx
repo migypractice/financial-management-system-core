@@ -75,6 +75,8 @@ export const App: React.FC = () => {
           setCountdown((prev) => {
             if (prev <= 1) {
               clearInterval(countdownInterval);
+              setShowTimeoutWarning(false);
+              setCountdown(30);
               setIsMpinVerified(false); // Screen Lock instead of full logout
               return 0;
             }
