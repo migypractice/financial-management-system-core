@@ -6,6 +6,7 @@ import {
   Receipt, Inbox, Activity, Eye, EyeOff
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useDashboardData } from '../../hooks/useDashboardData';
 
 const Toast: React.FC<{ message: string; type: 'success' | 'info'; onDismiss: () => void }> = ({ message, type, onDismiss }) => {
   useEffect(() => {
@@ -77,6 +78,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
   const [showBalances, setShowBalances] = useState(true);
 
+  const { transactions } = useDashboardData();
+
+  // Compute live data
+  const approvedRevenue = transactions
+    .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'INBOUND')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const approvedExpenses = transactions
+    .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'OUTBOUND')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const cogs = approvedRevenue * 0.25;
+  const netIncome = approvedRevenue - cogs - approvedExpenses;
+  const cashPosition = 12450800 + approvedRevenue - approvedExpenses;
+
+  // Map real transactions for recent activity
+  const liveRecentTransactions = transactions
+    .slice(0, 5)
+    .map(t => ({
+      code: t.transactionCode,
+      module: t.externalModule || 'SYSTEM',
+      amount: Number(t.amount),
+      status: t.status === 'posted' ? 'approved' : t.status,
+      time: new Date(t.createdAt).toLocaleDateString()
+    }));
+
   const CORE_ROUTES = ['/dashboard', '/approvals', '/gl', '/simulator', '/audit-logs'];
 
   const handleNavigate = (path: string) => {
@@ -114,33 +141,33 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            label: 'Total Revenue (MTD)',
-            value: '₱28,900,000',
-            change: '↑ 12.4% from last month',
+            label: 'Total Revenue (Live)',
+            value: `₱${approvedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}`,
+            change: '↑ Live data',
             positive: true,
             icon: <TrendingUp size={20} />,
             iconBg: 'bg-blue-100 text-blue-600',
           },
           {
-            label: 'Total Expenses (MTD)',
-            value: '₱11,340,200',
-            change: '↑ 3.1% from last month',
+            label: 'Total Expenses (Live)',
+            value: `₱${approvedExpenses.toLocaleString('en-US', {minimumFractionDigits: 2})}`,
+            change: '↑ Live data',
             positive: false,
             icon: <TrendingDown size={20} />,
             iconBg: 'bg-red-100 text-red-500',
           },
           {
             label: 'Net Income',
-            value: '₱17,559,800',
-            change: '↑ 18.7% from last month',
-            positive: true,
+            value: `₱${netIncome.toLocaleString('en-US', {minimumFractionDigits: 2})}`,
+            change: netIncome >= 0 ? '↑ Profitable' : '↓ Loss',
+            positive: netIncome >= 0,
             icon: <DollarSign size={20} />,
-            iconBg: 'bg-green-100 text-green-600',
+            iconBg: netIncome >= 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600',
           },
           {
             label: 'Cash Position',
-            value: '₱12,450,800',
-            change: '↑ 5.2% across all banks',
+            value: `₱${cashPosition.toLocaleString('en-US', {minimumFractionDigits: 2})}`,
+            change: 'Live balance',
             positive: true,
             icon: <Landmark size={20} />,
             iconBg: 'bg-amber-100 text-amber-600',

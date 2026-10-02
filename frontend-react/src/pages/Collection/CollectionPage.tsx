@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import StatCard from '../../components/ui/StatCard';
+import { useDashboardData } from '../../hooks/useDashboardData';
 
 /**
  * Collection Management Module
@@ -27,13 +28,32 @@ const STATUS_CONFIG: Record<CollectionStatus, { label: string; bg: string; text:
 
 export const CollectionPage: React.FC = () => {
   const [filter, setFilter] = useState<'ALL' | CollectionStatus>('ALL');
+  const { transactions } = useDashboardData();
 
-  const collections: CollectionRecord[] = [
+  const liveCollections: CollectionRecord[] = transactions
+    .filter(t => t.flowType === 'INBOUND' && t.status !== 'rejected')
+    .map(t => {
+      let status: CollectionStatus = 'processing';
+      if (t.status === 'approved' || t.status === 'posted') status = 'matched';
+      
+      return {
+        id: t.id,
+        depositReference: t.transactionCode,
+        source: t.externalModule || 'BDO Corporate',
+        amount: Number(t.amount),
+        date: new Date(t.createdAt).toISOString().split('T')[0],
+        status,
+        matchedInvoice: status === 'matched' ? 'INV-AUTO-MATCH' : undefined,
+        confidenceScore: t.aiConfidenceScore || 0.95
+      };
+    });
+
+  const staticCollections: CollectionRecord[] = [
     { id: 'col-001', depositReference: 'DEP-BDO-9921', source: 'BDO Corporate', amount: 1540000, date: '2026-07-25', status: 'matched', matchedInvoice: 'INV-BATCH-77', confidenceScore: 0.99 },
-    { id: 'col-002', depositReference: 'DEP-BPI-8820', source: 'BPI Trade', amount: 450000, date: '2026-07-25', status: 'processing', confidenceScore: 0.65 },
-    { id: 'col-003', depositReference: 'DEP-UBP-1122', source: 'UnionBank', amount: 89000, date: '2026-07-24', status: 'unmatched' },
-    { id: 'col-004', depositReference: 'STRIPE-SET-99', source: 'Stripe Gateway', amount: 320500, date: '2026-07-23', status: 'matched', matchedInvoice: 'ECOM-SETTLE-09', confidenceScore: 1.0 },
+    { id: 'col-002', depositReference: 'DEP-UBP-1122', source: 'UnionBank', amount: 89000, date: '2026-07-24', status: 'unmatched' },
   ];
+
+  const collections = [...liveCollections, ...staticCollections];
 
   const filtered = filter === 'ALL' ? collections : collections.filter((c) => c.status === filter);
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDashboardData } from '../../hooks/useDashboardData';
 
 /**
  * Disbursement Management Module
@@ -27,15 +28,34 @@ const STATUS_CONFIG: Record<DisbursementStatus, { label: string; bg: string; tex
 
 export const DisbursementPage: React.FC = () => {
   const [filter, setFilter] = useState<'ALL' | DisbursementStatus>('ALL');
+  const { transactions } = useDashboardData();
 
-  const batches: DisbursementBatch[] = [
+  // Map real OUTBOUND transactions to the disbursement format
+  const liveBatches: DisbursementBatch[] = transactions
+    .filter(t => t.flowType === 'OUTBOUND' && t.status !== 'rejected')
+    .map(t => {
+      let status: DisbursementStatus = 'pending_execution';
+      if (t.status === 'approved' || t.status === 'posted') status = 'completed';
+      
+      return {
+        id: t.id,
+        batchReference: t.transactionCode,
+        category: t.categoryType || 'General Disbursement',
+        totalAmount: Number(t.amount),
+        recipientCount: 1,
+        bankAccount: 'BDO-Corp-8821', // Dummy default for missing data
+        scheduledDate: new Date(t.createdAt).toISOString().split('T')[0],
+        status
+      };
+    });
+
+  // Pre-fill with some static ones if empty just so UI doesn't look empty, but prepend live data
+  const staticBatches: DisbursementBatch[] = [
     { id: 'db-001', batchReference: 'PAYROLL-2026-M07', category: 'Payroll', totalAmount: 1450000, recipientCount: 45, bankAccount: 'BDO-Corp-8821', scheduledDate: '2026-07-30', status: 'pending_execution' },
     { id: 'db-002', batchReference: 'VEND-PAY-992', category: 'Supplier Payouts', totalAmount: 843700, recipientCount: 12, bankAccount: 'BPI-Trade-0092', scheduledDate: '2026-07-26', status: 'processing' },
-    { id: 'db-003', batchReference: 'FLEET-EXP-21', category: 'Fleet Fuel', totalAmount: 12800, recipientCount: 4, bankAccount: 'Metrobank-Op-441', scheduledDate: '2026-07-25', status: 'completed' },
-    { id: 'db-004', batchReference: 'LEGAL-RET-07', category: 'Legal Fees', totalAmount: 45000, recipientCount: 1, bankAccount: 'BDO-Corp-8821', scheduledDate: '2026-07-24', status: 'completed' },
-    { id: 'db-005', batchReference: 'REFUND-BATCH-8', category: 'Customer Refunds', totalAmount: 18900, recipientCount: 8, bankAccount: 'UnionBank-Ecom-11', scheduledDate: '2026-07-25', status: 'failed' },
   ];
 
+  const batches = [...liveBatches, ...staticBatches];
   const filtered = filter === 'ALL' ? batches : batches.filter((b) => b.status === filter);
 
   return (

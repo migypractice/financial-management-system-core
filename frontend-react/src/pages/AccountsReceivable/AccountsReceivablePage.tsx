@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDashboardData } from '../../hooks/useDashboardData';
 
 /**
  * Accounts Receivable (AR) Module
@@ -29,14 +30,41 @@ const STATUS_CONFIG: Record<ARStatus, { label: string; bg: string; text: string;
 
 export const AccountsReceivablePage: React.FC = () => {
   const [filter, setFilter] = useState<'ALL' | ARStatus>('ALL');
+  const { transactions } = useDashboardData();
 
-  const receivables: Receivable[] = [
+  // Map real INBOUND transactions
+  const liveReceivables: Receivable[] = transactions
+    .filter(t => t.flowType === 'INBOUND')
+    .map(t => {
+      let status: ARStatus = 'pending_settlement';
+      if (t.status === 'approved' || t.status === 'posted') status = 'settled';
+      if (t.status === 'rejected') status = 'disputed';
+      
+      const grossAmount = Number(t.amount);
+      const gatewayFee = grossAmount * 0.02; // 2% fee
+      const taxWithheld = grossAmount * 0.12; // 12% tax
+      const netAmount = grossAmount - gatewayFee - taxWithheld;
+
+      return {
+        id: t.id,
+        orderBatch: t.transactionCode,
+        gateway: t.externalModule === 'ECOMMERCE_CORE' ? 'Stripe Gateway' : 'Bank Transfer',
+        merchantName: t.externalModule || 'Customer',
+        grossAmount,
+        gatewayFee,
+        taxWithheld,
+        netAmount,
+        settlementDate: new Date(t.createdAt).toISOString().split('T')[0],
+        status,
+      };
+    });
+
+  const staticReceivables: Receivable[] = [
     { id: 'ar-001', orderBatch: 'ORD-998241', gateway: 'Stripe', merchantName: 'TechMart PH', grossAmount: 45000, gatewayFee: 900, taxWithheld: 5400, netAmount: 38700, settlementDate: '2026-07-25', status: 'pending_settlement' },
     { id: 'ar-002', orderBatch: 'ORD-998190', gateway: 'PayPal', merchantName: 'FashionHub Manila', grossAmount: 128500, gatewayFee: 3855, taxWithheld: 15420, netAmount: 109225, settlementDate: '2026-07-24', status: 'settled' },
-    { id: 'ar-003', orderBatch: 'ORD-998120', gateway: 'GCash', merchantName: 'GadgetWorld PH', grossAmount: 67200, gatewayFee: 1344, taxWithheld: 8064, netAmount: 57792, settlementDate: '2026-07-24', status: 'settled' },
-    { id: 'ar-004', orderBatch: 'ORD-997988', gateway: 'Bank Transfer', merchantName: 'HomeLiving Co', grossAmount: 234000, gatewayFee: 0, taxWithheld: 28080, netAmount: 205920, settlementDate: '2026-07-23', status: 'partially_received' },
-    { id: 'ar-005', orderBatch: 'ORD-997850', gateway: 'Stripe', merchantName: 'AutoParts Express', grossAmount: 18900, gatewayFee: 378, taxWithheld: 2268, netAmount: 16254, settlementDate: '2026-07-22', status: 'disputed' },
   ];
+
+  const receivables = [...liveReceivables, ...staticReceivables];
 
   const summaryCards = [
     { label: 'Total Receivables', amount: receivables.reduce((s, r) => s + r.grossAmount, 0), color: 'bg-blue-500' },

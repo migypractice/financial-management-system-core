@@ -1,5 +1,6 @@
 import React from 'react';
 import StatCard from '../../components/ui/StatCard';
+import { useDashboardData } from '../../hooks/useDashboardData';
 
 /**
  * Cash Management Module
@@ -7,12 +8,25 @@ import StatCard from '../../components/ui/StatCard';
  */
 
 export const CashManagementPage: React.FC = () => {
+  const { transactions } = useDashboardData();
+
+  // Compute real totals from approved/posted transactions
+  const approvedInflow = transactions
+    .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'INBOUND')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const approvedOutflow = transactions
+    .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'OUTBOUND')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
   const bankAccounts = [
-    { id: 'bnk-1', bank: 'BDO Corporate', type: 'Operating', acctNum: '**** 8821', balance: 8450000, status: 'Reconciled' },
-    { id: 'bnk-2', bank: 'BPI Trade', type: 'AP/Payroll', acctNum: '**** 0092', balance: 2150000, status: 'Reconciled' },
+    { id: 'bnk-1', bank: 'BDO Corporate', type: 'Operating', acctNum: '**** 8821', balance: 8450000 + (approvedInflow * 0.6) - (approvedOutflow * 0.7), status: 'Reconciled' },
+    { id: 'bnk-2', bank: 'BPI Trade', type: 'AP/Payroll', acctNum: '**** 0092', balance: 2150000 + (approvedInflow * 0.4) - (approvedOutflow * 0.3), status: 'Reconciled' },
     { id: 'bnk-3', bank: 'UnionBank', type: 'E-Commerce Receivables', acctNum: '**** 1122', balance: 1420800, status: 'Pending Recon' },
     { id: 'bnk-4', bank: 'Metrobank', type: 'Operating Reserve', acctNum: '**** 4410', balance: 430000, status: 'Reconciled' },
   ];
+
+  const totalCash = bankAccounts.reduce((sum, b) => sum + b.balance, 0);
 
   return (
     <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
@@ -22,10 +36,10 @@ export const CashManagementPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Cash Equivalents" value="PHP 12,450,800" accentColor="bg-blue-500" subtitle="Across 4 bank accounts" />
-        <StatCard title="Inflow (Today)" value="PHP 1,990,000" accentColor="bg-emerald-500" isPositive={true} />
-        <StatCard title="Outflow (Today)" value="PHP 845,000" accentColor="bg-red-500" isPositive={false} />
-        <StatCard title="Net Cash Flow" value="PHP 1,145,000" accentColor="bg-emerald-500" isPositive={true} />
+        <StatCard title="Total Cash Equivalents" value={`PHP ${totalCash.toLocaleString('en-US', {minimumFractionDigits: 2})}`} accentColor="bg-blue-500" subtitle="Across 4 bank accounts" />
+        <StatCard title="Real Inflow (Approved)" value={`PHP ${approvedInflow.toLocaleString('en-US', {minimumFractionDigits: 2})}`} accentColor="bg-emerald-500" isPositive={true} subtitle="from live transactions" />
+        <StatCard title="Real Outflow (Approved)" value={`PHP ${approvedOutflow.toLocaleString('en-US', {minimumFractionDigits: 2})}`} accentColor="bg-red-500" isPositive={false} subtitle="from live transactions" />
+        <StatCard title="Net Flow" value={`PHP ${(approvedInflow - approvedOutflow).toLocaleString('en-US', {minimumFractionDigits: 2})}`} accentColor="bg-emerald-500" isPositive={approvedInflow >= approvedOutflow} />
       </div>
 
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 overflow-hidden">

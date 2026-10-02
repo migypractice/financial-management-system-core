@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDashboardData } from '../../hooks/useDashboardData';
 
 /**
  * Financial Reporting & Analytics Module
@@ -6,6 +7,22 @@ import React from 'react';
  */
 
 export const ReportsPage: React.FC = () => {
+  const { transactions } = useDashboardData();
+
+  // Compute real totals from approved/posted transactions
+  const approvedRevenue = transactions
+    .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'INBOUND')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const approvedExpenses = transactions
+    .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'OUTBOUND')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  // Derive static-like values based on real data for a complete report look
+  const cogs = approvedRevenue * 0.25; // 25% of revenue as dummy COGS
+  const grossProfit = approvedRevenue - cogs;
+  const netIncome = grossProfit - approvedExpenses;
+
   return (
     <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -32,24 +49,26 @@ export const ReportsPage: React.FC = () => {
              </div>
              <div className="p-5 space-y-4 text-sm">
                 <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2">
-                  <span className="font-medium text-slate-700 dark:text-slate-300">Gross Revenue</span>
-                  <span className="font-mono text-slate-900 dark:text-white">PHP 28,900,000.00</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">Gross Revenue (Live)</span>
+                  <span className="font-mono text-slate-900 dark:text-white">PHP {approvedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2 pl-4">
-                  <span className="text-slate-600 dark:text-slate-400">Less: Cost of Goods Sold (COGS)</span>
-                  <span className="font-mono text-slate-600 dark:text-slate-400">(PHP 6,850,000.00)</span>
+                  <span className="text-slate-600 dark:text-slate-400">Less: Cost of Goods Sold (Estimated)</span>
+                  <span className="font-mono text-slate-600 dark:text-slate-400">(PHP {cogs.toLocaleString('en-US', {minimumFractionDigits: 2})})</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2">
                   <span className="font-semibold text-slate-900 dark:text-white">Gross Profit</span>
-                  <span className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">PHP 22,050,000.00</span>
+                  <span className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">PHP {grossProfit.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2 pl-4">
-                  <span className="text-slate-600 dark:text-slate-400">Operating Expenses</span>
-                  <span className="font-mono text-slate-600 dark:text-slate-400">(PHP 4,490,200.00)</span>
+                  <span className="text-slate-600 dark:text-slate-400">Operating Expenses (Live)</span>
+                  <span className="font-mono text-slate-600 dark:text-slate-400">(PHP {approvedExpenses.toLocaleString('en-US', {minimumFractionDigits: 2})})</span>
                 </div>
                 <div className="flex justify-between items-center pt-2">
                   <span className="font-bold text-slate-900 dark:text-white">Net Income</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 border-double border-b-4 border-emerald-200 dark:border-emerald-800">PHP 17,559,800.00</span>
+                  <span className={`font-mono font-bold border-double border-b-4 ${netIncome >= 0 ? 'text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' : 'text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
+                    PHP {netIncome.toLocaleString('en-US', {minimumFractionDigits: 2})}
+                  </span>
                 </div>
              </div>
           </div>

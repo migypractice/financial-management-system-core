@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDashboardData } from '../../hooks/useDashboardData';
 
 /**
  * Accounts Payable (AP) Module
@@ -28,14 +29,35 @@ const STATUS_CONFIG: Record<APStatus, { label: string; bg: string; text: string;
 
 export const AccountsPayablePage: React.FC = () => {
   const [filter, setFilter] = useState<'ALL' | APStatus>('ALL');
+  const { transactions } = useDashboardData();
 
-  const invoices: PayableInvoice[] = [
+  // Map real OUTBOUND transactions
+  const livePayables: PayableInvoice[] = transactions
+    .filter(t => t.flowType === 'OUTBOUND')
+    .map(t => {
+      let status: APStatus = 'pending';
+      if (t.status === 'approved' || t.status === 'posted') status = 'paid';
+      if (t.status === 'rejected') status = 'overdue'; // Just for demo variety
+      
+      return {
+        id: t.id,
+        vendorName: t.externalModule || 'Unknown Vendor',
+        invoiceNumber: t.transactionCode,
+        poReference: t.externalReferenceId || 'PO-AUTO',
+        amount: Number(t.amount),
+        dueDate: new Date(t.createdAt).toISOString().split('T')[0],
+        daysOutstanding: status === 'pending' ? 5 : 0,
+        status,
+        department: t.categoryType || 'General',
+      };
+    });
+
+  const staticInvoices: PayableInvoice[] = [
     { id: 'ap-001', vendorName: 'Global Supplies Ltd', invoiceNumber: 'INV-2026-4401', poReference: 'PO-99421', amount: 685000, dueDate: '2026-08-15', daysOutstanding: 0, status: 'pending', department: 'Supply Chain' },
     { id: 'ap-002', vendorName: 'LogiTrans Freight Corp', invoiceNumber: 'INV-2026-4402', poReference: 'PO-88310', amount: 124500, dueDate: '2026-07-20', daysOutstanding: 5, status: 'overdue', department: 'Fleet' },
-    { id: 'ap-003', vendorName: 'CloudHost PH Inc', invoiceNumber: 'INV-2026-4403', poReference: 'PO-77200', amount: 45000, dueDate: '2026-08-01', daysOutstanding: 0, status: 'approved', department: 'IT Infrastructure' },
-    { id: 'ap-004', vendorName: 'Prime Office Rentals', invoiceNumber: 'INV-2026-4404', poReference: 'PO-66150', amount: 95000, dueDate: '2026-07-31', daysOutstanding: 0, status: 'paid', department: 'Facilities' },
-    { id: 'ap-005', vendorName: 'SecurePay Gateway', invoiceNumber: 'INV-2026-4405', poReference: 'PO-55001', amount: 18700, dueDate: '2026-07-28', daysOutstanding: 0, status: 'pending', department: 'E-Commerce' },
   ];
+
+  const invoices = [...livePayables, ...staticInvoices];
 
   const agingBuckets = [
     { label: 'Current', range: '0-30 days', amount: 843700, count: 3, color: 'bg-emerald-500' },
