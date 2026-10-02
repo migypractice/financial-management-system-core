@@ -5,7 +5,8 @@ import { ShieldCheck, Lock, AlertCircle } from 'lucide-react';
 export const MpinPage: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   const [pin, setPin] = useState(['', '', '', '']);
   const [error, setError] = useState(false);
-  const { user } = useAuth();
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const { user, logout } = useAuth();
 
   const handleInput = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -34,12 +35,20 @@ export const MpinPage: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => 
       if (pin.join('') === '1111') {
         onSuccess();
       } else {
+        const newFails = failedAttempts + 1;
+        if (newFails >= 3) {
+          // 3 strikes, you're out
+          alert('Security Violation: Maximum MPIN attempts reached. Your session has been terminated.');
+          logout();
+          return;
+        }
+        setFailedAttempts(newFails);
         setError(true);
         setPin(['', '', '', '']);
         document.getElementById('pin-0')?.focus();
       }
     }
-  }, [pin, onSuccess]);
+  }, [pin, onSuccess, failedAttempts, logout]);
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -80,9 +89,12 @@ export const MpinPage: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => 
           </div>
 
           {error && (
-            <div className="flex items-center justify-center gap-2 text-red-400 text-sm font-medium animate-pulse mb-4">
-              <AlertCircle size={16} />
-              Invalid PIN. Please try again.
+            <div className="flex flex-col items-center justify-center gap-1 text-red-400 text-sm font-medium animate-pulse mb-4">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={16} />
+                Invalid PIN. Please try again.
+              </div>
+              <span className="text-xs text-red-300">Attempt {failedAttempts} of 3</span>
             </div>
           )}
 
