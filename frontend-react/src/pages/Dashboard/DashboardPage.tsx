@@ -3,7 +3,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, Landmark,
   ArrowUpRight, CheckCircle, Clock, AlertTriangle,
   BookOpen, CreditCard, Send, PieChart, BarChart2,
-  Receipt, Inbox, Activity
+  Receipt, Inbox, Activity, Eye, EyeOff
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -75,15 +75,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0] || 'there';
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [showBalances, setShowBalances] = useState(true);
 
   const CORE_ROUTES = ['/dashboard', '/approvals', '/gl', '/simulator', '/audit-logs'];
 
   const handleNavigate = (path: string) => {
-    if (CORE_ROUTES.includes(path)) {
-      onNavigate?.(path);
-    } else {
-      setToast({ message: 'Module under integration — not part of the current Transaction Core implementation.', type: 'info' });
-    }
+    onNavigate?.(path);
   };
 
   return (
@@ -100,17 +97,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         </p>
       </div>
 
-      {/* Analytics Context Note */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/60 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800/40">
-        <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="text-[11px] text-blue-600 dark:text-blue-300 font-medium">
-          Analytics Module (Under Integration) — Live data is available in AI Approvals and General Ledger. Connected subsystem modules are being integrated by other teams.
-        </p>
-      </div>
+
 
       {/* KPI Cards */}
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">Financial Overview</h2>
+        <button
+          onClick={() => setShowBalances(!showBalances)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+        >
+          {showBalances ? <EyeOff size={14} /> : <Eye size={14} />}
+          {showBalances ? 'Hide Balances' : 'Show Balances'}
+        </button>
+      </div>
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
@@ -148,16 +148,26 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         ].map((kpi) => (
           <div key={kpi.label} className="card-hover bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm hover:shadow-md">
             <div className="flex items-start justify-between">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpi.iconBg}`}>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  {kpi.label}
+                </p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white font-mono">
+                  {showBalances ? kpi.value : '₱ * * * * *'}
+                </h3>
+              </div>
+              <div className={`p-2 rounded-xl ${kpi.iconBg}`}>
                 {kpi.icon}
               </div>
-              <ArrowUpRight size={14} className="text-gray-300 dark:text-slate-600 mt-1" />
             </div>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mt-3 font-medium">{kpi.label}</p>
-            <p className="text-xl font-bold text-gray-900 dark:text-white mt-0.5 tracking-tight">{kpi.value}</p>
-            <p className={`text-[11px] mt-1 font-medium ${kpi.positive ? 'text-green-500' : 'text-red-400'}`}>
-              {kpi.change}
-            </p>
+            <div className="mt-3 flex items-center gap-1.5">
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${kpi.positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {kpi.change.split(' ')[0]} {kpi.change.split(' ')[1]}
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">
+                {kpi.change.split(' ').slice(2).join(' ')}
+              </span>
+            </div>
           </div>
         ))}
       </div>
@@ -179,11 +189,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform shadow-sm`}>
                   <Icon size={16} />
                 </div>
-                {!CORE_ROUTES.includes(item.path) && (
-                  <div className="absolute top-0 right-1 lg:right-3 xl:right-5 text-slate-400 bg-white dark:bg-slate-800 rounded-full border border-slate-100 dark:border-slate-700">
-                    <svg className="w-3.5 h-3.5 p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                  </div>
-                )}
+
                 <span className="text-[9px] font-medium text-gray-500 dark:text-slate-400 text-center leading-tight">{item.label}</span>
               </button>
             );
@@ -265,9 +271,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               >
                 <span className="text-xs text-gray-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
                   {m.label}
-                  {!CORE_ROUTES.includes(m.path) && (
-                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                  )}
+
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] text-green-600 font-semibold">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
