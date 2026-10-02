@@ -120,7 +120,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       {/* Welcome Header */}
       <div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-          Welcome back, {firstName}!
+          Welcome back, {firstName}! 👋
         </h1>
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
           Here's what's happening in your Transaction Core today.

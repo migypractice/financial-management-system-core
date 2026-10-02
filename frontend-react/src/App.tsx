@@ -176,7 +176,7 @@ export const App: React.FC = () => {
             </div>
             <h3 className="text-lg font-bold text-slate-900 mb-2">Screen Lock Warning</h3>
             <p className="text-sm text-slate-500 mb-6">
-              Your screen will lock in:
+              For your security, your screen will automatically lock due to inactivity in:
             </p>
             <div className="text-4xl font-black text-red-600 mb-6">
               00:{countdown.toString().padStart(2, '0')}

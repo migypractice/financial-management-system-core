@@ -31,7 +31,7 @@ export const ReportsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Financial Reporting & Analytics</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">P&L, Balance Sheet, and financial ratios</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Automated P&L, Balance Sheet summaries, and AI-driven insights.</p>
         </div>
         <button
           onClick={() => window.print()}
@@ -107,8 +107,8 @@ export const ReportsPage: React.FC = () => {
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 p-5 bg-gradient-to-br from-indigo-50/50 dark:from-indigo-900/20 to-white dark:to-slate-800">
             <div className="flex items-center gap-2 mb-4">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400"></span>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">AI Insights</h2>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">✨</span>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">AI Financial Insights</h2>
             </div>
             <ul className="space-y-4 text-xs text-slate-600 dark:text-slate-400">
               <li className="flex gap-3">
