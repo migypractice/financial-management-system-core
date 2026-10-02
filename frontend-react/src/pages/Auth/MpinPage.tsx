@@ -37,8 +37,20 @@ export const MpinPage: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => 
       } else {
         const newFails = failedAttempts + 1;
         if (newFails >= 3) {
-          // 3 strikes, you're out
-          alert('Security Violation: Maximum MPIN attempts reached. Your session has been terminated.');
+          // Calculate lockout duration (30s * multiplier)
+          const email = user?.email || 'unknown';
+          const lockoutDataStr = localStorage.getItem(`lockout_${email}`);
+          const lockoutData = lockoutDataStr ? JSON.parse(lockoutDataStr) : { multiplier: 0 };
+          
+          const nextMultiplier = lockoutData.multiplier + 1;
+          const lockoutMs = 30000 * nextMultiplier; // 30s, 60s, 90s...
+          
+          localStorage.setItem(`lockout_${email}`, JSON.stringify({
+            until: Date.now() + lockoutMs,
+            multiplier: nextMultiplier
+          }));
+
+          alert(`Security Violation: Maximum MPIN attempts reached. Account locked for ${lockoutMs / 1000} seconds.`);
           logout();
           return;
         }

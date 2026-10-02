@@ -14,6 +14,18 @@ export const LoginPage: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Check for MPIN lockout
+    const lockoutDataStr = localStorage.getItem(`lockout_${email}`);
+    if (lockoutDataStr) {
+      const lockoutData = JSON.parse(lockoutDataStr);
+      const remainingMs = lockoutData.until - Date.now();
+      if (remainingMs > 0) {
+        setError(`Account locked due to multiple failed MPIN attempts. Please try again in ${Math.ceil(remainingMs / 1000)} seconds.`);
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
