@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 
 /**
  * Financial Reporting & Analytics Module
@@ -23,16 +24,7 @@ export const ReportsPage: React.FC = () => {
   const grossProfit = approvedRevenue - cogs;
   const netIncome = grossProfit - approvedExpenses;
 
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Loading reports...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <SkeletonLoader />;
 
   return (
     <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">

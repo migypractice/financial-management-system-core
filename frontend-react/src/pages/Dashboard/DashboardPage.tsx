@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 
 const Toast: React.FC<{ message: string; type: 'success' | 'info'; onDismiss: () => void }> = ({ message, type, onDismiss }) => {
   useEffect(() => {
@@ -110,16 +111,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     onNavigate?.(path);
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Loading dashboard data...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <SkeletonLoader />;
 
   return (
     <div className="p-6 space-y-5">
