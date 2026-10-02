@@ -29,24 +29,28 @@ const STATUS_CONFIG: Record<APStatus, { label: string; bg: string; text: string;
 
 export const AccountsPayablePage: React.FC = () => {
   const [filter, setFilter] = useState<'ALL' | APStatus>('ALL');
-  const { transactions } = useDashboardData();
+  const { transactions, loading } = useDashboardData();
 
   // Map real OUTBOUND transactions
   const livePayables: PayableInvoice[] = transactions
     .filter(t => t.flowType === 'OUTBOUND')
-    .map(t => {
+    .map((t, i) => {
       let status: APStatus = 'pending';
       if (t.status === 'approved' || t.status === 'posted') status = 'paid';
       if (t.status === 'rejected') status = 'overdue'; // Just for demo variety
+      
+      // Simulate realistic due dates (15-30 day payment terms)
+      const dueDate = new Date(t.createdAt);
+      dueDate.setDate(dueDate.getDate() + 15 + (i % 15));
       
       return {
         id: t.id,
         vendorName: t.externalModule || 'Unknown Vendor',
         invoiceNumber: t.transactionCode,
-        poReference: t.externalReferenceId || 'PO-AUTO',
+        poReference: t.externalReferenceId || `PO-${(10000 + i).toString()}`,
         amount: Number(t.amount),
-        dueDate: new Date(t.createdAt).toISOString().split('T')[0],
-        daysOutstanding: status === 'pending' ? 5 : 0,
+        dueDate: dueDate.toISOString().split('T')[0],
+        daysOutstanding: status === 'pending' ? (15 + (i % 15)) : 0,
         status,
         department: t.categoryType || 'General',
       };
@@ -67,6 +71,17 @@ export const AccountsPayablePage: React.FC = () => {
   ];
 
   const filtered = filter === 'ALL' ? invoices : invoices.filter((i) => i.status === filter);
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading payables...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">

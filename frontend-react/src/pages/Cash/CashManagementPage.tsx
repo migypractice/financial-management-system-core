@@ -8,7 +8,7 @@ import { useDashboardData } from '../../hooks/useDashboardData';
  */
 
 export const CashManagementPage: React.FC = () => {
-  const { transactions } = useDashboardData();
+  const { transactions, loading } = useDashboardData();
 
   // Compute real totals from approved/posted transactions
   const approvedInflow = transactions
@@ -27,6 +27,17 @@ export const CashManagementPage: React.FC = () => {
   ];
 
   const totalCash = bankAccounts.reduce((sum, b) => sum + b.balance, 0);
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading cash data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">

@@ -28,7 +28,7 @@ const STATUS_CONFIG: Record<CollectionStatus, { label: string; bg: string; text:
 
 export const CollectionPage: React.FC = () => {
   const [filter, setFilter] = useState<'ALL' | CollectionStatus>('ALL');
-  const { transactions } = useDashboardData();
+  const { transactions, loading } = useDashboardData();
 
   const liveCollections: CollectionRecord[] = transactions
     .filter(t => t.flowType === 'INBOUND' && t.status !== 'rejected')
@@ -43,8 +43,8 @@ export const CollectionPage: React.FC = () => {
         amount: Number(t.amount),
         date: new Date(t.createdAt).toISOString().split('T')[0],
         status,
-        matchedInvoice: status === 'matched' ? 'INV-AUTO-MATCH' : undefined,
-        confidenceScore: t.aiConfidenceScore || 0.95
+        matchedInvoice: status === 'matched' ? `INV-${t.transactionCode.split('-')[2]}` : undefined,
+        confidenceScore: t.aiConfidenceScore || 0.99
       };
     });
 
@@ -56,6 +56,17 @@ export const CollectionPage: React.FC = () => {
   const collections = [...liveCollections, ...staticCollections];
 
   const filtered = filter === 'ALL' ? collections : collections.filter((c) => c.status === filter);
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading collections...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">

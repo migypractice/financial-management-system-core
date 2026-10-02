@@ -122,6 +122,7 @@ export const SimulatorPage: React.FC = () => {
   const [customCategory, setCustomCategory] = useState('SUPPLIER_INVOICE');
   const [customAmount, setCustomAmount] = useState('');
   const [customDescription, setCustomDescription] = useState('');
+  const [customBank, setCustomBank] = useState('BDO-Corp-8821');
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
@@ -271,10 +272,11 @@ export const SimulatorPage: React.FC = () => {
     if (!isRevenue) {
       body.payee_info = {
         name: 'Simulator Payee',
-        account: 'SIM-ACCT-001',
-        bank: 'BDO',
+        account: customBank,
+        bank: customBank.split('-')[0],
       };
     }
+    body.funding_account = customBank;
 
     const url = isRevenue
       ? `${API_BASE}/integration/inbound-revenue`
@@ -440,10 +442,9 @@ export const SimulatorPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Amount (PHP)</label>
-                {/* FIX 5: min and step attributes for client-side validation */}
                 <input
                   type="number"
                   value={customAmount}
@@ -453,6 +454,19 @@ export const SimulatorPage: React.FC = () => {
                   step="0.01"
                   className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 text-slate-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none font-mono"
                 />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Funding Bank Account</label>
+                <select
+                  value={customBank}
+                  onChange={(e) => setCustomBank(e.target.value)}
+                  className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 text-slate-700 bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none font-mono"
+                >
+                  <option value="BDO-Corp-8821">BDO Corporate (**** 8821)</option>
+                  <option value="BPI-Trade-0092">BPI Trade (**** 0092)</option>
+                  <option value="UBP-Ecom-1122">UnionBank E-Commerce (**** 1122)</option>
+                  <option value="MBT-Reserve-4410">Metrobank Reserve (**** 4410)</option>
+                </select>
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Currency</label>

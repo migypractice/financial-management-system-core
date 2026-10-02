@@ -78,7 +78,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
   const [showBalances, setShowBalances] = useState(true);
 
-  const { transactions } = useDashboardData();
+  const { transactions, loading } = useDashboardData();
 
   // Compute live data
   const approvedRevenue = transactions
@@ -109,6 +109,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const handleNavigate = (path: string) => {
     onNavigate?.(path);
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-5">

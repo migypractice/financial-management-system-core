@@ -7,7 +7,7 @@ import { useDashboardData } from '../../hooks/useDashboardData';
  */
 
 export const ReportsPage: React.FC = () => {
-  const { transactions } = useDashboardData();
+  const { transactions, loading } = useDashboardData();
 
   // Compute real totals from approved/posted transactions
   const approvedRevenue = transactions
@@ -22,6 +22,17 @@ export const ReportsPage: React.FC = () => {
   const cogs = approvedRevenue * 0.25; // 25% of revenue as dummy COGS
   const grossProfit = approvedRevenue - cogs;
   const netIncome = grossProfit - approvedExpenses;
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading reports...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
