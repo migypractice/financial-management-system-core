@@ -249,12 +249,19 @@ class AuthController extends Controller
      */
     private function dispatchOtpEmail(string $recipientEmail, string $recipientName, string $otp): void
     {
+        $mailer   = config('mail.default');
+        $smtpHost = config('mail.mailers.smtp.host');
         $smtpUser = config('mail.mailers.smtp.username');
         $smtpPass = config('mail.mailers.smtp.password');
 
-        // If credentials are not yet configured in environment variables, skip network attempt
-        if (empty($smtpUser) || empty($smtpPass)) {
-            Log::info("SMTP credentials not configured on server. Demo OTP generated: {$otp} for {$recipientEmail}");
+        $isLiveSmtpReady = ($mailer === 'smtp')
+            && ! in_array($smtpHost, ['127.0.0.1', 'localhost', null, '', 'null'], true)
+            && ! in_array($smtpUser, ['null', null, ''], true)
+            && ! in_array($smtpPass, ['null', null, ''], true);
+
+        // If real SMTP is not yet configured, skip network attempt to avoid hanging
+        if (! $isLiveSmtpReady) {
+            Log::info("Live SMTP not configured (host: {$smtpHost}). Demo OTP ready: {$otp} for {$recipientEmail}");
             return;
         }
 
