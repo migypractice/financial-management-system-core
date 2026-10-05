@@ -31,17 +31,38 @@ body {
   }
 }
 
-/* 
-  Hidden Scrollbars — scrolling still works, bars are invisible.
-  Removes the double-scrollbar visual clutter on the sidebar + main content.
-*/
-
-/* WebKit (Chrome, Edge, Safari) */
+/* Professional Financial ERP Scrollbars */
 ::-webkit-scrollbar {
-  display: none;
+  width: 6px;
+  height: 6px;
 }
 
-/* Firefox */
-* {
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+
+/* Specific class to hide scrollbar when desirable (e.g. tab strips, sidebar) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
   scrollbar-width: none;
 }

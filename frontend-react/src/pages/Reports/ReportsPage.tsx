@@ -27,7 +27,7 @@ export const ReportsPage: React.FC = () => {
   if (loading) return <SkeletonLoader />;
 
   return (
-    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
+    <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Financial Reporting & Analytics</h1>
@@ -35,7 +35,7 @@ export const ReportsPage: React.FC = () => {
         </div>
         <button
           onClick={() => window.print()}
-          className="print:hidden px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+          className="print:hidden px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-sm"
         >
           Export Full Report (PDF)
         </button>
@@ -81,7 +81,7 @@ export const ReportsPage: React.FC = () => {
              <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Balance Sheet Summary</h2>
              </div>
-             <div className="p-5 grid grid-cols-2 gap-8 text-sm">
+             <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 text-sm">
                 <div>
                    <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-3 border-b border-slate-200 dark:border-slate-700 pb-1">Assets</h3>
                    <div className="space-y-2">

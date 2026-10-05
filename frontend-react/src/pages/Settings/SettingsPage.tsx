@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ShieldCheck, User, Moon, Sun, Server, Lock, AlertCircle, Info } from 'lucide-react';
+import ChangePasswordCard from './ChangePasswordCard';
+import UserManagementCard from './UserManagementCard';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -47,6 +49,10 @@ export const SettingsPage: React.FC = () => {
                   <input type="text" disabled value={user?.name || ''} className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-lg text-sm text-gray-500 dark:text-slate-400 cursor-not-allowed" />
                 </div>
                 <div>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1">Username</label>
+                  <input type="text" disabled value={user?.username || '—'} className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-lg text-sm text-gray-500 dark:text-slate-400 cursor-not-allowed font-mono" />
+                </div>
+                <div>
                   <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1">Email Address</label>
                   <input type="text" disabled value={user?.email || ''} className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-lg text-sm text-gray-500 dark:text-slate-400 cursor-not-allowed" />
                 </div>
@@ -85,6 +91,12 @@ export const SettingsPage: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Change Password Card */}
+          <ChangePasswordCard />
+
+          {/* User Management — Super Admin only */}
+          {user?.role === 'super_admin' && <UserManagementCard />}
 
         </div>
 
@@ -135,6 +147,22 @@ export const SettingsPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-600 dark:text-slate-400">RBAC Enforcement</span>
                 <span className="text-xs text-gray-900 dark:text-slate-200">Strict</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-600 dark:text-slate-400">Idle Screen Lock</span>
+                <span className="text-xs text-gray-900 dark:text-slate-200">3 min (30s warning)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-600 dark:text-slate-400">Session Token Expiry</span>
+                <span className="text-xs text-gray-900 dark:text-slate-200">8 hours</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-600 dark:text-slate-400">Login Lockout</span>
+                <span className="text-xs text-gray-900 dark:text-slate-200">5 failed tries / 60s</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-600 dark:text-slate-400">Password Policy</span>
+                <span className="text-xs text-gray-900 dark:text-slate-200 text-right">8+ chars, Aa, 0-9, symbol</span>
               </div>
             </div>
           </div>

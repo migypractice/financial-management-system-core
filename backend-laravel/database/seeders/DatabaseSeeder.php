@@ -23,8 +23,9 @@ class DatabaseSeeder extends Seeder
         if ($superAdminRole && !\App\Models\User::where('email', 'admin@hw.com')->exists()) {
             \App\Models\User::create([
                 'name' => 'System Admin',
+                'username' => 'admin01',
                 'email' => 'admin@hw.com',
-                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                'password' => \Illuminate\Support\Facades\Hash::make('Admin@2026'),
                 'role_id' => $superAdminRole->id,
                 'department' => 'Executive',
             ]);
@@ -33,8 +34,9 @@ class DatabaseSeeder extends Seeder
         if ($financeManagerRole && !\App\Models\User::where('email', 'manager@hw.com')->exists()) {
             \App\Models\User::create([
                 'name' => 'Finance Manager',
+                'username' => 'manager01',
                 'email' => 'manager@hw.com',
-                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                'password' => \Illuminate\Support\Facades\Hash::make('Manager@2026'),
                 'role_id' => $financeManagerRole->id,
                 'department' => 'Finance',
             ]);
@@ -43,8 +45,9 @@ class DatabaseSeeder extends Seeder
         if ($departmentViewerRole && !\App\Models\User::where('email', 'staff@hw.com')->exists()) {
             \App\Models\User::create([
                 'name' => 'HR Staff',
+                'username' => 'staff01',
                 'email' => 'staff@hw.com',
-                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                'password' => \Illuminate\Support\Facades\Hash::make('Staff@2026'),
                 'role_id' => $departmentViewerRole->id,
                 'department' => 'HR',
             ]);
@@ -59,6 +62,7 @@ class DatabaseSeeder extends Seeder
         if ($systemIntegrationRole && !\App\Models\User::where('email', 'system@hw.com')->exists()) {
             \App\Models\User::create([
                 'name' => 'System Integration',
+                'username' => 'system01',
                 'email' => 'system@hw.com',
                 'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32)),
                 'role_id' => $systemIntegrationRole->id,
@@ -66,8 +70,14 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Transactions (25+ realistic hardware-store records)
+        // Master Data & Accounting Core Seeders
         $this->call([
+            ChartOfAccountsSeeder::class,
+            BankAccountSeeder::class,
+            CustomerAndSupplierSeeder::class,
+            OpeningBalanceSeeder::class,
+            AccountsPayableSeeder::class,
+            AccountsReceivableSeeder::class,
             TransactionSeeder::class,
         ]);
     }

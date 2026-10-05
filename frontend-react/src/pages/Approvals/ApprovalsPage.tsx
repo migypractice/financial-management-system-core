@@ -1,39 +1,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Transaction, TransactionStatus } from '../../types/financial';
+import { Transaction } from '../../types/financial';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../services/apiClient';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { WorkflowPipeline } from '../../components/ui/WorkflowPipeline';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { CheckCircle2, XCircle, AlertTriangle, ShieldCheck, Clock, RefreshCw } from 'lucide-react';
 
 /**
  * Maker-Checker AI Approvals Center
- *
  * Displays all pending, AI-flagged, and resolved transactions.
  * Finance Managers and Super Admins review AI recommendations here
  * before approving or rejecting GL postings.
  */
 
-const STATUS_CONFIG: Record<TransactionStatus, { label: string; bg: string; text: string; dot: string }> = {
-  ai_flagged:       { label: 'AI Flagged',    bg: 'bg-red-50',     text: 'text-red-700',     dot: 'bg-red-500' },
-  pending_approval: { label: 'Pending Review', bg: 'bg-amber-50',   text: 'text-amber-700',   dot: 'bg-amber-500' },
-  approved:         { label: 'Approved',       bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  rejected:         { label: 'Rejected',       bg: 'bg-slate-100',  text: 'text-slate-600',   dot: 'bg-slate-400' },
-  posted:           { label: 'Posted to GL',   bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  disbursed:        { label: 'Disbursed',      bg: 'bg-blue-50',    text: 'text-blue-700',    dot: 'bg-blue-500' },
-};
-
 const ConfidenceBar: React.FC<{ score: number }> = ({ score }) => {
   const pct = Math.round(score * 100);
   let barColor = 'bg-emerald-500';
   let label = 'High';
-  if (pct < 70) { barColor = 'bg-red-500'; label = 'Low'; }
+  if (pct < 70) { barColor = 'bg-rose-500'; label = 'Low'; }
   else if (pct < 90) { barColor = 'bg-amber-500'; label = 'Medium'; }
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
       <span className={`text-[11px] font-mono font-semibold tabular-nums w-16 text-right ${
-        pct < 70 ? 'text-red-600' : pct < 90 ? 'text-amber-600' : 'text-emerald-600'
+        pct < 70 ? 'text-rose-600 dark:text-rose-400' : pct < 90 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
       }`}>{pct}% {label}</span>
     </div>
   );
@@ -42,20 +36,20 @@ const ConfidenceBar: React.FC<{ score: number }> = ({ score }) => {
 /** Toast notification component */
 const Toast: React.FC<{ message: string; type: 'success' | 'error'; onDismiss: () => void }> = ({ message, type, onDismiss }) => {
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 3000);
+    const timer = setTimeout(onDismiss, 3500);
     return () => clearTimeout(timer);
   }, [onDismiss]);
 
   return (
-    <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold transition-all animate-slideInRight ${
+    <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl border text-sm font-semibold transition-all animate-slideInRight ${
       type === 'success'
-        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-        : 'bg-red-50 text-red-700 border-red-200'
+        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
+        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800'
     }`}>
       {type === 'success' ? (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+        <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
       ) : (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+        <AlertTriangle size={16} className="text-rose-600 dark:text-rose-400" />
       )}
       {message}
     </div>
@@ -72,6 +66,11 @@ export const ApprovalsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [counts, setCounts] = useState({ all: 0, flagged: 0, pending: 0 });
+  const [rejectModal, setRejectModal] = useState<{ isOpen: boolean; tx: Transaction | null }>({
+    isOpen: false,
+    tx: null,
+  });
+
   const { user } = useAuth();
 
   const fetchTransactions = useCallback(async (filter: string = 'ALL', page: number = 1) => {
@@ -141,23 +140,23 @@ export const ApprovalsPage: React.FC = () => {
   }, [fetchTransactions]);
 
   const handleAction = async (id: string, actionType: 'approve' | 'reject') => {
-    if (actionInProgress) return; // Guard against double-click
+    if (actionInProgress) return; // Guard against accidental double-click
 
     setActionInProgress(id);
 
     try {
       await apiClient.post(`/dashboard/transactions/${id}/${actionType}`);
-
       await fetchTransactions(activeFilter, currentPage);
 
       setToast({
-        message: actionType === 'approve' ? 'Transaction approved successfully.' : 'Transaction rejected successfully.',
+        message: actionType === 'approve' ? 'Transaction approved & sent to GL.' : 'Transaction rejected.',
         type: 'success',
       });
     } catch (err: any) {
       setToast({ message: err.response?.data?.message || 'Network error while performing action.', type: 'error' });
     } finally {
       setActionInProgress(null);
+      setRejectModal({ isOpen: false, tx: null });
     }
   };
 
@@ -167,48 +166,38 @@ export const ApprovalsPage: React.FC = () => {
   };
 
   const filterButtons = [
-    { key: 'ALL' as const, label: `All (${counts.all})`, activeClass: 'bg-slate-900 text-white' },
-    { key: 'FLAGGED' as const, label: `Flagged (${counts.flagged})`, activeClass: 'bg-red-600 text-white' },
-    { key: 'PENDING' as const, label: `Pending (${counts.pending})`, activeClass: 'bg-amber-600 text-white' },
+    { key: 'ALL' as const, label: `All Transactions (${counts.all})`, activeClass: 'bg-indigo-600 text-white shadow-xs' },
+    { key: 'FLAGGED' as const, label: `AI Flagged (${counts.flagged})`, activeClass: 'bg-rose-600 text-white shadow-xs' },
+    { key: 'PENDING' as const, label: `Pending Review (${counts.pending})`, activeClass: 'bg-amber-600 text-white shadow-xs' },
   ];
 
-  if (isLoading) {
+  if (isLoading && transactions.length === 0) {
     return (
-      <div className="p-6 bg-slate-50 min-h-full">
-        <div className="pb-5 border-b border-gray-200 mb-6">
-          <div className="h-6 w-48 bg-slate-200 rounded animate-pulse mb-2" />
-          <div className="h-4 w-80 bg-slate-100 rounded animate-pulse" />
-        </div>
+      <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-4">
+        <div className="h-10 w-64 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+        <div className="h-16 w-full bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 animate-pulse">
-              <div className="flex justify-between">
-                <div className="space-y-3 flex-1">
-                  <div className="h-4 w-64 bg-slate-100 rounded" />
-                  <div className="h-3 w-48 bg-slate-50 rounded" />
-                  <div className="h-12 w-full bg-slate-50 rounded-lg" />
-                </div>
-                <div className="h-8 w-24 bg-slate-100 rounded-lg ml-4" />
-              </div>
-            </div>
+            <div key={i} className="h-32 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 animate-pulse" />
           ))}
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && transactions.length === 0) {
     return (
-      <div className="p-6 bg-slate-50 min-h-full flex flex-col items-center justify-center">
-        <div className="bg-white rounded-xl border border-red-200 p-8 max-w-md text-center shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
+      <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full flex flex-col items-center justify-center">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-rose-200 dark:border-rose-800 p-8 max-w-md text-center shadow-lg">
+          <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-950 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-6 h-6 text-rose-500" />
           </div>
-          <h3 className="text-base font-bold text-slate-900 mb-1">Unable to Connect</h3>
-          <p className="text-sm text-slate-500 mb-4">{error}</p>
-          <button onClick={() => fetchTransactions(activeFilter, currentPage)} className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Unable to Load Queue</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{error}</p>
+          <button
+            onClick={() => fetchTransactions(activeFilter, currentPage)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-xs"
+          >
             Retry Connection
           </button>
         </div>
@@ -217,40 +206,73 @@ export const ApprovalsPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full">
+    <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       {/* Toast notification */}
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
 
-      {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-gray-200 dark:border-slate-700 mb-6">
+      {/* Confirmation Dialog for Destructive Rejection */}
+      <ConfirmModal
+        isOpen={rejectModal.isOpen}
+        title="Reject Transaction Posting"
+        message={`Are you sure you want to reject transaction ${rejectModal.tx?.transactionCode} (${rejectModal.tx?.currency} ${rejectModal.tx?.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })})? This will cancel posting to the General Ledger and log an audit rejection.`}
+        confirmText="Confirm Rejection"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        isLoading={actionInProgress === rejectModal.tx?.id}
+        onConfirm={() => rejectModal.tx && handleAction(rejectModal.tx.id, 'reject')}
+        onCancel={() => setRejectModal({ isOpen: false, tx: null })}
+      />
+
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Approval Center</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Review AI-categorized transactions before General Ledger posting.
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              AI Approvals & Maker-Checker Center
+            </h1>
+            <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+              Audit Control
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Review AI anomaly evaluation and GL classification before journal authorization.
           </p>
         </div>
-        <div className="flex items-center gap-2 mt-3 md:mt-0">
+
+        <div className="flex items-center gap-2">
           {counts.flagged > 0 && (
-            <span className="px-2.5 py-1 bg-red-50 text-red-700 text-[11px] font-semibold rounded-full border border-red-200">
-              {counts.flagged} flagged
+            <span className="px-2.5 py-1 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-xs font-semibold rounded-xl border border-rose-200 dark:border-rose-800/60 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              {counts.flagged} AI Flagged
             </span>
           )}
-          <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded-full border border-blue-200">
-            {counts.pending} pending
+          <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-xl border border-amber-200 dark:border-amber-800/60 flex items-center gap-1">
+            <Clock size={12} />
+            {counts.pending} Pending
           </span>
+          <button
+            onClick={() => fetchTransactions(activeFilter, currentPage)}
+            className="p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            title="Refresh Queue"
+          >
+            <RefreshCw size={14} className={isLoading ? 'animate-spin text-indigo-500' : ''} />
+          </button>
         </div>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1.5 mb-5">
+      {/* Visual Transaction Workflow Pipeline */}
+      <WorkflowPipeline currentStage="MANAGER_APPROVAL" />
+
+      {/* Filter Tabs */}
+      <div className="flex flex-wrap items-center gap-2">
         {filterButtons.map((btn) => (
           <button
             key={btn.key}
             onClick={() => handleFilterChange(btn.key)}
-            className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+            className={`px-3 sm:px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
               activeFilter === btn.key
                 ? btn.activeClass
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
             }`}
           >
             {btn.label}
@@ -258,132 +280,146 @@ export const ApprovalsPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Transaction cards */}
-      <div className="space-y-3">
+      {/* Transaction Cards List */}
+      <div className="space-y-3.5">
         {transactions.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-12 text-center shadow-xs">
+            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto mb-3">
+              <ShieldCheck className="w-6 h-6 text-slate-400" />
             </div>
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">No transactions match this filter.</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              No transactions require approval in this queue.
+            </p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              {activeFilter === 'PENDING' ? 'All transactions have been reviewed.' :
-               activeFilter === 'FLAGGED' ? 'No AI-flagged anomalies detected.' :
-               'No transactions found in the system.'}
+              {activeFilter === 'PENDING' ? 'All inbound and outbound vouchers have been verified.' :
+               activeFilter === 'FLAGGED' ? 'No AI-flagged anomaly transactions detected.' :
+               'No transaction records found.'}
             </p>
           </div>
         ) : (
           transactions.map((tx) => {
-            const statusCfg = STATUS_CONFIG[tx.status];
             const isActionable = tx.status === 'pending_approval' || tx.status === 'ai_flagged';
             const isProcessing = actionInProgress === tx.id;
             const isAnyProcessing = actionInProgress !== null;
+            const isMaker = tx.createdBy === user?.id;
 
             return (
               <div
                 key={tx.id}
-                className={`card-hover bg-white dark:bg-slate-800 rounded-xl border p-5 hover:shadow-md ${
-                  isProcessing ? 'opacity-75' : ''
+                className={`card-hover bg-white dark:bg-slate-800 rounded-2xl border p-4 sm:p-5 shadow-xs transition-all ${
+                  isProcessing ? 'opacity-70 pointer-events-none' : ''
                 } ${
                   tx.status === 'ai_flagged'
-                    ? 'border-red-200'
+                    ? 'border-rose-200 dark:border-rose-800/80'
                     : tx.status === 'approved' || tx.status === 'posted'
-                    ? 'border-emerald-200'
-                    : 'border-gray-150 dark:border-slate-700'
+                    ? 'border-emerald-200 dark:border-emerald-800/80'
+                    : 'border-slate-200 dark:border-slate-700/80'
                 }`}
               >
                 <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                  {/* Left: metadata */}
-                  <div className="flex-1 min-w-0 space-y-2.5">
+                  {/* Left: Metadata & Details */}
+                  <div className="flex-1 min-w-0 space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded">
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-md">
                         {tx.transactionCode}
                       </span>
                       <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                         {new Date(tx.createdAt).toLocaleString()}
                       </span>
-                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                        {tx.externalModule} / {tx.externalReferenceId}
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold px-2 py-0.5 rounded-md bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700">
+                        {tx.externalModule} &bull; {tx.externalReferenceId || 'DIRECT'}
                       </span>
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${statusCfg.bg} ${statusCfg.text}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                        {statusCfg.label}
-                      </span>
+                      <StatusBadge status={tx.status} />
                     </div>
 
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">{tx.description}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug">
+                      {tx.description}
+                    </p>
 
-                    {/* AI recommendation panel */}
-                    <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-600 space-y-2">
-                      <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
-                        <span>
-                          Suggested GL: <strong className="text-slate-800 dark:text-white">{tx.aiSuggestedGlAccountName}</strong>
+                    {/* AI Recommendation Box */}
+                    <div className="p-3.5 bg-slate-50/80 dark:bg-slate-700/30 rounded-xl border border-slate-200/80 dark:border-slate-700 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
+                        <span className="text-slate-600 dark:text-slate-300">
+                          AI Suggested GL Account:{' '}
+                          <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                            {tx.aiSuggestedGlAccountId ? `${tx.aiSuggestedGlAccountId} - ` : ''}{tx.aiSuggestedGlAccountName || 'General Operating'}
+                          </strong>
                         </span>
                       </div>
+
                       <div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">AI Confidence</p>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1 font-medium">
+                          <span>AI Classification Confidence</span>
+                        </div>
                         <ConfidenceBar score={tx.aiConfidenceScore} />
                       </div>
+
                       {tx.aiAnomalyFlag && tx.aiAnomalyReason && (
-                        <p className="text-xs text-red-600 font-medium leading-snug pt-0.5">
-                          {tx.aiAnomalyReason}
-                        </p>
+                        <div className="flex items-start gap-1.5 pt-1 text-xs text-rose-600 dark:text-rose-400 font-medium">
+                          <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                          <span>{tx.aiAnomalyReason}</span>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Right: amount + actions */}
-                  <div className="flex flex-col items-start lg:items-end gap-3 shrink-0 lg:min-w-[180px]">
+                  {/* Right: Amount & Maker-Checker Actions */}
+                  <div className="flex flex-col items-start lg:items-end justify-between gap-3 shrink-0 lg:min-w-[200px]">
                     <div className="lg:text-right">
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-medium tracking-wide">Amount</p>
-                      <p className="text-lg font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        Voucher Amount
+                      </p>
+                      <p className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
                         {tx.currency} {tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
 
                     {isActionable && (user?.role === 'finance_manager' || user?.role === 'super_admin') && (
-                      <div className="flex items-center gap-2 w-full lg:w-auto mt-2 lg:mt-0">
-                        {tx.createdBy === user?.id ? (
-                          <span className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                            Maker-Checker: Another manager must approve
+                      <div className="flex items-center gap-2 w-full lg:w-auto mt-1">
+                        {isMaker ? (
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700/60 rounded-xl border border-slate-200 dark:border-slate-600">
+                            <Clock size={13} /> Maker-Checker: Secondary manager required
                           </span>
                         ) : (
                           <>
                             <button
-                              onClick={() => handleAction(tx.id, 'reject')}
+                              type="button"
+                              onClick={() => setRejectModal({ isOpen: true, tx })}
                               disabled={isAnyProcessing}
-                              className="flex-1 lg:flex-none flex items-center justify-center px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50"
+                              className="flex-1 lg:flex-none px-3.5 py-2 text-xs font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 rounded-xl border border-rose-200 dark:border-rose-800 transition-colors disabled:opacity-50"
                             >
-                              {isProcessing ? 'Rejecting...' : 'Reject'}
+                              Reject
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleAction(tx.id, 'approve')}
                               disabled={isAnyProcessing}
-                              className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
+                              className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs shadow-indigo-600/20 transition-all disabled:opacity-50"
                             >
                               {isProcessing && (
-                                <svg className="w-3 h-3 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                                <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
                                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
                                   <path d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" fill="currentColor" className="opacity-75" />
                                 </svg>
                               )}
-                              {isProcessing ? 'Processing...' : 'Approve'}
+                              <span>{isProcessing ? 'Posting...' : 'Approve & Post'}</span>
                             </button>
                           </>
                         )}
                       </div>
                     )}
-                    
+
                     {isActionable && !(user?.role === 'finance_manager' || user?.role === 'super_admin') && (
-                      <div className="flex items-center gap-2 w-full lg:w-auto mt-2 lg:mt-0">
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                          Restricted: Awaiting Manager Review
-                        </span>
-                      </div>
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600">
+                        <Clock size={13} /> Awaiting Manager Review
+                      </span>
+                    )}
+
+                    {!isActionable && (
+                      <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                        <CheckCircle2 size={13} className="text-emerald-500" />
+                        {tx.status === 'posted' ? 'Posted to GL' : 'Processed'}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -395,52 +431,45 @@ export const ApprovalsPage: React.FC = () => {
 
       {/* Pagination Controls */}
       {!isLoading && totalPages > 1 && (
-        <div className="mt-6 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 py-3 rounded-xl flex items-center justify-between sm:px-6">
+        <div className="mt-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl flex items-center justify-between sm:px-6 shadow-xs">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
               onClick={() => fetchTransactions(activeFilter, currentPage - 1)}
               disabled={currentPage === 1}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+              className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 text-xs font-semibold rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 disabled:opacity-50"
             >
               Previous
             </button>
+            <span className="text-xs text-slate-500 dark:text-slate-400 self-center">
+              {currentPage} / {totalPages}
+            </span>
             <button
               onClick={() => fetchTransactions(activeFilter, currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
+              className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 text-xs font-semibold rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 disabled:opacity-50"
             >
               Next
             </button>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700 dark:text-slate-300">
-                Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-              </p>
-            </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <button
-                  onClick={() => fetchTransactions(activeFilter, currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
-                >
-                  <span className="sr-only">Previous</span>
-                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => fetchTransactions(activeFilter, currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
-                >
-                  <span className="sr-only">Next</span>
-                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </nav>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Showing page <span className="font-bold">{currentPage}</span> of <span className="font-bold">{totalPages}</span>
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => fetchTransactions(activeFilter, currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => fetchTransactions(activeFilter, currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>

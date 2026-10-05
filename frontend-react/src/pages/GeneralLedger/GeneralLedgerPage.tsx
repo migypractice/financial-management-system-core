@@ -1,6 +1,33 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  BookOpen,
+  Scale,
+  Users,
+  Building2,
+  Briefcase,
+  Search,
+  RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  DollarSign,
+  FileText
+} from 'lucide-react';
 import apiClient from '../../services/apiClient';
+import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+
+interface GLLine {
+  id: string;
+  account_code: string;
+  account_name: string;
+  account_type: string;
+  debit: number;
+  credit: number;
+  description: string;
+}
 
 interface GLEntry {
   id: string;
@@ -13,366 +40,717 @@ interface GLEntry {
   reference_number: string;
   source_module: string;
   status: string;
+  lines?: GLLine[];
+  total_debit?: number;
+  total_credit?: number;
+  is_balanced?: boolean;
 }
 
-interface GLSummary {
-  total_entries: number;
+interface TrialBalanceAccount {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  normal_balance: string;
   total_debit: number;
   total_credit: number;
-  net: number;
+  ending_debit: number;
+  ending_credit: number;
+}
+
+interface ARSubledgerItem {
+  customer_id: string;
+  customer_code: string;
+  customer_name: string;
+  company_name: string;
+  total_invoiced: number;
+  total_collected: number;
+  balance_due: number;
+  invoices_count: number;
+  unpaid_count: number;
+  recent_invoices: Array<{
+    invoice_number: string;
+    invoice_date: string;
+    due_date: string;
+    total_amount: number;
+    balance: number;
+    status: string;
+  }>;
+}
+
+interface APSubledgerItem {
+  supplier_id: string;
+  supplier_code: string;
+  supplier_name: string;
+  company_name: string;
+  total_billed: number;
+  total_paid: number;
+  balance_owed: number;
+  bills_count: number;
+  unpaid_count: number;
+  recent_bills: Array<{
+    bill_number: string;
+    bill_date: string;
+    due_date: string;
+    total_amount: number;
+    balance: number;
+    status: string;
+  }>;
+}
+
+interface PayrollItem {
+  id: string;
+  reference: string;
+  batch_name: string;
+  amount: number;
+  date: string;
+  status: string;
+  journal_entry?: string;
+  gl_account: string;
 }
 
 export const GeneralLedgerPage: React.FC = () => {
-  const [entries, setEntries] = useState<GLEntry[]>([]);
-  const [summary, setSummary] = useState<GLSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'JOURNAL' | 'TRIAL_BALANCE' | 'AR_SUBLEDGER' | 'AP_SUBLEDGER' | 'PAYROLL'>('JOURNAL');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchGL = useCallback(async (search: string = '', page: number = 1) => {
+  // Tab 1: General Journal
+  const [entries, setEntries] = useState<GLEntry[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [glSummary, setGlSummary] = useState<{ total_entries: number; total_debit: number; total_credit: number } | null>(null);
+
+  // Tab 2: Trial Balance
+  const [trialAccounts, setTrialAccounts] = useState<TrialBalanceAccount[]>([]);
+  const [trialSummary, setTrialSummary] = useState<{ total_debits: number; total_credits: number; is_balanced: boolean } | null>(null);
+
+  // Tab 3: AR Sub-ledger
+  const [arSubledger, setArSubledger] = useState<ARSubledgerItem[]>([]);
+  const [arTotal, setArTotal] = useState<number>(0);
+
+  // Tab 4: AP Sub-ledger
+  const [apSubledger, setApSubledger] = useState<APSubledgerItem[]>([]);
+  const [apTotal, setApTotal] = useState<number>(0);
+
+  // Tab 5: Payroll Sub-ledger
+  const [payrollEntries, setPayrollEntries] = useState<PayrollItem[]>([]);
+  const [payrollTotal, setPayrollTotal] = useState<number>(0);
+
+  const fetchJournalEntries = useCallback(async (search: string = '') => {
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await apiClient.get('/dashboard/gl', {
-        params: { search: search || undefined, page },
-      });
-
-      const rows: GLEntry[] = response.data?.data ?? [];
-      setEntries(rows);
-
-      const backendSummary = response.data?.summary;
-      if (backendSummary) {
-        setSummary({
-          total_entries: backendSummary.total_entries,
-          total_debit: backendSummary.total_debit,
-          total_credit: backendSummary.total_credit,
-          net: backendSummary.total_credit - backendSummary.total_debit,
-        });
-      } else {
-        const totalDebit = rows.reduce((sum, e) => sum + Number(e.debit || 0), 0);
-        const totalCredit = rows.reduce((sum, e) => sum + Number(e.credit || 0), 0);
-
-        setSummary({
-          total_entries: rows.length,
-          total_debit: totalDebit,
-          total_credit: totalCredit,
-          net: totalCredit - totalDebit,
-        });
-      }
-
-      const backendMeta = response.data?.meta;
-      if (backendMeta) {
-        setTotalPages(backendMeta.last_page || 1);
-        setCurrentPage(backendMeta.current_page || 1);
-      }
-
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Unable to connect to server.');
-    } finally {
-      setIsLoading(false);
+      const res = await apiClient.get('/dashboard/gl', { params: { search: search || undefined } });
+      setEntries(res.data?.data || []);
+      setGlSummary(res.data?.summary || null);
+    } catch (err) {
+      console.error('Failed to load GL entries:', err);
     }
   }, []);
 
-  useEffect(() => {
-    fetchGL();
-  }, [fetchGL]);
-
-  // Debounced search — fires 300ms after the user stops typing
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      fetchGL(value, 1);
-    }, 300);
-  };
-
-  // Fallback: also search on Enter key
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    fetchGL(searchTerm, 1);
-  };
-
-  const formatDate = (isoString: string) => {
+  const fetchTrialBalance = useCallback(async () => {
     try {
-      const date = new Date(isoString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return isoString;
+      const res = await apiClient.get('/dashboard/gl/trial-balance');
+      setTrialAccounts(res.data?.data || []);
+      setTrialSummary(res.data?.summary || null);
+    } catch (err) {
+      console.error('Failed to load Trial Balance:', err);
     }
+  }, []);
+
+  const fetchSubledgers = useCallback(async () => {
+    try {
+      const [arRes, apRes, payRes] = await Promise.all([
+        apiClient.get('/dashboard/gl/ar-subledger'),
+        apiClient.get('/dashboard/gl/ap-subledger'),
+        apiClient.get('/dashboard/gl/payroll-subledger'),
+      ]);
+      setArSubledger(arRes.data?.data || []);
+      setArTotal(arRes.data?.summary?.total_receivable || 0);
+
+      setApSubledger(apRes.data?.data || []);
+      setApTotal(apRes.data?.summary?.total_payable || 0);
+
+      setPayrollEntries(payRes.data?.data || []);
+      setPayrollTotal(payRes.data?.summary?.total_payroll_ytd || 0);
+    } catch (err) {
+      console.error('Failed to load subledgers:', err);
+    }
+  }, []);
+
+  const loadAll = async () => {
+    setLoading(true);
+    await Promise.all([fetchJournalEntries(), fetchTrialBalance(), fetchSubledgers()]);
+    setLoading(false);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP',
-      minimumFractionDigits: 2
-    }).format(amount);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchJournalEntries(searchTerm), fetchTrialBalance(), fetchSubledgers()]);
+    setRefreshing(false);
   };
 
-  const getModuleBadge = (module: string) => {
-    const modules: Record<string, string> = {
-      HRMS: 'bg-pink-50 text-pink-700 border-pink-200',
-      FLEET: 'bg-amber-50 text-amber-700 border-amber-200',
-      SUPPLY_CHAIN: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      FACILITIES_LEGAL: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-      ECOMMERCE_CORE: 'bg-violet-50 text-violet-700 border-violet-200',
-      PROCUREMENT: 'bg-orange-50 text-orange-700 border-orange-200',
-    };
-    return modules[module] || 'bg-slate-100 text-slate-700 border-slate-200';
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  const toggleRow = (id: string) => {
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  /** Skeleton row for loading state */
-  const SkeletonRow = () => (
-    <tr className="animate-pulse">
-      <td className="px-4 py-3"><div className="h-4 w-20 bg-slate-100 rounded" /></td>
-      <td className="px-4 py-3 space-y-1.5">
-        <div className="h-3 w-28 bg-slate-100 rounded" />
-        <div className="h-3 w-20 bg-slate-50 rounded" />
-        <div className="h-4 w-14 bg-slate-100 rounded" />
-      </td>
-      <td className="px-4 py-3 space-y-1.5">
-        <div className="h-4 w-40 bg-slate-100 rounded" />
-        <div className="h-3 w-56 bg-slate-50 rounded" />
-      </td>
-      <td className="px-4 py-3"><div className="h-4 w-24 bg-slate-100 rounded ml-auto" /></td>
-      <td className="px-4 py-3"><div className="h-4 w-24 bg-slate-100 rounded ml-auto" /></td>
-      <td className="px-4 py-3"><div className="h-5 w-16 bg-slate-100 rounded mx-auto" /></td>
-    </tr>
-  );
+  if (loading) return <SkeletonLoader />;
 
   return (
-    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full">
-      {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-gray-200 dark:border-slate-700 mb-6">
+    <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-full space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-3.5">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">General Ledger</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Simplified journal entry view of all posted financial transactions.
-          </p>
-        </div>
-
-        {/* Search Bar — instant debounced search */}
-        <div className="mt-4 md:mt-0 relative w-full md:w-80">
-          <form onSubmit={handleSearchSubmit}>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Search by entry, reference, module, description..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-slate-400 dark:placeholder-slate-500"
-            />
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-          </form>
-        </div>
-      </div>
-
-      {error ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-red-200 dark:border-red-800 p-8 max-w-md text-center shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-xs">
+              <BookOpen className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Unable to Connect</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{error}</p>
-            <button
-              onClick={() => fetchGL(searchTerm, currentPage)}
-              className="px-5 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              Retry Connection
-            </button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                General Ledger & Sub-Ledgers
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                Complete double-entry accounting, balanced trial balance, and detailed subsidiary ledgers.
+              </p>
+            </div>
           </div>
         </div>
-      ) : (
-        <>
-          {/* Summary Panel */}
-          {summary && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
-                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Entries</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{summary.total_entries}</p>
-              </div>
-              <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
-                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Last Posted</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">
-                  {entries.length > 0 ? formatDate(entries[0].posted_at) : 'N/A'}
-                </p>
-              </div>
-              <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
-                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Current Period</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">
-                  {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-            </div>
-          )}
 
-          {/* Ledger Table */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors self-start sm:self-auto flex items-center gap-1.5 text-xs font-semibold shadow-xs"
+          title="Refresh Ledger"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-indigo-500' : ''}`} />
+          <span className="hidden sm:inline">Sync Books</span>
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 sm:gap-6 overflow-x-auto pb-px">
+        <button
+          onClick={() => setActiveTab('JOURNAL')}
+          className={`pb-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+            activeTab === 'JOURNAL'
+              ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          General Journal ({entries.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('TRIAL_BALANCE')}
+          className={`pb-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+            activeTab === 'TRIAL_BALANCE'
+              ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Scale className="w-4 h-4" />
+          Trial Balance
+          {trialSummary?.is_balanced && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+              Balanced
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('AR_SUBLEDGER')}
+          className={`pb-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+            activeTab === 'AR_SUBLEDGER'
+              ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          AR Sub-ledger (Customers)
+        </button>
+
+        <button
+          onClick={() => setActiveTab('AP_SUBLEDGER')}
+          className={`pb-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+            activeTab === 'AP_SUBLEDGER'
+              ? 'text-amber-600 dark:text-amber-400 border-b-2 border-amber-600 dark:border-amber-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          AP Sub-ledger (Suppliers)
+        </button>
+
+        <button
+          onClick={() => setActiveTab('PAYROLL')}
+          className={`pb-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+            activeTab === 'PAYROLL'
+              ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Briefcase className="w-4 h-4" />
+          Payroll Sub-ledger
+        </button>
+      </div>
+
+      {/* TAB 1: General Journal */}
+      {activeTab === 'JOURNAL' && (
+        <div className="space-y-4">
+          {/* Summary Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 sm:p-5 shadow-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                Total Journal Entries
+              </span>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono">
+                {glSummary?.total_entries || entries.length} Vouchers
+              </p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Balanced double-entry records</p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 sm:p-5 shadow-xs border-l-4 border-l-indigo-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-1">
+                Total Debits
+              </span>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+                PHP {(glSummary?.total_debit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Asset & Expense debits</p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 sm:p-5 shadow-xs border-l-4 border-l-emerald-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1">
+                Total Credits
+              </span>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+                PHP {(glSummary?.total_credit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Liability, Equity & Revenue</p>
+            </div>
+          </div>
+
+          {/* Search Box */}
+          <div className="relative w-full sm:w-80">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search entry #, reference, or description..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                fetchJournalEntries(e.target.value);
+              }}
+              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs"
+            />
+          </div>
+
+          {/* Entries Table */}
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-slate-600">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider w-28">Date</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider w-44">Reference / Module</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider">Account & Description</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider text-right w-32">Debit</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider text-right w-32">Credit</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider text-center w-24">Status</th>
+              <table className="w-full text-left border-collapse text-xs min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <th className="py-3 px-4 w-10"></th>
+                    <th className="py-3 px-4">Entry # & Date</th>
+                    <th className="py-3 px-4">Particulars & Memo</th>
+                    <th className="py-3 px-4">Module / Reference</th>
+                    <th className="py-3 px-4 text-right">Debit (PHP)</th>
+                    <th className="py-3 px-4 text-right">Credit (PHP)</th>
+                    <th className="py-3 px-4 text-center">Double-Entry Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                  {isLoading ? (
-                    <>
-                      <SkeletonRow />
-                      <SkeletonRow />
-                      <SkeletonRow />
-                      <SkeletonRow />
-                      <SkeletonRow />
-                    </>
-                  ) : entries.length === 0 ? (
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                  {entries.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center">
-                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                          <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                          </svg>
-                        </div>
-                        <p className="text-sm font-semibold text-slate-700">
-                          {searchTerm ? 'No entries match your search.' : 'No journal entries found.'}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          {searchTerm ? 'Try adjusting your search terms.' : 'Approve transactions in the Approval Center to generate journal entries.'}
-                        </p>
+                      <td colSpan={7} className="py-12 text-center text-slate-400">
+                        <BookOpen className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                        <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No journal entries found</p>
                       </td>
                     </tr>
                   ) : (
-                    entries.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
-                        <td className="px-4 py-3 align-top">
-                          <p className="text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap">{formatDate(entry.posted_at)}</p>
-                        </td>
-                        <td className="px-4 py-3 align-top space-y-1">
-                          <p className="font-mono text-xs font-bold text-indigo-700">{entry.entry_number}</p>
-                          <p className="font-mono text-[10px] text-slate-500 truncate max-w-[160px]">{entry.reference_number}</p>
-                          <span className={`inline-block px-2 py-0.5 border text-[9px] font-bold rounded ${getModuleBadge(entry.source_module)}`}>
-                            {entry.source_module.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top max-w-md">
-                          <p className="font-semibold text-slate-900 dark:text-white text-sm mb-0.5">{entry.account_name}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed break-words">{entry.description}</p>
-                        </td>
-                        <td className="px-4 py-3 align-top text-right">
-                          {entry.debit > 0 ? (
-                            <span className="font-mono text-slate-900 dark:text-slate-100 whitespace-nowrap">{formatCurrency(entry.debit)}</span>
-                          ) : (
-                            <span className="text-slate-300">-</span>
+                    entries.map((entry) => {
+                      const isExpanded = !!expandedRows[entry.id];
+                      const hasLines = entry.lines && entry.lines.length > 0;
+
+                      return (
+                        <React.Fragment key={entry.id}>
+                          <tr
+                            onClick={() => hasLines && toggleRow(entry.id)}
+                            className={`hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors ${
+                              hasLines ? 'cursor-pointer' : ''
+                            }`}
+                          >
+                            <td className="py-3.5 px-4 text-slate-400">
+                              {hasLines ? (
+                                isExpanded ? <ChevronDown className="w-4 h-4 text-indigo-500" /> : <ChevronRight className="w-4 h-4 text-slate-400" />
+                              ) : null}
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <span className="font-mono font-bold text-slate-900 dark:text-white block">{entry.entry_number}</span>
+                              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                                {new Date(entry.posted_at).toLocaleDateString()}
+                              </span>
+                            </td>
+
+                            <td className="py-3.5 px-4 max-w-sm">
+                              <p className="truncate text-slate-800 dark:text-slate-200 font-semibold" title={entry.description}>
+                                {entry.description}
+                              </p>
+                              <span className="text-[11px] text-slate-400 dark:text-slate-500 block truncate">
+                                {entry.account_name}
+                              </span>
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                {entry.source_module}
+                              </span>
+                              <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 block mt-1">
+                                {entry.reference_number}
+                              </span>
+                            </td>
+
+                            <td className="py-3.5 px-4 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
+                              {Number(entry.debit) > 0 ? Number(entry.debit).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
+                            </td>
+
+                            <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                              {Number(entry.credit) > 0 ? Number(entry.credit).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
+                            </td>
+
+                            <td className="py-3.5 px-4 text-center">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Balanced
+                              </span>
+                            </td>
+                          </tr>
+
+                          {/* Expanded Double-Entry Breakdown */}
+                          {isExpanded && hasLines && (
+                            <tr className="bg-slate-50/70 dark:bg-slate-900/60">
+                              <td colSpan={7} className="py-3 px-4 sm:px-8 border-y border-slate-200 dark:border-slate-700">
+                                <div className="space-y-2 pl-4 sm:pl-6 border-l-2 border-indigo-500">
+                                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                                    Double-Entry Breakdown for Voucher #{entry.entry_number}
+                                  </p>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                      <thead>
+                                        <tr className="text-[10px] font-semibold text-slate-400 uppercase border-b border-slate-200 dark:border-slate-700">
+                                          <th className="py-1.5 text-left">Account Code & Name</th>
+                                          <th className="py-1.5 text-left">Line Memo</th>
+                                          <th className="py-1.5 text-right">Debit (PHP)</th>
+                                          <th className="py-1.5 text-right">Credit (PHP)</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800 font-mono">
+                                        {entry.lines?.map((line) => (
+                                          <tr key={line.id} className="text-slate-700 dark:text-slate-300">
+                                            <td className="py-2">
+                                              <span className="font-bold text-indigo-600 dark:text-indigo-400">[{line.account_code}]</span>{' '}
+                                              <span className="text-slate-900 dark:text-white font-medium">{line.account_name}</span>
+                                            </td>
+                                            <td className="py-2 text-slate-500 dark:text-slate-400 text-[11px]">{line.description}</td>
+                                            <td className="py-2 text-right text-indigo-600 dark:text-indigo-400 font-bold tabular-nums">
+                                              {line.debit > 0 ? line.debit.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
+                                            </td>
+                                            <td className="py-2 text-right text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">
+                                              {line.credit > 0 ? line.credit.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
                           )}
+                        </React.Fragment>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: Trial Balance */}
+      {activeTab === 'TRIAL_BALANCE' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Scale className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Balanced Trial Balance (FY 2026)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Summary of all general ledger accounts ensuring Total Debits equal Total Credits.
+              </p>
+            </div>
+            {trialSummary?.is_balanced && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 self-start sm:self-auto">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Perfect Equilibrium
+              </span>
+            )}
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs min-w-[650px]">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <th className="py-3.5 px-4">Account Code</th>
+                    <th className="py-3.5 px-4">Account Title</th>
+                    <th className="py-3.5 px-4">Type</th>
+                    <th className="py-3.5 px-4 text-right">Debit Balance (PHP)</th>
+                    <th className="py-3.5 px-4 text-right">Credit Balance (PHP)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                  {trialAccounts.map((acc) => (
+                    <tr key={acc.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                      <td className="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{acc.code}</td>
+                      <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">{acc.name}</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                          {acc.type}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-semibold text-slate-800 dark:text-slate-200 tabular-nums">
+                        {acc.ending_debit > 0
+                          ? acc.ending_debit.toLocaleString('en-US', { minimumFractionDigits: 2 })
+                          : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-semibold text-slate-800 dark:text-slate-200 tabular-nums">
+                        {acc.ending_credit > 0
+                          ? acc.ending_credit.toLocaleString('en-US', { minimumFractionDigits: 2 })
+                          : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                  {/* Grand Totals */}
+                  <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 font-bold text-sm">
+                    <td colSpan={3} className="py-4 px-4 uppercase tracking-wider text-slate-900 dark:text-white">
+                      Grand Totals
+                    </td>
+                    <td className="py-4 px-4 text-right font-mono text-indigo-600 dark:text-indigo-400 tabular-nums">
+                      PHP {(trialSummary?.total_debits || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-4 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
+                      PHP {(trialSummary?.total_credits || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: AR Sub-ledger */}
+      {activeTab === 'AR_SUBLEDGER' && (
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Accounts Receivable Sub-ledger (Customer Schedule)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Reconciles with GL Control Account [1020-AR Accounts Receivable — Trade].
+              </p>
+            </div>
+            <div className="sm:text-right">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Total Outstanding</span>
+              <p className="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                PHP {arTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs min-w-[650px]">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <th className="py-3.5 px-4">Customer Code</th>
+                    <th className="py-3.5 px-4">Customer / Company Name</th>
+                    <th className="py-3.5 px-4 text-right">Total Invoiced</th>
+                    <th className="py-3.5 px-4 text-right">Total Collected</th>
+                    <th className="py-3.5 px-4 text-right">Balance Due</th>
+                    <th className="py-3.5 px-4 text-center">Unpaid Invoices</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                  {arSubledger.map((c) => (
+                    <tr key={c.customer_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">{c.customer_code}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="font-semibold text-slate-900 dark:text-white block">{c.customer_name}</span>
+                        {c.company_name && <span className="text-[11px] text-slate-500 dark:text-slate-400">{c.company_name}</span>}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono text-slate-700 dark:text-slate-300 tabular-nums">
+                        PHP {c.total_invoiced.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        PHP {c.total_collected.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white tabular-nums">
+                        PHP {c.balance_due.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                          {c.unpaid_count} pending
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: AP Sub-ledger */}
+      {activeTab === 'AP_SUBLEDGER' && (
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400" /> Accounts Payable Sub-ledger (Supplier Schedule)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Reconciles with GL Control Account [2010-AP Accounts Payable — Trade].
+              </p>
+            </div>
+            <div className="sm:text-right">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Total Payable</span>
+              <p className="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400 font-mono">
+                PHP {apTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs min-w-[650px]">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <th className="py-3.5 px-4">Supplier Code</th>
+                    <th className="py-3.5 px-4">Supplier / Vendor Name</th>
+                    <th className="py-3.5 px-4 text-right">Total Billed</th>
+                    <th className="py-3.5 px-4 text-right">Total Paid</th>
+                    <th className="py-3.5 px-4 text-right">Balance Owed</th>
+                    <th className="py-3.5 px-4 text-center">Unpaid Bills</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                  {apSubledger.map((s) => (
+                    <tr key={s.supplier_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">{s.supplier_code}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="font-semibold text-slate-900 dark:text-white block">{s.supplier_name}</span>
+                        {s.company_name && <span className="text-[11px] text-slate-500 dark:text-slate-400">{s.company_name}</span>}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono text-slate-700 dark:text-slate-300 tabular-nums">
+                        PHP {s.total_billed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        PHP {s.total_paid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white tabular-nums">
+                        PHP {s.balance_owed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                          {s.unpaid_count} unpaid
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: Payroll Sub-ledger */}
+      {activeTab === 'PAYROLL' && (
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" /> Payroll Sub-ledger (HRMS Integration)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Record-only compensation expense register from HR and staff payouts.
+              </p>
+            </div>
+            <div className="sm:text-right">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Total Payroll YTD</span>
+              <p className="text-base sm:text-lg font-bold text-purple-600 dark:text-purple-400 font-mono">
+                PHP {payrollTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs min-w-[650px]">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <th className="py-3.5 px-4">Batch Reference & Date</th>
+                    <th className="py-3.5 px-4">Payroll Particulars</th>
+                    <th className="py-3.5 px-4">GL Expense Account</th>
+                    <th className="py-3.5 px-4 text-right">Disbursement Amount</th>
+                    <th className="py-3.5 px-4 text-center">Journal Entry</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                  {payrollEntries.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-slate-400">
+                        <Briefcase className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                        <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No payroll sub-ledger entries found</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    payrollEntries.map((p) => (
+                      <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <span className="font-mono font-bold text-slate-900 dark:text-white block">{p.reference}</span>
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500">{p.date}</span>
                         </td>
-                        <td className="px-4 py-3 align-top text-right">
-                          {entry.credit > 0 ? (
-                            <span className="font-mono text-slate-900 dark:text-slate-100 whitespace-nowrap">{formatCurrency(entry.credit)}</span>
+                        <td className="py-3.5 px-4 font-semibold text-slate-800 dark:text-slate-200">{p.batch_name}</td>
+                        <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400 text-[11px] font-mono">{p.gl_account}</td>
+                        <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white tabular-nums">
+                          PHP {p.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          {p.journal_entry ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                              {p.journal_entry}
+                            </span>
                           ) : (
-                            <span className="text-slate-300">-</span>
+                            <span className="text-[11px] text-slate-400">Logged</span>
                           )}
-                        </td>
-                        <td className="px-4 py-3 align-top text-center">
-                          <span className="inline-flex items-center px-2 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200 uppercase tracking-wider">
-                            {entry.status}
-                          </span>
                         </td>
                       </tr>
                     ))
                   )}
                 </tbody>
-
-                {/* Totals Footer */}
-                {!isLoading && summary && entries.length > 0 && (
-                  <tfoot className="bg-slate-50 dark:bg-slate-700/50 border-t-2 border-gray-200 dark:border-slate-600">
-                    <tr>
-                      <td colSpan={3} className="px-4 py-4 text-right font-bold text-slate-900 dark:text-white uppercase text-xs tracking-wider">
-                        Totals <span className="text-slate-400 dark:text-slate-500 font-normal normal-case">(Net: {formatCurrency(summary.net)})</span>
-                      </td>
-                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                        {formatCurrency(summary.total_debit)}
-                      </td>
-                      <td className="px-4 py-4 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                        {formatCurrency(summary.total_credit)}
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                )}
               </table>
             </div>
-
-            {/* Pagination Controls */}
-            {!isLoading && totalPages > 1 && (
-              <div className="bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between sm:px-6">
-                <div className="flex-1 flex justify-between sm:hidden">
-                  <button
-                    onClick={() => fetchGL(searchTerm, currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => fetchGL(searchTerm, currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700 dark:text-slate-300">
-                      Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                      <button
-                        onClick={() => fetchGL(searchTerm, currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
-                      >
-                        <span className="sr-only">Previous</span>
-                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => fetchGL(searchTerm, currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50"
-                      >
-                        <span className="sr-only">Next</span>
-                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </nav>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

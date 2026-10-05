@@ -345,32 +345,32 @@ export const SimulatorPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 bg-slate-50 min-h-full" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+    <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-full space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between pb-5 border-b border-gray-200 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-gray-200 dark:border-slate-800 gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">M2M API Simulator</h1>
-            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase tracking-wide border border-amber-200">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">M2M API Simulator</h1>
+            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-[10px] font-bold rounded-full uppercase tracking-wide border border-amber-200 dark:border-amber-800">
               Dev Mode
             </span>
           </div>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Simulate external modules (HR, Supply Chain, E-Commerce, Fleet) sending transactions to the Core API.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Zap size={16} className="text-amber-500" />
-          <span className="text-[11px] font-medium text-slate-400">{logs.length} sent</span>
+          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{logs.length} sent</span>
         </div>
       </div>
 
       {!isSimulatorConfigured && (
-        <div className="mb-6 flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800">
+        <div className="mb-6 flex items-start gap-2.5 px-4 py-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-300">
           <AlertTriangle size={16} className="shrink-0 mt-0.5" />
           <p className="text-xs leading-relaxed">
-            <strong>Simulator not configured.</strong> <code className="font-mono bg-amber-100 px-1 rounded">VITE_INTEGRATION_API_KEY</code> is not set, so requests will be rejected with 401 by the backend's API-key middleware.
-            Copy <code className="font-mono bg-amber-100 px-1 rounded">frontend-react/.env.example</code> to <code className="font-mono bg-amber-100 px-1 rounded">.env.local</code>, set it to match <code className="font-mono bg-amber-100 px-1 rounded">INTEGRATION_API_KEY</code> in the backend's <code className="font-mono bg-amber-100 px-1 rounded">.env</code>, and restart the dev server.
+            <strong>Simulator not configured.</strong> <code className="font-mono bg-amber-100 dark:bg-amber-900/50 px-1 rounded">VITE_INTEGRATION_API_KEY</code> is not set, so requests will be rejected with 401 by the backend's API-key middleware.
+            Copy <code className="font-mono bg-amber-100 dark:bg-amber-900/50 px-1 rounded">frontend-react/.env.example</code> to <code className="font-mono bg-amber-100 dark:bg-amber-900/50 px-1 rounded">.env.local</code>, set it to match <code className="font-mono bg-amber-100 dark:bg-amber-900/50 px-1 rounded">INTEGRATION_API_KEY</code> in the backend's <code className="font-mono bg-amber-100 dark:bg-amber-900/50 px-1 rounded">.env</code>, and restart the dev server.
           </p>
         </div>
       )}
@@ -379,21 +379,21 @@ export const SimulatorPage: React.FC = () => {
         {/* ── Left: Scenario Picker + Form ── */}
         <div className="lg:col-span-2 space-y-5">
           {/* Quick Scenarios */}
-          <div className="bg-white rounded-xl border border-gray-150 p-5">
-            <h2 className="text-sm font-bold text-slate-800 mb-3">Quick Scenarios</h2>
-            <p className="text-[11px] text-slate-400 mb-4">Click a scenario to auto-fill the form, then hit "Send to Core".</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 shadow-sm">
+            <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-3">Quick Scenarios</h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-4">Click a scenario to auto-fill the form, then hit "Send to Core".</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
               {SCENARIOS.map((s, i) => (
                 <button
                   key={i}
                   onClick={() => handleScenarioClick(i)}
                   className={`text-left p-3 rounded-lg border transition-all text-xs leading-snug ${
                     selectedScenario === i
-                      ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-200 dark:ring-blue-800'
+                      : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/60'
                   }`}
                 >
-                  <span className="font-medium text-slate-700">{s.label}</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 block">{s.label}</span>
                   <span className={`mt-1.5 inline-flex px-1.5 py-0.5 rounded text-[9px] font-semibold border ${MODULE_COLORS[s.module] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
                     {s.module}
                   </span>
@@ -403,16 +403,16 @@ export const SimulatorPage: React.FC = () => {
           </div>
 
           {/* Custom Form */}
-          <div className="bg-white rounded-xl border border-gray-150 p-5">
-            <h2 className="text-sm font-bold text-slate-800 mb-4">Transaction Payload</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 shadow-sm">
+            <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-4">Transaction Payload</h2>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Source Module</label>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Source Module</label>
                 <select
                   value={customModule}
                   onChange={(e) => setCustomModule(e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 text-slate-700 bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none"
+                  className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
                 >
                   <option value="SUPPLY_CHAIN">SUPPLY_CHAIN</option>
                   <option value="ECOMMERCE_CORE">ECOMMERCE_CORE</option>
@@ -423,11 +423,11 @@ export const SimulatorPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Category Type</label>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Category Type</label>
                 <select
                   value={customCategory}
                   onChange={(e) => setCustomCategory(e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 text-slate-700 bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none"
+                  className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
                 >
                   <option value="SUPPLIER_INVOICE">SUPPLIER_INVOICE</option>
                   <option value="SALES_REVENUE">SALES_REVENUE</option>
@@ -442,9 +442,9 @@ export const SimulatorPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Amount (PHP)</label>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Amount (PHP)</label>
                 <input
                   type="number"
                   value={customAmount}
@@ -452,15 +452,15 @@ export const SimulatorPage: React.FC = () => {
                   placeholder="e.g. 500000"
                   min="0.01"
                   step="0.01"
-                  className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 text-slate-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none font-mono"
+                  className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none font-mono"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Funding Bank Account</label>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Funding Bank Account</label>
                 <select
                   value={customBank}
                   onChange={(e) => setCustomBank(e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 text-slate-700 bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none font-mono"
+                  className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none font-mono"
                 >
                   <option value="BDO-Corp-8821">BDO Corporate (**** 8821)</option>
                   <option value="BPI-Trade-0092">BPI Trade (**** 0092)</option>
@@ -469,24 +469,24 @@ export const SimulatorPage: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Currency</label>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Currency</label>
                 <input
                   type="text"
                   value="PHP"
                   readOnly
-                  className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 text-slate-400 bg-gray-50 outline-none font-mono"
+                  className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-slate-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-900/60 outline-none font-mono"
                 />
               </div>
             </div>
 
             <div className="mb-5">
-              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Description</label>
+              <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Description</label>
               <textarea
                 value={customDescription}
                 onChange={(e) => setCustomDescription(e.target.value)}
                 placeholder="Describe the transaction (include keywords like SUSPICIOUS or OFFSHORE to trigger AI flags)"
                 rows={3}
-                className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2.5 text-slate-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none resize-none"
+                className="w-full text-xs border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none resize-none"
               />
             </div>
 
@@ -514,11 +514,11 @@ export const SimulatorPage: React.FC = () => {
 
               {/* FIX 2: Idempotency testing buttons */}
               {lastRequestRef.current && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
                     onClick={handleResendLast}
                     disabled={loading}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <RotateCcw size={12} />
                     Resend Last Request
@@ -526,7 +526,7 @@ export const SimulatorPage: React.FC = () => {
                   <button
                     onClick={handleResendModified}
                     disabled={loading}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Copy size={12} />
                     Same Key + Modified Payload
@@ -539,9 +539,9 @@ export const SimulatorPage: React.FC = () => {
 
         {/* ── Right: Live Response Log ── */}
         <div className="space-y-5">
-          <div className="bg-white rounded-xl border border-gray-150 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-800">API Response Log</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-800 dark:text-white">API Response Log</h2>
               {logs.length > 0 && (
                 <button
                   onClick={() => setLogs([])}
@@ -552,19 +552,19 @@ export const SimulatorPage: React.FC = () => {
               )}
             </div>
 
-            <div className="max-h-[600px] overflow-y-auto divide-y divide-gray-100">
+            <div className="max-h-[600px] overflow-y-auto divide-y divide-gray-100 dark:divide-slate-700/60">
               {logs.length === 0 ? (
                 <div className="p-8 text-center">
-                  <Zap size={24} className="text-gray-300 mx-auto mb-2" />
-                  <p className="text-xs text-gray-400">No transactions sent yet.</p>
-                  <p className="text-[10px] text-gray-300 mt-1">Click a scenario and hit "Send to Core"</p>
+                  <Zap size={24} className="text-gray-300 dark:text-slate-600 mx-auto mb-2" />
+                  <p className="text-xs text-gray-400 dark:text-slate-500">No transactions sent yet.</p>
+                  <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Click a scenario and hit "Send to Core"</p>
                 </div>
               ) : (
                 logs.map((log) => {
                   const badge = getStatusBadge(log.status, log.httpStatus);
 
                   return (
-                    <div key={log.id} className="p-4 hover:bg-slate-50/50 transition-colors">
+                    <div key={log.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                       <div className="flex items-start gap-2 mb-2">
                         {log.status === 'success' && <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 shrink-0" />}
                         {log.status === 'flagged' && <AlertTriangle size={14} className="text-red-500 mt-0.5 shrink-0" />}
@@ -572,7 +572,7 @@ export const SimulatorPage: React.FC = () => {
                         {log.status === 'conflict' && <XCircle size={14} className="text-orange-500 mt-0.5 shrink-0" />}
                         {log.status === 'error' && <XCircle size={14} className="text-red-400 mt-0.5 shrink-0" />}
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-slate-700 leading-snug">{log.scenario}</p>
+                          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-snug">{log.scenario}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <p className="text-[10px] text-slate-400">{log.timestamp}</p>
                             <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border ${badge.bg} ${badge.text} ${badge.border}`}>
@@ -585,19 +585,19 @@ export const SimulatorPage: React.FC = () => {
                       {/* Success / Flagged / Duplicate — show transaction details */}
                       {log.response && (log.status === 'success' || log.status === 'flagged' || log.status === 'duplicate') && (
                         <div className={`rounded-lg p-3 mt-2 space-y-1.5 ${
-                          log.status === 'duplicate' ? 'bg-blue-50/50' : 'bg-slate-50'
+                          log.status === 'duplicate' ? 'bg-blue-50/50 dark:bg-blue-950/30' : 'bg-slate-50 dark:bg-slate-900/60'
                         }`}>
                           {log.response.message && (
                             <p className={`text-[10px] font-medium mb-1 ${
-                              log.status === 'duplicate' ? 'text-blue-600' : 'text-slate-500'
+                              log.status === 'duplicate' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'
                             }`}>{log.response.message}</p>
                           )}
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-500">Transaction Code</span>
-                            <span className="font-mono font-bold text-slate-800">{log.response.transaction_code}</span>
+                            <span className="text-slate-500 dark:text-slate-400">Transaction Code</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{log.response.transaction_code}</span>
                           </div>
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-500">Workflow Status</span>
+                            <span className="text-slate-500 dark:text-slate-400">Workflow Status</span>
                             <span className={`font-semibold ${
                               log.response.workflow_status === 'ai_flagged' ? 'text-red-600' : 'text-amber-600'
                             }`}>

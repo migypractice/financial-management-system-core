@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 interface User {
   id: string;
   name: string;
+  username?: string | null;
   email: string;
   role: string;
   department: string;
@@ -51,6 +52,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setToken(null);
     setUser(null);
   };
+
+  // Backend token expired / revoked (401 from apiClient) -> sign out fully.
+  useEffect(() => {
+    const onExpired = () => logout();
+    window.addEventListener('auth:expired', onExpired);
+    return () => window.removeEventListener('auth:expired', onExpired);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token, isLoading }}>

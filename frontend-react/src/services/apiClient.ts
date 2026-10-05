@@ -33,8 +33,9 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear token and redirect to login if session expired
+      // Session expired or revoked on the server -> tell AuthContext to sign out.
       localStorage.removeItem('auth_token');
+      window.dispatchEvent(new Event('auth:expired'));
     }
     return Promise.reject(error);
   }

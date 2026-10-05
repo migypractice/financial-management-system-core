@@ -20,4 +20,9 @@ class JournalEntry extends Model
     {
         return $this->belongsTo(Transaction::class);
     }
+
+    public function lines()
+    {
+        return $this->hasMany(JournalEntryLine::class, 'journal_entry_id');
+    }
 }

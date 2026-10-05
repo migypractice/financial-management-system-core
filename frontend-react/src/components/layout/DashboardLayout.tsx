@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
-  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock
+  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -81,7 +81,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
 
@@ -96,7 +95,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         }
         return next;
       });
-      // Small delay to let state settle before notifying children
       setTimeout(() => window.dispatchEvent(new Event('themeToggleSync')), 10);
     };
     
@@ -115,6 +113,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       if (e.key === 'Escape') {
         setNotificationsOpen(false);
         setMailOpen(false);
+        setUserMenuOpen(false);
+        setMobileMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -156,7 +156,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* Mobile Backdrop */}
       {mobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 md:hidden animate-fadeIn"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -164,21 +164,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* ── Sidebar ── */}
       <aside
         className={`print:hidden fixed md:relative flex flex-col h-full shrink-0 transition-all duration-300 z-50 ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
+          mobileMenuOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full md:translate-x-0'
+        } ${collapsed ? 'md:w-[72px]' : 'md:w-[220px]'} w-64 max-w-[85vw]`}
         style={{
-          width: collapsed ? '72px' : '220px',
           background: 'linear-gradient(180deg, #1e2d4a 0%, #162038 100%)',
         }}
       >
         {/* Brand — Archon Nell Logo */}
-        <div className="px-3 py-3 border-b border-white/10">
+        <div className="px-3 py-3 border-b border-white/10 flex items-center justify-between gap-2">
           {collapsed ? (
             <div className="w-10 h-10 shrink-0 rounded-lg bg-white p-1 shadow-sm flex items-center justify-center overflow-hidden mx-auto">
               <img src="/archon-nell-logo.png" alt="Archon Nell Incorporated" className="w-full h-full object-contain" />
             </div>
           ) : (
-            <div className="w-full h-16 rounded-lg bg-white shadow-sm overflow-hidden">
+            <div className="flex-1 h-14 sm:h-16 rounded-lg bg-white shadow-sm overflow-hidden">
               <img
                 src="/archon-nell-logo.png"
                 alt="Archon Nell Incorporated"
@@ -187,6 +186,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               />
             </div>
           )}
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="md:hidden text-blue-200/70 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
+            aria-label="Close navigation menu"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Nav */}
@@ -252,54 +258,48 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 </>
               )}
             </button>
-            {userMenuOpen && !collapsed && (
-              <div className="absolute bottom-full left-0 w-full mb-1 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50">
+            {userMenuOpen && (
+              <div className={`absolute mb-1 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50 animate-fadeIn ${
+                collapsed ? 'left-full bottom-0 ml-2 w-48' : 'bottom-full left-0 w-full'
+              }`}>
+                <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700/60 bg-gray-50/50 dark:bg-slate-700/30">
+                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{activeUserName}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-slate-400 capitalize truncate">{activeUserRole.replace('_', ' ')}</p>
+                </div>
                 <button 
                   onClick={() => {
                     handleNav('/settings');
                     setUserMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700"
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <Settings size={14} /> Settings
+                  <Settings size={14} className="text-slate-400" /> Settings
                 </button>
                 <button 
                   onClick={() => {
                     logout();
                     setUserMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                 >
                   <LogOut size={14} /> Sign Out
                 </button>
               </div>
             )}
           </div>
-
-          {/* Build Info (Hidden for now) */}
-          {/*
-          {!collapsed && (
-            <div className="pt-2 mt-2 border-t border-white/10">
-              <p className="text-[9px] text-blue-300/40 text-center leading-relaxed">
-                Hardware ERP &middot; Version 1.0.0-RC1<br/>
-                Laravel 12 &middot; React 19 &middot; TypeScript<br/>
-                Build July 30, 2026
-              </p>
-            </div>
-          )}
-          */}
         </div>
       </aside>
 
       {/* ── Main ── */}
-      <div className="print:block print:h-auto flex-1 flex flex-col h-full overflow-hidden">
+      <div className="print:block print:h-auto flex-1 flex flex-col h-full overflow-hidden min-w-0">
 
         {/* Top bar */}
-        <header className="print:hidden bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-3 flex items-center justify-between shrink-0">
+        <header className="print:hidden bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setMobileMenuOpen(true)}
-              className="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200 transition-colors md:hidden"
+              className="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors md:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
+              aria-label="Open sidebar menu"
             >
               <Menu size={20} />
             </button>
@@ -311,14 +311,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3" ref={headerRef}>
+          <div className="flex items-center gap-2 sm:gap-3" ref={headerRef}>
             {/* Dark Mode Toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
               title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
+              aria-label="Toggle visual theme"
+              className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
             >
-              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+              {darkMode ? <Sun size={15} /> : <Moon size={15} />}
             </button>
 
             {/* Notification Bell */}
@@ -327,27 +328,27 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 onClick={toggleNotifications}
                 aria-label="Notifications"
                 aria-expanded={notificationsOpen}
-                className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
+                className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
               >
-                <Bell size={16} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+                <Bell size={15} />
+                <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-2 h-2 rounded-full bg-red-500" />
               </button>
 
               {notificationsOpen && (
-                <div className="absolute top-full mt-2 right-0 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50">
+                <div className="absolute top-full mt-2 right-0 w-[calc(100vw-2rem)] max-w-xs sm:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50 animate-fadeIn">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
                     <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Notifications</h3>
                     <span className="text-[10px] text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-full border border-gray-200 dark:border-slate-600">3 New</span>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-700/50">
                     {representativeNotifications.map(n => (
-                      <div key={n.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <div className="flex items-start gap-3">
-                          <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${n.type === 'alert' ? 'bg-red-500' : 'bg-blue-500'}`} />
+                      <div key={n.id} className="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div className="flex items-start gap-2.5 sm:gap-3">
+                          <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${n.type === 'alert' ? 'bg-red-500' : 'bg-blue-500'}`} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.title}</p>
-                            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-snug">{n.desc}</p>
-                            <div className="flex items-center justify-between mt-2">
+                            <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white truncate">{n.title}</p>
+                            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 mt-0.5 leading-snug line-clamp-2">{n.desc}</p>
+                            <div className="flex items-center justify-between mt-1.5">
                               <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500">{n.time}</span>
                               {n.action && (
                                 <button 
@@ -384,14 +385,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 onClick={toggleMail}
                 aria-label="Messages"
                 aria-expanded={mailOpen}
-                className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
+                className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
               >
-                <Mail size={16} />
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center px-1 bg-blue-600 text-white text-[9px] rounded-full font-bold">2</span>
+                <Mail size={15} />
+                <span className="absolute -top-1 -right-1 min-w-[15px] h-3.5 sm:h-4 flex items-center justify-center px-1 bg-blue-600 text-white text-[8px] sm:text-[9px] rounded-full font-bold">2</span>
               </button>
 
               {mailOpen && (
-                <div className="absolute top-full mt-2 right-0 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50">
+                <div className="absolute top-full mt-2 right-0 w-[calc(100vw-2rem)] max-w-xs sm:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50 animate-fadeIn">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
                     <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Messages</h3>
                     <span className="text-[10px] text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-full border border-gray-200 dark:border-slate-600">2 Unread</span>
@@ -400,15 +401,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                     {representativeMessages.map(m => (
                       <button 
                         key={m.id} 
-                        className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" 
+                        className="w-full text-left p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" 
                         onClick={() => setMailOpen(false)}
                       >
                         <div className="flex items-start justify-between mb-1">
-                          <p className="text-xs font-bold text-gray-900 dark:text-white">{m.sender}</p>
+                          <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{m.sender}</p>
                           <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 shrink-0 ml-2">{m.time}</span>
                         </div>
                         <p className="text-xs font-semibold text-gray-800 dark:text-slate-200 truncate">{m.subject}</p>
-                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-snug">{m.preview}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-snug">{m.preview}</p>
                       </button>
                     ))}
                   </div>

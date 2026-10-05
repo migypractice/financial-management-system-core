@@ -48,9 +48,11 @@ class GeneralLedgerControllerTest extends TestCase
             'created_by'            => $systemUser?->id,
         ], $overrides));
 
+        static $seq = 1000;
+        $seq++;
         JournalEntry::create([
             'transaction_id' => $transaction->id,
-            'entry_number'   => 'JE-' . date('Ym') . '-' . mt_rand(1000, 9999),
+            'entry_number'   => 'JE-' . date('Ym') . '-' . $seq,
             'entry_date'     => now()->toDateString(),
             'status'         => 'POSTED',
         ]);
@@ -121,4 +123,49 @@ class GeneralLedgerControllerTest extends TestCase
         $this->assertEquals(300, $json['summary']['total_debit']); // 100 + 200
         $this->assertEquals(0, $json['summary']['total_credit']);
     }
+
+    public function test_trial_balance_endpoint(): void
+    {
+        $admin = $this->makeUser('super_admin');
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/v1/dashboard/gl/trial-balance');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data', 'summary']);
+    }
+
+    public function test_ar_subledger_endpoint(): void
+    {
+        $admin = $this->makeUser('super_admin');
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/v1/dashboard/gl/ar-subledger');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data', 'summary']);
+    }
+
+    public function test_ap_subledger_endpoint(): void
+    {
+        $admin = $this->makeUser('super_admin');
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/v1/dashboard/gl/ap-subledger');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data', 'summary']);
+    }
+
+    public function test_payroll_subledger_endpoint(): void
+    {
+        $admin = $this->makeUser('super_admin');
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/v1/dashboard/gl/payroll-subledger');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data', 'summary']);
+    }
 }
+

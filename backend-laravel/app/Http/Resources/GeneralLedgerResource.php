@@ -23,17 +23,36 @@ class GeneralLedgerResource extends JsonResource
         $amount = (float) $transaction->amount;
         $isExpense = $transaction->type === 'EXPENSE';
         
+        $lines = $this->lines->map(function ($line) {
+            return [
+                'id'           => $line->id,
+                'account_code' => $line->chartOfAccount?->code ?? '',
+                'account_name' => $line->chartOfAccount?->name ?? 'General Account',
+                'account_type' => $line->chartOfAccount?->type ?? 'ASSET',
+                'debit'        => (float) $line->debit,
+                'credit'       => (float) $line->credit,
+                'description'  => $line->description,
+            ];
+        });
+
+        $totalLineDebit = (float) $this->lines->sum('debit');
+        $totalLineCredit = (float) $this->lines->sum('credit');
+
         return [
             'id'               => $this->id,
             'entry_number'     => $this->entry_number,
-            'posted_at'        => $transaction->posted_at ? $transaction->posted_at->toIso8601String() : $this->created_at->toIso8601String(),
-            'description'      => $transaction->description,
-            'account_name'     => $transaction->ai_suggested_gl_name ?? 'Uncategorized Account',
-            'debit'            => $isExpense ? $amount : 0.00,
-            'credit'           => !$isExpense ? $amount : 0.00,
-            'reference_number' => $transaction->transaction_code, // Or external_reference_id
-            'source_module'    => $transaction->source_module,
+            'posted_at'        => $transaction?->posted_at ? $transaction->posted_at->toIso8601String() : $this->created_at->toIso8601String(),
+            'description'      => $transaction?->description ?? $this->entry_number,
+            'account_name'     => $transaction?->ai_suggested_gl_name ?? ($lines->first()['account_name'] ?? 'General Ledger'),
+            'debit'            => $totalLineDebit > 0 ? $totalLineDebit : ($isExpense ? $amount : 0.00),
+            'credit'           => $totalLineCredit > 0 ? $totalLineCredit : (!$isExpense ? $amount : 0.00),
+            'reference_number' => $transaction?->transaction_code ?? $this->entry_number,
+            'source_module'    => $transaction?->source_module ?? 'GENERAL_LEDGER',
             'status'           => $this->status,
+            'lines'            => $lines,
+            'total_debit'      => $totalLineDebit,
+            'total_credit'     => $totalLineCredit,
+            'is_balanced'      => $totalLineDebit > 0 && abs($totalLineDebit - $totalLineCredit) < 0.01,
         ];
     }
 }
