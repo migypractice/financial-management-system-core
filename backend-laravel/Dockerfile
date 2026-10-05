@@ -33,4 +33,4 @@ RUN a2enmod rewrite
 # Migrations only — safe to re-run on every boot (only applies pending ones).
 # Seeding is a one-time manual step (see deployment docs), not run automatically.
 EXPOSE 80
-CMD php artisan config:cache && php artisan migrate --force && apache2-foreground
+CMD php artisan config:cache && php artisan migrate --force && php artisan db:seed --force && apache2-foreground
