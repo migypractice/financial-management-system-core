@@ -243,40 +243,15 @@ class AuthController extends Controller
     }
 
     /**
-     * Dispatch OTP email without blocking or hanging when SMTP is unconfigured.
+     * Dispatch OTP email directly via Gmail SMTP.
      */
     private function dispatchOtpEmail(string $recipientEmail, string $recipientName, string $otp): void
     {
-        $mailer   = config('mail.default');
-        $smtpHost = config('mail.mailers.smtp.host');
-        $smtpUser = config('mail.mailers.smtp.username');
-        $smtpPass = config('mail.mailers.smtp.password');
-
-        $isLiveSmtpReady = ($mailer === 'smtp')
-            && ! in_array($smtpHost, ['127.0.0.1', 'localhost', null, '', 'null'], true)
-            && ! in_array($smtpUser, ['null', null, ''], true)
-            && ! in_array($smtpPass, ['null', null, ''], true);
-
-        // If real SMTP is not yet configured, skip network attempt to avoid hanging
-        if (! $isLiveSmtpReady) {
-            Log::info("Live SMTP not configured (host: {$smtpHost}). Demo OTP ready: {$otp} for {$recipientEmail}");
-            return;
-        }
-
-        // On Linux / Docker production, dispatch via non-blocking background CLI process for instant response
-        if (function_exists('exec') && strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
-            $phpBin = PHP_BINARY ?: 'php';
-            $basePath = base_path();
-            $cmd = "{$phpBin} {$basePath}/artisan mail:send-otp " . escapeshellarg($recipientEmail) . " " . escapeshellarg($recipientName) . " " . escapeshellarg($otp) . " > /dev/null 2>&1 &";
-            @exec($cmd);
-            Log::info("Asynchronous background OTP worker spawned for {$recipientEmail} via {$phpBin}");
-            return;
-        }
-
         try {
             Mail::to($recipientEmail)->send(new SendOtpMail($otp, $recipientName));
+            Log::info("OTP successfully dispatched to {$recipientEmail}");
         } catch (\Throwable $e) {
-            Log::warning('OTP email dispatch failed: ' . $e->getMessage());
+            Log::error('OTP email dispatch failed: ' . $e->getMessage());
         }
     }
 }
