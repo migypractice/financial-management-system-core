@@ -302,9 +302,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSecr
                   id="login-submit"
                   type="submit"
                   disabled={isLoading || password.length === 0 || identifier.trim().length === 0}
-                  className="w-full flex justify-center py-2.5 px-4 rounded-xl shadow-xs text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl shadow-xs text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 transition-all cursor-pointer"
                 >
-                  {isLoading ? 'Authenticating...' : 'Sign in'}
+                  {isLoading ? (
+                    <>
+                      <RefreshCw size={15} className="animate-spin" />
+                      <span>Authenticating & Verifying...</span>
+                    </>
+                  ) : (
+                    <span>Sign in</span>
+                  )}
                 </button>
               </div>
 

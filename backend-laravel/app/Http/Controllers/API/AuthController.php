@@ -265,6 +265,15 @@ class AuthController extends Controller
             return;
         }
 
+        // On Linux / Docker production, dispatch via non-blocking background CLI process for instant response
+        if (function_exists('exec') && strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+            $basePath = base_path();
+            $cmd = "php {$basePath}/artisan mail:send-otp " . escapeshellarg($recipientEmail) . " " . escapeshellarg($recipientName) . " " . escapeshellarg($otp) . " > /dev/null 2>&1 &";
+            @exec($cmd);
+            Log::info("Asynchronous background OTP worker spawned for {$recipientEmail}");
+            return;
+        }
+
         try {
             Mail::to($recipientEmail)->send(new SendOtpMail($otp, $recipientName));
         } catch (\Throwable $e) {
