@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, EyeOff, Lock, User, ShieldCheck, ArrowLeft, RefreshCw, KeyRound, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, ShieldCheck, ArrowLeft, RefreshCw, KeyRound, Sparkles, Mail } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { firstApiError, validateLoginIdentifier } from '../../utils/securityRules';
 
@@ -25,7 +25,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSecr
   const [otpUserId, setOtpUserId] = useState<string>('');
   const [otpEmail, setOtpEmail] = useState<string>('');
   const [otpCode, setOtpCode] = useState<string>('');
-  const [demoOtpHint, setDemoOtpHint] = useState<string>('');
   const [resendCooldown, setResendCooldown] = useState<number>(60);
   const [isResending, setIsResending] = useState<boolean>(false);
   const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -91,7 +90,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSecr
         if (data.requires_otp) {
           setOtpUserId(data.user_id);
           setOtpEmail(data.email);
-          setDemoOtpHint(data.demo_otp || '');
           setOtpCode('');
           setResendCooldown(60);
           setStep('OTP');
@@ -178,9 +176,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSecr
       const data = await response.json();
 
       if (response.ok) {
-        if (data.demo_otp) {
-          setDemoOtpHint(data.demo_otp);
-        }
         setResendCooldown(60);
       } else {
         setError(data.message || 'Failed to resend code. Please try again.');
@@ -333,22 +328,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSecr
                 </p>
               </div>
 
-              {/* Demo Quick-Fill Pill / Helper */}
-              {demoOtpHint && (
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-300">
-                    <KeyRound size={14} className="shrink-0" />
-                    <span>Demo Code: <strong className="font-mono tracking-widest text-sm">{demoOtpHint}</strong></span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setOtpCode(demoOtpHint)}
-                    className="px-2.5 py-1 text-[11px] font-semibold bg-amber-200/80 dark:bg-amber-800 text-amber-900 dark:text-amber-100 rounded-lg hover:bg-amber-300 transition-colors"
-                  >
-                    Auto-Fill
-                  </button>
-                </div>
-              )}
+              {/* Live Email Delivery Notice */}
+              <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 rounded-xl flex items-center gap-2.5 text-xs text-indigo-900 dark:text-indigo-200">
+                <Mail size={16} className="shrink-0 text-indigo-600 dark:text-indigo-400" />
+                <span className="leading-relaxed">
+                  Please check your <strong>Gmail Inbox</strong> (or Spam folder) for your 6-digit verification code.
+                </span>
+              </div>
 
               {/* 6-Digit Code Input */}
               <div>

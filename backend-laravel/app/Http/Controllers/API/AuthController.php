@@ -95,7 +95,6 @@ class AuthController extends Controller
                 'requires_otp' => true,
                 'user_id'      => $user->id,
                 'email'        => $user->email,
-                'demo_otp'     => $otp,
                 'message'      => 'A 6-digit verification code has been sent directly to your Gmail inbox.',
             ]);
         }
@@ -162,7 +161,6 @@ class AuthController extends Controller
 
         return response()->json([
             'success'  => true,
-            'demo_otp' => $otp,
             'message'  => 'New verification code sent directly to your Gmail inbox.',
         ]);
     }
@@ -267,10 +265,11 @@ class AuthController extends Controller
 
         // On Linux / Docker production, dispatch via non-blocking background CLI process for instant response
         if (function_exists('exec') && strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+            $phpBin = PHP_BINARY ?: 'php';
             $basePath = base_path();
-            $cmd = "php {$basePath}/artisan mail:send-otp " . escapeshellarg($recipientEmail) . " " . escapeshellarg($recipientName) . " " . escapeshellarg($otp) . " > /dev/null 2>&1 &";
+            $cmd = "{$phpBin} {$basePath}/artisan mail:send-otp " . escapeshellarg($recipientEmail) . " " . escapeshellarg($recipientName) . " " . escapeshellarg($otp) . " > /dev/null 2>&1 &";
             @exec($cmd);
-            Log::info("Asynchronous background OTP worker spawned for {$recipientEmail}");
+            Log::info("Asynchronous background OTP worker spawned for {$recipientEmail} via {$phpBin}");
             return;
         }
 
