@@ -1,0 +1,167 @@
+================================================================================
+FINANCIAL MANAGEMENT SYSTEM (TRANSACTION CORE) - FULL DEMO & DEFENSE FLOW
+Oral Defense Demonstration Script & User Guide (Taglish Version)
+================================================================================
+
+LIVE APPLICATION LINKS:
+- Frontend (Vercel):  https://financial-management-system-core.vercel.app
+- Backend API (Render): https://fms-backend-gani.onrender.com/api/v1
+- Cloud Database:      Neon.tech (PostgreSQL 16)
+
+DEFAULT DEMO USER ACCOUNTS:
+--------------------------------------------------------------------------------
+ROLE                 USERNAME    PASSWORD       ACCESS LEVEL
+Super Admin          admin01     Admin@2026     Full system control, User Management, Settings
+Finance Manager      manager01   Manager@2026   Checker: Approvals, Subledgers, Disburse
+Department Staff     staff01     Staff@2026     Maker: Payment Request Submissions, Ingestion
+--------------------------------------------------------------------------------
+
+
+================================================================================
+🏛️ 1. ANG CORE CONCEPT (ELEVATOR PITCH SA PANEL)
+================================================================================
+"Magandang araw po sa ating panel. Ang aming system ay isang Financial Management
+System (Transaction Core) para sa E-Commerce Marketplace na may AI-Driven
+Transaction, Payment, and Financial Reporting.
+
+Lahat ng transaksyon mula sa aming external client o subsystems (E-Commerce,
+HRMS, Supply Chain, Fleet) ay dumadaan sa isang 4-Stage Automated Pipeline:
+  [1] External Ingestion -> [2] AI Risk Evaluation -> [3] Manager Approval -> [4] GL Posting
+
+Ito ay mahigpit na sumusunod sa:
+  - Maker-Checker Segregation of Duties (ang nag-encode ay hindi pwedeng mag-approve)
+  - Balanced Double-Entry Bookkeeping (Debit = Credit sa General Ledger)
+  - Audit Trail Logging para sa transparency at compliance."
+
+
+================================================================================
+📍 2. HAKBANG 1: LOGIN AT SECURITY (RBAC)
+================================================================================
+1. Buksan ang link: https://financial-management-system-core.vercel.app
+2. Mag-login gamit ang role na idedemo:
+   - Super Admin:       admin01   / Admin@2026
+   - Finance Manager:   manager01 / Manager@2026
+   - Staff:             staff01   / Staff@2026
+
+DEFENSE SECURITY HIGHLIGHT:
+- Sabihin sa panel na may Brute-Force Rate Limiting ang login: Kapag 5 beses
+  nagkamali ng password o MPIN, awtomatikong magla-lock out ang account nang 60 seconds
+  upang maprotektahan laban sa credential stuffing attacks.
+
+
+================================================================================
+📍 3. HAKBANG 2: EXECUTIVE FINANCIAL DASHBOARD
+================================================================================
+Pagkapasok, ipakita ang Overview ng Financial Health ng Kumpanya:
+1. Executive KPI Cards:
+   - Total Revenue Inflow:  Papasok na pera mula sa benta
+   - Total Expenses Outflow: Lumabas na pambayad sa suppliers at operating expenses
+   - Pending Approvals:     Bilang ng transaksyong nakapila para suriin ng Manager
+   - Posted Journal Entries: Bilang ng opisyal na naitalang libro sa accounting
+2. Financial Comparison Chart:
+   - Interactive SVG Bar Chart na nagpapakita ng Revenue vs Expenses inflow/outflow.
+3. Quick Access Shortcuts:
+   - Mabilisang navigation papunta sa General Ledger, Payables, Receivables,
+     Budget, at Financial Reports.
+
+
+================================================================================
+📍 4. HAKBANG 3: M2M API SIMULATOR (PAGPASOK NG TRANSACTIONS)
+================================================================================
+Dito ipapakita kung paano konektado ang external platforms sa Financial Core:
+1. Pumunta sa sidebar -> M2M Simulator.
+2. Demo A: Normal Transaction (Low Risk)
+   - I-click ang "Online Sales Revenue" (E-Commerce) o "Cement Purchase" (Supply Chain).
+   - I-click ang "Send to Core".
+   - Makikita sa API Response Log:
+     * Status: 201 Created / Processed
+     * AI Risk Score: Mababa (e.g. 15/100)
+     * AI Flag: NORMAL (Low Risk)
+3. Demo B: Suspicious / Fraud Transaction (High Risk Anomaly)
+   - I-click ang "SUSPICIOUS Employee Claim" o "OFFSHORE Steel Import".
+   - I-click ang "Send to Core".
+   - Makikita sa API Response Log:
+     * Awtomatikong nag-trigger ang AI Anomaly Detector.
+     * AI Flag: CRITICAL / HIGH RISK na may detalyadong AI Audit Reason.
+
+
+================================================================================
+📍 5. HAKBANG 4: APPROVALS & MAKER-CHECKER PIPELINE
+================================================================================
+1. Mag-login o mag-switch sa Finance Manager (manager01).
+2. Pumunta sa sidebar -> Approvals.
+3. Ipakita ang 4-Stage Visual Audit Pipeline Banner sa itaas:
+   [01 External Txn] -> [02 AI Evaluation] -> [03 Manager Approval] -> [04 GL Posting]
+4. Makikita sa pila ang mga transactions na ipinadala mula sa simulator:
+   - Normal Transactions: May berdeng "Normal" badge.
+   - Flagged Transactions: May dilaw/pulang "AI Flagged / High Risk" badge.
+5. Pagsusuri at Aksyon:
+   - Click "Approve": Diretso itong maipo-post sa General Ledger.
+   - Click "Reject": Magpa-pop up ang Confirmation Dialog para humingi ng
+     kumpirmasyon at dahilan bago tanggihan ang transaction.
+
+DEFENSE COMPLIANCE HIGHLIGHT:
+- Maker-Checker Rule: Hindi pinapayagan ng system na ang gumawa ng transaksyon
+  ang siya ring mag-apruba nito (Segregation of Duties).
+
+
+================================================================================
+📍 6. HAKBANG 5: SUBLEDGERS (AP, AR, CASH, AT DISBURSEMENT)
+================================================================================
+Ipakita ang operational accounting modules:
+
+1. Accounts Payable (AP):
+   - Talaan ng lahat ng bills at bayarin sa suppliers.
+   - May Aging Schedule Summary: Current, 1-30 days, 31-60 days, 61-90 days, Over 90 days.
+2. Disbursement Module:
+   - Ang mga naaprubahang bills ay gagawan ng Disbursement Voucher.
+   - Pipiliin ang babawasang bangko (BDO, BPI, UnionBank) at iki-click ang "Disburse".
+3. Accounts Receivable (AR) & Collections:
+   - Sinusubaybayan ang collectibles at pautang sa mga customer.
+   - Kapag nagbayad ang customer, irerecord ito sa Collections module.
+4. Cash Management:
+   - Real-time balances ng bawat bank account at monitoring ng cash position.
+
+
+================================================================================
+📍 7. HAKBANG 6: GENERAL LEDGER (ANG ACCOUNTING ENGINE)
+================================================================================
+1. Pumunta sa sidebar -> General Ledger.
+2. Double-Entry Journal Entries:
+   - Ang bawat approved transaction o disbursement ay awtomatikong may katapat na
+     balanseng Journal Entry sa database:
+     * Halimbawa: Debit Cash (1010) / Credit Sales Revenue (4010)
+     * Halimbawa: Debit Accounts Payable (2010) / Credit Cash in Bank (1010)
+3. Precision Formatting:
+   - Naka-align sa kanan gamit ang tabular figures (font-mono tabular-nums).
+   - Laging balanseng-balanse ang Total Debits at Total Credits.
+4. Sub-ledger Navigation:
+   - May tabs para sa Journal Entries, AP Ledger, AR Ledger, Cash Ledger,
+     at Chart of Accounts (COA).
+
+
+================================================================================
+📍 8. HAKBANG 7: FINANCIAL REPORTING & ANALYTICS
+================================================================================
+1. Pumunta sa sidebar -> Financial Reports.
+2. Income Statement (P&L):
+   - Awtomatikong kalkulasyon:
+     Gross Profit = Revenue - COGS
+     Net Income   = Gross Profit - Operating Expenses
+3. Balance Sheet Summary:
+   - Kumpletong talaan ng Assets (Cash, Receivables) laban sa Liabilities & Equity (Payables, Capital).
+4. AI Financial Insights:
+   - Automated financial health rating at predictive insights para sa management.
+5. Export to PDF:
+   - I-click ang "Export Full Report (PDF)" button para sa formal presentation printout.
+
+
+================================================================================
+🎯 SUMMARY STATEMENT PARA SA ENDING NG DEFENSE:
+================================================================================
+"Sa kabuuan po, ang aming Financial Management System ay hindi lamang isang simpleng
+CRUD application. Ito ay isang kumpletong ERP-grade Transaction Core kung saan
+naka-integrate ang Machine-to-Machine external ingestion, AI-driven risk evaluation,
+Maker-Checker governance, automated subledgers, at real-time balanced double-entry
+bookkeeping na nakakapag-produce ng live Financial Reports."
+================================================================================
