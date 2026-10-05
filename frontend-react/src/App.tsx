@@ -14,7 +14,7 @@ import TaxManagementPage from './pages/Tax/TaxManagementPage';
 import SimulatorPage from './pages/Simulator/SimulatorPage';
 import AuditLogPage from './pages/AuditLog/AuditLogPage';
 import SettingsPage from './pages/Settings/SettingsPage';
-
+import SecretProvisionPage from './pages/Auth/SecretProvisionPage';
 
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/Auth/LoginPage';
@@ -36,6 +36,7 @@ type AppRoute =
   | '/simulator'
   | '/audit-logs'
   | '/settings'
+  | '/secret-provision'
 ;
 
 export const App: React.FC = () => {
@@ -43,6 +44,21 @@ export const App: React.FC = () => {
   const [isMpinVerified, setIsMpinVerified] = useState(false);
   const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
   const [countdown, setCountdown] = useState(30);
+  const [showSecretProvision, setShowSecretProvision] = useState<boolean>(() => {
+    return window.location.hash.includes('secret') || window.location.pathname === '/secret-provision';
+  });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash.includes('secret') || window.location.pathname === '/secret-provision') {
+        setShowSecretProvision(true);
+      } else {
+        setShowSecretProvision(false);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const { isAuthenticated, isLoading, logout } = useAuth();
 
@@ -107,8 +123,34 @@ export const App: React.FC = () => {
     );
   }
 
+  if (showSecretProvision) {
+    return (
+      <SecretProvisionPage
+        onBack={() => {
+          setShowSecretProvision(false);
+          if (window.location.hash.includes('secret')) {
+            window.location.hash = '';
+          }
+        }}
+        onLoginSuccess={() => {
+          setShowSecretProvision(false);
+          if (window.location.hash.includes('secret')) {
+            window.location.hash = '';
+          }
+          setActivePath('/dashboard');
+          setIsMpinVerified(true);
+        }}
+      />
+    );
+  }
+
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => setActivePath('/dashboard')} />;
+    return (
+      <LoginPage 
+        onLoginSuccess={() => setActivePath('/dashboard')} 
+        onOpenSecretProvision={() => setShowSecretProvision(true)}
+      />
+    );
   }
 
   // Show MPIN verification after successful login, before allowing access
@@ -146,6 +188,13 @@ export const App: React.FC = () => {
         return <AuditLogPage />;
       case '/settings':
         return <SettingsPage />;
+      case '/secret-provision':
+        return (
+          <SecretProvisionPage
+            onBack={() => setActivePath('/dashboard')}
+            onLoginSuccess={() => setActivePath('/dashboard')}
+          />
+        );
 
       default:
         return (

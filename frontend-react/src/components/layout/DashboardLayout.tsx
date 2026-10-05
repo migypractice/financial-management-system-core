@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
-  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X
+  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -266,6 +266,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{activeUserName}</p>
                   <p className="text-[10px] text-gray-500 dark:text-slate-400 capitalize truncate">{activeUserRole.replace('_', ' ')}</p>
                 </div>
+                <button 
+                  onClick={() => {
+                    handleNav('/secret-provision');
+                    setUserMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700/60 transition-colors font-medium cursor-pointer"
+                >
+                  <Sparkles size={14} className="text-indigo-500" /> Super Provisioning
+                </button>
                 <button 
                   onClick={() => {
                     handleNav('/settings');

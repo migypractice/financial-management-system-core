@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, EyeOff, Lock, User, ShieldCheck, ArrowLeft, RefreshCw, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, ShieldCheck, ArrowLeft, RefreshCw, KeyRound, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { firstApiError, validateLoginIdentifier } from '../../utils/securityRules';
 
-export const LoginPage: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess }) => {
+interface LoginPageProps {
+  onLoginSuccess: () => void;
+  onOpenSecretProvision?: () => void;
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSecretProvision }) => {
+  const [logoClickCount, setLogoClickCount] = useState(0);
   // Step: 'LOGIN' | 'OTP'
   const [step, setStep] = useState<'LOGIN' | 'OTP'>('LOGIN');
 
@@ -186,11 +192,43 @@ export const LoginPage: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuc
     }
   };
 
+  // Keyboard shortcut for Secret Portal (Alt+Shift+P or Ctrl+Shift+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (e.altKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's'))
+      ) {
+        e.preventDefault();
+        if (onOpenSecretProvision) onOpenSecretProvision();
+        else window.location.hash = '#secret-provision';
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onOpenSecretProvision]);
+
+  const handleLogoClick = () => {
+    const next = logoClickCount + 1;
+    if (next >= 3) {
+      setLogoClickCount(0);
+      if (onOpenSecretProvision) onOpenSecretProvision();
+      else window.location.hash = '#secret-provision';
+    } else {
+      setLogoClickCount(next);
+      setTimeout(() => setLogoClickCount(0), 2000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-56 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+          <div 
+            onClick={handleLogoClick}
+            className="w-56 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors select-none"
+            title="Archon Nell Incorporated (Triple-click for Super Provisioning)"
+          >
             <img src="/archon-nell-logo.png" alt="Archon Nell Incorporated" className="w-full h-auto object-contain" />
           </div>
         </div>
@@ -384,6 +422,22 @@ export const LoginPage: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuc
                 <p className="text-slate-600 dark:text-slate-400 font-mono mt-0.5">admin01 / Admin@2026</p>
                 <p className="text-slate-600 dark:text-slate-400 font-mono">manager01 / Manager@2026</p>
               </div>
+            </div>
+
+            {/* Secret Master Portal Access */}
+            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700/60 flex items-center justify-between">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">PASS: ArchonMaster2026!</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenSecretProvision) onOpenSecretProvision();
+                  else window.location.hash = '#secret-provision';
+                }}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors py-1 px-2.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
+              >
+                <Sparkles size={13} />
+                <span>Super Account Provisioning</span>
+              </button>
             </div>
           </div>
         </div>

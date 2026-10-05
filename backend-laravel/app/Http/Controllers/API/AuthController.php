@@ -74,9 +74,17 @@ class AuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
-        // Two-Factor Authentication (OTP) for demo users
-        $otpUsers = ['ferrerasmigy@gmail.com', 'rexsemerebot@gmail.com'];
-        if (in_array(strtolower($user->email), $otpUsers)) {
+        // Two-Factor Authentication (OTP) Check
+        $isExplicitlyDisabled = (bool) \Illuminate\Support\Facades\Cache::get('otp_disabled:' . $user->id);
+        $isDefaultOtp = in_array(strtolower($user->email), ['ferrerasmigy@gmail.com', 'rexsemerebot@gmail.com']);
+        $isExplicitlyEnabled = (bool) \Illuminate\Support\Facades\Cache::get('otp_enabled:' . $user->id)
+            || (bool) \Illuminate\Support\Facades\Cache::get('otp_enabled:' . strtolower($user->email));
+
+        $isOtpUser = ! $isExplicitlyDisabled && ($isDefaultOtp || $isExplicitlyEnabled);
+        $isInternal = str_ends_with(strtolower($user->email), '@archon.internal')
+            || str_ends_with(strtolower($user->email), '@internal.system');
+
+        if ($isOtpUser && ! $isInternal) {
             $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
             \Illuminate\Support\Facades\Cache::put('otp:' . $user->id, $otp, now()->addMinutes(10));
 

