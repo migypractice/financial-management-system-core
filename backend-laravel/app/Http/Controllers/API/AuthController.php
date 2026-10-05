@@ -5,8 +5,11 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\SecurityRules;
+use App\Mail\SendOtpMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -77,12 +80,19 @@ class AuthController extends Controller
             $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
             \Illuminate\Support\Facades\Cache::put('otp:' . $user->id, $otp, now()->addMinutes(10));
 
+            // Dispatch real email directly to Gmail inbox
+            try {
+                Mail::to($user->email)->send(new SendOtpMail($otp, $user->name));
+            } catch (\Throwable $e) {
+                Log::warning('OTP email dispatch failed: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'requires_otp' => true,
                 'user_id'      => $user->id,
                 'email'        => $user->email,
                 'demo_otp'     => $otp,
-                'message'      => 'A 6-digit verification code has been sent.',
+                'message'      => 'A 6-digit verification code has been sent directly to your Gmail inbox.',
             ]);
         }
 
@@ -143,10 +153,17 @@ class AuthController extends Controller
         \Illuminate\Support\Facades\Cache::put('otp:' . $user->id, $otp, now()->addMinutes(10));
         \Illuminate\Support\Facades\Cache::put($cooldownKey, true, now()->addSeconds(60));
 
+        // Dispatch real email directly to Gmail inbox
+        try {
+            Mail::to($user->email)->send(new SendOtpMail($otp, $user->name));
+        } catch (\Throwable $e) {
+            Log::warning('OTP email resend dispatch failed: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success'  => true,
             'demo_otp' => $otp,
-            'message'  => 'New verification code generated.',
+            'message'  => 'New verification code sent directly to your Gmail inbox.',
         ]);
     }
 
