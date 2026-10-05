@@ -51,11 +51,10 @@ export const StatCard: React.FC<StatCardProps> = ({
         <div className="mt-3 flex items-center justify-between text-xs gap-2">
           {change && (
             <span
-              className={`font-semibold px-2 py-0.5 rounded-md text-[11px] shrink-0 ${
-                isPositive
+              className={`font-semibold px-2 py-0.5 rounded-md text-[11px] shrink-0 ${isPositive
                   ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
                   : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50'
-              }`}
+                }`}
             >
               {isPositive ? '↑' : '↓'} {change}
             </span>
