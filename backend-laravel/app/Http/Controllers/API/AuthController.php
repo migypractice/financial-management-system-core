@@ -88,12 +88,8 @@ class AuthController extends Controller
             $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
             \Illuminate\Support\Facades\Cache::put('otp:' . $user->id, $otp, now()->addMinutes(10));
 
-            // Dispatch real email directly to Gmail inbox
-            try {
-                Mail::to($user->email)->send(new SendOtpMail($otp, $user->name));
-            } catch (\Throwable $e) {
-                Log::warning('OTP email dispatch failed: ' . $e->getMessage());
-            }
+            // Dispatch real email to Gmail inbox (non-blocking if unconfigured)
+            $this->dispatchOtpEmail($user->email, $user->name, $otp);
 
             return response()->json([
                 'requires_otp' => true,
@@ -161,12 +157,8 @@ class AuthController extends Controller
         \Illuminate\Support\Facades\Cache::put('otp:' . $user->id, $otp, now()->addMinutes(10));
         \Illuminate\Support\Facades\Cache::put($cooldownKey, true, now()->addSeconds(60));
 
-        // Dispatch real email directly to Gmail inbox
-        try {
-            Mail::to($user->email)->send(new SendOtpMail($otp, $user->name));
-        } catch (\Throwable $e) {
-            Log::warning('OTP email resend dispatch failed: ' . $e->getMessage());
-        }
+        // Dispatch real email to Gmail inbox (non-blocking if unconfigured)
+        $this->dispatchOtpEmail($user->email, $user->name, $otp);
 
         return response()->json([
             'success'  => true,
@@ -250,5 +242,26 @@ class AuthController extends Controller
             'department_viewer' => ['view_transactions'],
             default => [],
         };
+    }
+
+    /**
+     * Dispatch OTP email without blocking or hanging when SMTP is unconfigured.
+     */
+    private function dispatchOtpEmail(string $recipientEmail, string $recipientName, string $otp): void
+    {
+        $smtpUser = config('mail.mailers.smtp.username');
+        $smtpPass = config('mail.mailers.smtp.password');
+
+        // If credentials are not yet configured in environment variables, skip network attempt
+        if (empty($smtpUser) || empty($smtpPass)) {
+            Log::info("SMTP credentials not configured on server. Demo OTP generated: {$otp} for {$recipientEmail}");
+            return;
+        }
+
+        try {
+            Mail::to($recipientEmail)->send(new SendOtpMail($otp, $recipientName));
+        } catch (\Throwable $e) {
+            Log::warning('OTP email dispatch failed: ' . $e->getMessage());
+        }
     }
 }
