@@ -157,11 +157,30 @@ Ipakita ang operational accounting modules:
 
 
 ================================================================================
+📍 9. HAKBANG 8: AUDIT TRAIL (SECURITY, USER ACTORS, AT IP TRACKING)
+================================================================================
+1. Pumunta sa sidebar -> Audit Trail.
+2. Forensic & Compliance Data Table:
+   - DATE & TIME: Eksaktong timestamp kung kailan pinroseso ang transaksyon.
+   - USER / ACTOR: Kung sino ang nagpasok ng transaksyon (e.g. System Admin,
+     E-Commerce Gateway, HR Staff, Supply Chain Agent).
+   - IP ADDRESS: Pinagmulang IP address ng kliyente/subsystem (e.g. 192.168.1.45,
+     124.106.12.8) para sa security verification.
+   - TRANSACTION / EVENT: Transaction code, module type, at operational description.
+   - AI AUDIT DECISION: Katayuan ng AI check (PASSED o FLAGGED) kasama ang anomaly score.
+3. Walang Monetary Amounts:
+   - Ang Audit Trail ay sadyang nakatuon sa SECURITY, AUDITING, at ACCOUNTABILITY
+     alinsunod sa standard internal controls (walang money/amount columns upang
+     pumukaw sa forensic logging).
+
+
+================================================================================
 🎯 SUMMARY STATEMENT PARA SA ENDING NG DEFENSE:
 ================================================================================
 "Sa kabuuan po, ang aming Financial Management System ay hindi lamang isang simpleng
 CRUD application. Ito ay isang kumpletong ERP-grade Transaction Core kung saan
 naka-integrate ang Machine-to-Machine external ingestion, AI-driven risk evaluation,
-Maker-Checker governance, automated subledgers, at real-time balanced double-entry
-bookkeeping na nakakapag-produce ng live Financial Reports."
+Maker-Checker governance, automated subledgers, forensic audit trail with IP/User tracking,
+at real-time balanced double-entry bookkeeping na nakakapag-produce ng live Financial Reports."
 ================================================================================
+
