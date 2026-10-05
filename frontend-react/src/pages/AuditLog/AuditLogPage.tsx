@@ -12,9 +12,11 @@ interface AuditLogEntry {
   transaction_code: string;
   source_module: string;
   type: 'INCOME' | 'EXPENSE';
-  amount: number;
+  amount?: number;
   transaction_status: string;
   description: string;
+  user?: string;
+  ip_address?: string;
 }
 
 interface AuditSummary {
@@ -95,14 +97,11 @@ export const AuditLogPage: React.FC = () => {
 
   const SkeletonRow = () => (
     <tr className="animate-pulse">
-      <td className="px-4 py-3"><div className="h-3 w-28 bg-slate-100 rounded" /></td>
-      <td className="px-4 py-3 space-y-1.5">
-        <div className="h-3 w-28 bg-slate-100 rounded" />
-        <div className="h-3 w-20 bg-slate-50 rounded" />
-      </td>
-      <td className="px-4 py-3"><div className="h-4 w-56 bg-slate-100 rounded" /></td>
-      <td className="px-4 py-3"><div className="h-4 w-20 bg-slate-100 rounded ml-auto" /></td>
-      <td className="px-4 py-3"><div className="h-5 w-16 bg-slate-100 rounded mx-auto" /></td>
+      <td className="px-4 py-3"><div className="h-3 w-28 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+      <td className="px-4 py-3"><div className="h-3 w-32 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+      <td className="px-4 py-3"><div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+      <td className="px-4 py-3"><div className="h-4 w-56 bg-slate-200 dark:bg-slate-700 rounded" /></td>
+      <td className="px-4 py-3"><div className="h-5 w-20 bg-slate-200 dark:bg-slate-700 rounded mx-auto" /></td>
     </tr>
   );
 
@@ -174,11 +173,11 @@ export const AuditLogPage: React.FC = () => {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-gray-200 dark:border-slate-600">
                   <tr>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider w-40">Evaluated At</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider w-44">Transaction / Module</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider">Description &amp; Reason</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider text-right w-32">Amount</th>
-                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider text-center w-28">AI Decision</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider w-40">Date &amp; Time</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider w-48">User / Actor</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider w-36">IP Address</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider">Transaction / Event</th>
+                    <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wider text-center w-36">AI Decision</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -205,43 +204,57 @@ export const AuditLogPage: React.FC = () => {
                     logs.map((log) => (
                       <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
                         <td className="px-4 py-3 align-top">
-                          <p className="text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap">{formatDateTime(log.created_at)}</p>
+                          <p className="text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap text-xs sm:text-sm">{formatDateTime(log.created_at)}</p>
                         </td>
-                        <td className="px-4 py-3 align-top space-y-1">
-                          <p className="font-mono text-xs font-bold text-indigo-700">{log.transaction_code}</p>
-                          <p className="text-[10px] text-slate-500 uppercase tracking-wide">{log.source_module.replace('_', ' ')}</p>
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center font-bold text-[11px] shrink-0">
+                              {(log.user || 'SYS').substring(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{log.user || 'System Integration'}</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide truncate">{log.source_module?.replace('_', ' ')}</p>
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-4 py-3 align-top max-w-md">
-                          <p className="text-slate-800 dark:text-slate-200 text-sm mb-0.5 leading-snug">{log.description}</p>
-                          {log.flag_reason && (
-                            <p className="text-xs text-red-600 font-medium leading-snug pt-0.5">{log.flag_reason}</p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 align-top text-right">
-                          <span className="font-mono text-slate-900 dark:text-slate-100 whitespace-nowrap block">{formatCurrency(log.amount)}</span>
-                          <span className={`inline-block mt-1.5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full border ${
-                            {
-                              ai_flagged: 'bg-red-50 text-red-700 border-red-200',
-                              pending_approval: 'bg-amber-50 text-amber-700 border-amber-200',
-                              approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                              rejected: 'bg-slate-100 text-slate-600 border-slate-300',
-                              posted: 'bg-blue-50 text-blue-700 border-blue-200',
-                            }[log.transaction_status] || 'bg-gray-50 text-gray-600 border-gray-200'
-                          }`}>
-                            {{
-                              ai_flagged: 'AI Flagged',
-                              pending_approval: 'Pending Approval',
-                              approved: 'Approved',
-                              rejected: 'Rejected',
-                              posted: 'Posted',
-                            }[log.transaction_status] || log.transaction_status.replace('_', ' ')}
+                        <td className="px-4 py-3 align-top">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-md font-mono text-xs text-slate-700 dark:text-slate-300">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            {log.ip_address || '192.168.1.1'}
                           </span>
                         </td>
+                        <td className="px-4 py-3 align-top max-w-md">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{log.transaction_code}</span>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-600">{log.type}</span>
+                            <span className={`px-2 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded-full border ${
+                              {
+                                ai_flagged: 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+                                pending_approval: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+                                approved: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+                                rejected: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600',
+                                posted: 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+                              }[log.transaction_status] || 'bg-gray-50 text-gray-600 border-gray-200'
+                            }`}>
+                              {{
+                                ai_flagged: 'AI Flagged',
+                                pending_approval: 'Pending Approval',
+                                approved: 'Approved',
+                                rejected: 'Rejected',
+                                posted: 'Posted',
+                              }[log.transaction_status] || log.transaction_status.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <p className="text-slate-800 dark:text-slate-200 text-xs leading-snug">{log.description}</p>
+                          {log.flag_reason && (
+                            <p className="text-[11px] text-rose-600 dark:text-rose-400 font-medium leading-snug pt-0.5">{log.flag_reason}</p>
+                          )}
+                        </td>
                         <td className="px-4 py-3 align-top text-center">
-                          <span className={`inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded-full border uppercase tracking-wider ${
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full border uppercase tracking-wider ${
                             log.ai_decision === 'FLAGGED'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/60'
+                              : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
                           }`}>
                             {log.ai_decision} ({Math.round(Number(log.anomaly_score))}%)
                           </span>
