@@ -53,6 +53,30 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // Demo User 1 with 2FA / OTP: ferrerasmigy@gmail.com
+        if ($superAdminRole && !\App\Models\User::where('email', 'ferrerasmigy@gmail.com')->exists()) {
+            \App\Models\User::create([
+                'name' => 'Migy Ferreras',
+                'username' => 'ferrerasmigy',
+                'email' => 'ferrerasmigy@gmail.com',
+                'password' => \Illuminate\Support\Facades\Hash::make('Admintesting123'),
+                'role_id' => $superAdminRole->id,
+                'department' => 'Executive',
+            ]);
+        }
+
+        // Demo User 2 with 2FA / OTP: rexsemerebot@gmail.com
+        if ($financeManagerRole && !\App\Models\User::where('email', 'rexsemerebot@gmail.com')->exists()) {
+            \App\Models\User::create([
+                'name' => 'Rex Semerebot',
+                'username' => 'rexsemerebot',
+                'email' => 'rexsemerebot@gmail.com',
+                'password' => \Illuminate\Support\Facades\Hash::make('Admintesting123'),
+                'role_id' => $financeManagerRole->id,
+                'department' => 'Finance',
+            ]);
+        }
+
         // System integration user — used as created_by for M2M ingestion (Maker-Checker).
         // Deliberately NOT super_admin: this account is only ever used for attribution
         // (never logged into), and must carry zero approval/checker privileges so it

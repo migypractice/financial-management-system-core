@@ -71,12 +71,82 @@ class AuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
+        // Two-Factor Authentication (OTP) for demo users
+        $otpUsers = ['ferrerasmigy@gmail.com', 'rexsemerebot@gmail.com'];
+        if (in_array(strtolower($user->email), $otpUsers)) {
+            $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+            \Illuminate\Support\Facades\Cache::put('otp:' . $user->id, $otp, now()->addMinutes(10));
+
+            return response()->json([
+                'requires_otp' => true,
+                'user_id'      => $user->id,
+                'email'        => $user->email,
+                'demo_otp'     => $otp,
+                'message'      => 'A 6-digit verification code has been sent.',
+            ]);
+        }
+
         $expiresIn = (int) config('sanctum.expiration');
 
         return response()->json([
             'token'      => $user->createToken('react-dashboard')->plainTextToken,
             'expires_in' => $expiresIn, // minutes
             'user'       => $this->userPayload($user),
+        ]);
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'user_id'  => 'required|uuid',
+            'otp_code' => 'required|string|size:6',
+        ]);
+
+        $cachedOtp = \Illuminate\Support\Facades\Cache::get('otp:' . $request->user_id);
+
+        if (! $cachedOtp || $cachedOtp !== trim($request->otp_code)) {
+            return response()->json([
+                'message' => 'Invalid or expired verification code. Please try again.',
+            ], 422);
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('otp:' . $request->user_id);
+
+        $user = User::with('role')->findOrFail($request->user_id);
+
+        $expiresIn = (int) config('sanctum.expiration');
+
+        return response()->json([
+            'token'      => $user->createToken('react-dashboard')->plainTextToken,
+            'expires_in' => $expiresIn,
+            'user'       => $this->userPayload($user),
+            'message'    => 'Verification successful.',
+        ]);
+    }
+
+    public function resendOtp(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|uuid',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+        $cooldownKey = 'otp_resend:' . $user->id;
+
+        if (\Illuminate\Support\Facades\Cache::has($cooldownKey)) {
+            return response()->json([
+                'message' => 'Please wait 60 seconds before requesting a new code.',
+            ], 429);
+        }
+
+        $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+        \Illuminate\Support\Facades\Cache::put('otp:' . $user->id, $otp, now()->addMinutes(10));
+        \Illuminate\Support\Facades\Cache::put($cooldownKey, true, now()->addSeconds(60));
+
+        return response()->json([
+            'success'  => true,
+            'demo_otp' => $otp,
+            'message'  => 'New verification code generated.',
         ]);
     }
 

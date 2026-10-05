@@ -10,10 +10,12 @@ LIVE APPLICATION LINKS:
 
 DEFAULT DEMO USER ACCOUNTS:
 --------------------------------------------------------------------------------
-ROLE                 USERNAME    PASSWORD       ACCESS LEVEL
-Super Admin          admin01     Admin@2026     Full system control, User Management, Settings
-Finance Manager      manager01   Manager@2026   Checker: Approvals, Subledgers, Disburse
-Department Staff     staff01     Staff@2026     Maker: Payment Request Submissions, Ingestion
+ROLE                 USERNAME / EMAIL              PASSWORD         ACCESS / TYPE
+Super Admin (2FA)    ferrerasmigy@gmail.com        Admintesting123  🔐 OTP Demo Account (Super Admin)
+Finance Manager (2FA) rexsemerebot@gmail.com        Admintesting123  🔐 OTP Demo Account (Checker)
+Super Admin          admin01                       Admin@2026       Direct Login (No OTP)
+Finance Manager      manager01                     Manager@2026     Checker: Approvals, Disburse
+Department Staff     staff01                       Staff@2026       Maker: Payment Requests
 --------------------------------------------------------------------------------
 
 
@@ -39,14 +41,20 @@ Ito ay mahigpit na sumusunod sa:
 ================================================================================
 1. Buksan ang link: https://financial-management-system-core.vercel.app
 2. Mag-login gamit ang role na idedemo:
-   - Super Admin:       admin01   / Admin@2026
-   - Finance Manager:   manager01 / Manager@2026
-   - Staff:             staff01   / Staff@2026
+   - OPTION A: 2FA / OTP Demonstration (Enhanced Security)
+     * Email:    ferrerasmigy@gmail.com (Super Admin) o rexsemerebot@gmail.com (Checker)
+     * Password: Admintesting123
+     * Pagkapindot ng Sign in, lilipat sa "Two-Factor Authentication (OTP)" screen.
+     * Mag-e-enter ng 6-digit verification code. May "Auto-Fill" button para sa demo.
+     * May "Resend Code in 60s" countdown timer para maiwasan ang spam.
+   - OPTION B: Direct Standard Login (No OTP)
+     * Super Admin:       admin01   / Admin@2026
+     * Finance Manager:   manager01 / Manager@2026
+     * Staff:             staff01   / Staff@2026
 
 DEFENSE SECURITY HIGHLIGHT:
-- Sabihin sa panel na may Brute-Force Rate Limiting ang login: Kapag 5 beses
-  nagkamali ng password o MPIN, awtomatikong magla-lock out ang account nang 60 seconds
-  upang maprotektahan laban sa credential stuffing attacks.
+- Sabihin sa panel na may Two-Factor Authentication (OTP/2FA) para sa mga kritikal
+  na financial administrators, bukod pa sa Brute-Force Rate Limiting (5 failed attempts lockout).
 
 
 ================================================================================

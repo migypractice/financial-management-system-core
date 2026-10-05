@@ -23,6 +23,8 @@ Route::prefix('v1/integration')->middleware('api.key')->group(function () {
 
 Route::prefix('v1/auth')->group(function () {
     Route::post('/login', [\App\Http\Controllers\API\AuthController::class, 'login']);
+    Route::post('/verify-otp', [\App\Http\Controllers\API\AuthController::class, 'verifyOtp']);
+    Route::post('/resend-otp', [\App\Http\Controllers\API\AuthController::class, 'resendOtp']);
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [\App\Http\Controllers\API\AuthController::class, 'me']);
         Route::post('/logout', [\App\Http\Controllers\API\AuthController::class, 'logout']);
