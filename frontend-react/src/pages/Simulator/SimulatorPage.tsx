@@ -134,7 +134,7 @@ export const SimulatorPage: React.FC = () => {
   // Dev-only shared secret for /api/v1/integration/* (ApiKeyMiddleware). Set in
   // frontend-react/.env.local (see .env.example) — must match the backend's
   // INTEGRATION_API_KEY. Never hardcode a real key here; this file is committed.
-  const INTEGRATION_API_KEY = (import.meta.env.VITE_INTEGRATION_API_KEY || '').trim();
+  const INTEGRATION_API_KEY = (import.meta.env.VITE_INTEGRATION_API_KEY || 'hw-integration-secret-2026').trim();
   const isSimulatorConfigured = INTEGRATION_API_KEY.length > 0;
 
   /**

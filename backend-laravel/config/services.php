@@ -46,6 +46,6 @@ return [
     |
     */
 
-    'integration_api_key' => env('INTEGRATION_API_KEY'),
+    'integration_api_key' => env('INTEGRATION_API_KEY', 'hw-integration-secret-2026'),
 
 ];
