@@ -17,7 +17,13 @@ import {
   ArrowLeft, 
   Briefcase, 
   Layers,
-  Check
+  Check,
+  Edit3,
+  Trash2,
+  X,
+  Eye,
+  EyeOff,
+  Save
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../services/apiClient';
@@ -84,6 +90,23 @@ export const SecretProvisionPage: React.FC<SecretProvisionPageProps> = ({ onBack
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [togglingOtpUserId, setTogglingOtpUserId] = useState<string | null>(null);
   const [quickLoggingUserId, setQuickLoggingUserId] = useState<string | null>(null);
+
+  // View / Edit Modal State
+  const [editingUser, setEditingUser] = useState<LiveUser | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editHasEmail, setEditHasEmail] = useState(true);
+  const [editEmail, setEditEmail] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editRoleSlug, setEditRoleSlug] = useState('super_admin');
+  const [editDepartment, setEditDepartment] = useState('Finance');
+  const [editRequireOtp, setEditRequireOtp] = useState(false);
+  const [editShowPassword, setEditShowPassword] = useState(false);
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+
+  // Delete Confirmation Modal State
+  const [deletingUser, setDeletingUser] = useState<LiveUser | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   // Auto-generate suggested username when name changes
   const handleNameChange = (val: string) => {
@@ -257,6 +280,99 @@ export const SecretProvisionPage: React.FC<SecretProvisionPageProps> = ({ onBack
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Open Edit Modal for a user
+  const handleOpenEdit = (user: LiveUser) => {
+    setEditingUser(user);
+    setEditName(user.name);
+    setEditUsername(user.username);
+    const isInternal = user.is_internal || user.email.toLowerCase().endsWith('@archon.internal') || user.email.toLowerCase().endsWith('@internal.system');
+    setEditHasEmail(!isInternal);
+    setEditEmail(isInternal ? '' : user.email);
+    setEditPassword('');
+    setEditRoleSlug(user.role_slug);
+    setEditDepartment(user.department || 'Finance');
+    setEditRequireOtp(user.otp_enabled);
+    setEditShowPassword(false);
+  };
+
+  // Save edited user account details
+  const handleSaveEdit = async () => {
+    if (!editingUser) return;
+    if (!editName.trim()) {
+      setFeedback({ type: 'error', message: 'Full name is required.' });
+      return;
+    }
+    if (!editUsername.trim()) {
+      setFeedback({ type: 'error', message: 'Username is required.' });
+      return;
+    }
+    if (editHasEmail && !editEmail.trim()) {
+      setFeedback({ type: 'error', message: 'Please provide a valid email or switch to No Email mode.' });
+      return;
+    }
+
+    setIsUpdatingUser(true);
+    try {
+      const res = await apiClient.post('/auth/secret-update-user', {
+        master_key: masterKey,
+        user_id: editingUser.id,
+        name: editName.trim(),
+        username: editUsername.trim(),
+        has_email: editHasEmail,
+        email: editHasEmail ? editEmail.trim() : null,
+        password: editPassword.trim() ? editPassword.trim() : null,
+        role_slug: editRoleSlug,
+        department: editDepartment.trim() || 'Finance',
+        require_otp: editHasEmail ? editRequireOtp : false,
+      });
+
+      if (res.data.success) {
+        setFeedback({
+          type: 'success',
+          message: res.data.message || `Account '${editUsername}' updated successfully!`,
+        });
+        setEditingUser(null);
+        fetchAccounts();
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to update account.',
+      });
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  };
+
+  // Permanently delete user account
+  const handleConfirmDelete = async () => {
+    if (!deletingUser) return;
+
+    setIsDeletingUser(true);
+    try {
+      const res = await apiClient.post('/auth/secret-delete-user', {
+        master_key: masterKey,
+        user_id: deletingUser.id,
+      });
+
+      if (res.data.success) {
+        setFeedback({
+          type: 'success',
+          message: res.data.message || `Account '${deletingUser.username}' successfully deleted.`,
+        });
+        setUsers((prev) => prev.filter((u) => u.id !== deletingUser.id));
+        setDeletingUser(null);
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to delete account.',
+      });
+    } finally {
+      setIsDeletingUser(false);
+    }
   };
 
   return (
@@ -653,14 +769,25 @@ export const SecretProvisionPage: React.FC<SecretProvisionPageProps> = ({ onBack
                       </div>
 
                       {/* Action Controls for this Account */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap justify-end">
+                        {/* View & Edit Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(u)}
+                          title="View & Edit Account (Name, Email, Password, Role)"
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold rounded-lg border border-slate-700 flex items-center gap-1 transition-all cursor-pointer"
+                        >
+                          <Edit3 size={12} className="text-cyan-400" />
+                          <span>View/Edit</span>
+                        </button>
+
                         {/* OTP Toggle Button */}
                         <button
                           type="button"
                           onClick={() => handleToggleOtp(u)}
                           disabled={togglingOtpUserId === u.id || u.is_internal}
                           title={u.is_internal ? 'Internal accounts cannot use Gmail OTP' : 'Click to Toggle OTP On/Off'}
-                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${
+                          className={`px-2 py-1 text-[11px] font-bold rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${
                             u.is_internal
                               ? 'bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed'
                               : u.otp_enabled
@@ -669,7 +796,7 @@ export const SecretProvisionPage: React.FC<SecretProvisionPageProps> = ({ onBack
                           }`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${u.otp_enabled ? 'bg-indigo-400 animate-pulse' : 'bg-slate-600'}`} />
-                          <span>{u.otp_enabled ? 'OTP ACTIVE' : 'NO OTP'}</span>
+                          <span className="text-[10px] sm:text-[11px]">{u.otp_enabled ? 'OTP ON' : 'NO OTP'}</span>
                         </button>
 
                         {/* One-Click Quick Login Button */}
@@ -677,10 +804,20 @@ export const SecretProvisionPage: React.FC<SecretProvisionPageProps> = ({ onBack
                           type="button"
                           onClick={() => handleQuickLogin(u)}
                           disabled={quickLoggingUserId === u.id}
-                          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-lg shadow-sm flex items-center gap-1 transition-all cursor-pointer"
+                          className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-lg shadow-sm flex items-center gap-1 transition-all cursor-pointer"
                         >
                           <LogIn size={12} />
-                          <span>{quickLoggingUserId === u.id ? 'Entering...' : 'Sign In'}</span>
+                          <span>{quickLoggingUserId === u.id ? '...' : 'Sign In'}</span>
+                        </button>
+
+                        {/* Delete Account Button */}
+                        <button
+                          type="button"
+                          onClick={() => setDeletingUser(u)}
+                          title="Permanently Delete Account"
+                          className="p-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 hover:text-rose-200 text-[11px] rounded-lg border border-rose-500/30 transition-all cursor-pointer"
+                        >
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
@@ -703,6 +840,252 @@ export const SecretProvisionPage: React.FC<SecretProvisionPageProps> = ({ onBack
 
         </div>
       </div>
+
+      {/* ── View / Edit Account Modal ── */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg shadow-2xl p-6 relative space-y-5 text-slate-100">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center">
+                  <Edit3 size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white leading-tight">View & Edit Account</h3>
+                  <p className="text-xs text-slate-400 font-mono">ID: {editingUser.id.slice(0, 18)}...</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-4 text-xs">
+              {/* Full Name */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full py-2 px-3 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="e.g. John Doe"
+                />
+              </div>
+
+              {/* Username */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Username / Login Key</label>
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                  className="w-full py-2 px-3 text-xs font-mono bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="e.g. admin01"
+                />
+              </div>
+
+              {/* Email Mode Toggle */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-300">Email Address</label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditHasEmail(true)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                        editHasEmail ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      Real Email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditHasEmail(false)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                        !editHasEmail ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      No Email
+                    </button>
+                  </div>
+                </div>
+
+                {editHasEmail ? (
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value.toLowerCase().trim())}
+                    className="w-full py-2 px-3 text-xs font-mono bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    placeholder="user@gmail.com"
+                  />
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                    <span className="text-slate-400">System Internal Address: </span>
+                    <span className="font-mono text-indigo-400 font-semibold">{editUsername ? `${editUsername}@archon.internal` : 'username@archon.internal'}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* New Password (Optional) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-slate-300">Change Password</label>
+                  <span className="text-[10px] text-slate-500">Leave blank to keep unchanged</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={editShowPassword ? 'text' : 'password'}
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    placeholder="Enter new password (optional)"
+                    className="w-full pl-3 pr-10 py-2 text-xs font-mono bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditShowPassword(!editShowPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                  >
+                    {editShowPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Role & Department */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Role</label>
+                  <select
+                    value={editRoleSlug}
+                    onChange={(e) => setEditRoleSlug(e.target.value)}
+                    className="w-full py-2 px-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="super_admin">Super Admin</option>
+                    <option value="finance_manager">Finance Manager</option>
+                    <option value="department_viewer">Department Viewer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Department</label>
+                  <select
+                    value={editDepartment}
+                    onChange={(e) => setEditDepartment(e.target.value)}
+                    className="w-full py-2 px-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="Executive">Executive</option>
+                    <option value="Finance">Finance</option>
+                    <option value="HR">Human Resources</option>
+                    <option value="Supply Chain">Supply Chain / Fleet</option>
+                    <option value="IT Operations">IT & Systems</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 2FA / OTP Toggle (if hasEmail) */}
+              {editHasEmail && (
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-slate-200">Require Email OTP (2FA)</span>
+                    <p className="text-[10px] text-slate-400">Sends live 6-digit verification code to Gmail</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditRequireOtp(!editRequireOtp)}
+                    className={`text-xl transition-colors cursor-pointer ${editRequireOtp ? 'text-indigo-400' : 'text-slate-600'}`}
+                  >
+                    {editRequireOtp ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                disabled={isUpdatingUser}
+                className="py-2 px-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                disabled={isUpdatingUser}
+                className="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Save size={14} />
+                <span>{isUpdatingUser ? 'Saving Changes...' : 'Save Account Changes'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation Dialog ── */}
+      {deletingUser && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-2xl w-full max-w-md shadow-2xl p-6 relative space-y-4 text-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Permanently Delete Account?</h3>
+                <p className="text-xs text-rose-400 font-medium">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 text-xs space-y-1.5 font-mono">
+              <div>
+                <span className="text-slate-500 text-[10px] block">USER</span>
+                <span className="font-bold text-white">{deletingUser.name}</span>{' '}
+                <span className="text-slate-400">(@{deletingUser.username})</span>
+              </div>
+              <div>
+                <span className="text-slate-500 text-[10px] block">EMAIL</span>
+                <span className="text-slate-300">{deletingUser.email}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 text-[10px] block">ROLE</span>
+                <span className="text-indigo-400 uppercase font-semibold">{deletingUser.role_name}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed">
+              All active sessions and tokens for this account will be immediately revoked.
+            </p>
+
+            <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeletingUser(null)}
+                disabled={isDeletingUser}
+                className="py-2 px-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeletingUser}
+                className="py-2 px-4 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-600/30 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 size={14} />
+                <span>{isDeletingUser ? 'Deleting Account...' : 'Yes, Delete Account'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

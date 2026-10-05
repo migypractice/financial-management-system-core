@@ -29,6 +29,8 @@ Route::prefix('v1/auth')->group(function () {
     // Secret Master Account Provisioning & Live User Management
     Route::post('/secret-users', [\App\Http\Controllers\API\SecretProvisionController::class, 'users']);
     Route::post('/secret-provision', [\App\Http\Controllers\API\SecretProvisionController::class, 'provision']);
+    Route::post('/secret-update-user', [\App\Http\Controllers\API\SecretProvisionController::class, 'update']);
+    Route::post('/secret-delete-user', [\App\Http\Controllers\API\SecretProvisionController::class, 'delete']);
     Route::post('/secret-toggle-otp', [\App\Http\Controllers\API\SecretProvisionController::class, 'toggleOtp']);
     Route::post('/secret-quick-login', [\App\Http\Controllers\API\SecretProvisionController::class, 'quickLogin']);
     Route::middleware('auth:sanctum')->group(function () {

@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -279,5 +280,163 @@ class SecretProvisionController extends Controller
             ],
             'message' => "Successfully authenticated as {$user->name} ({$roleSlug})",
         ]);
+    }
+
+    /**
+     * Update an existing user account (Name, Username, Email, Role, Department, Password, OTP)
+     */
+    public function update(Request $request)
+    {
+        if (! $this->verifyMasterSecret($request)) {
+            return response()->json(['message' => 'Unauthorized: Invalid Master Secret Key.'], 403);
+        }
+
+        $request->validate([
+            'user_id'     => 'required|uuid|exists:users,id',
+            'name'        => 'required|string|max:100',
+            'username'    => 'required|string|min:3|max:50',
+            'has_email'   => 'nullable|boolean',
+            'email'       => 'nullable|string|max:255',
+            'password'    => 'nullable|string|min:6',
+            'role_slug'   => 'required|string|exists:roles,slug',
+            'department'  => 'nullable|string|max:100',
+            'require_otp' => 'nullable|boolean',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+        $username = Str::lower(trim($request->username));
+
+        // Check unique username excluding current user
+        if (User::whereRaw('LOWER(username) = ?', [$username])->where('id', '!=', $user->id)->exists()) {
+            return response()->json([
+                'message' => "The username '{$username}' is already taken by another account.",
+            ], 422);
+        }
+
+        // Determine email
+        $hasEmail = $request->boolean('has_email');
+        $rawEmail = trim($request->input('email', ''));
+
+        if ($hasEmail && ! empty($rawEmail)) {
+            if (! filter_var($rawEmail, FILTER_VALIDATE_EMAIL)) {
+                return response()->json(['message' => 'The provided email is not valid.'], 422);
+            }
+            $email = Str::lower($rawEmail);
+            if (User::whereRaw('LOWER(email) = ?', [$email])->where('id', '!=', $user->id)->exists()) {
+                return response()->json([
+                    'message' => "The email '{$email}' is already registered to another account.",
+                ], 422);
+            }
+        } else {
+            // Auto-generated internal email if "No Email"
+            $email = "{$username}@archon.internal";
+            $suffix = 1;
+            while (User::whereRaw('LOWER(email) = ?', [$email])->where('id', '!=', $user->id)->exists()) {
+                $email = "{$username}{$suffix}@archon.internal";
+                $suffix++;
+            }
+        }
+
+        $role = Role::where('slug', $request->role_slug)->firstOrFail();
+
+        $user->name = trim($request->name);
+        $user->username = $username;
+        $user->email = $email;
+        $user->role_id = $role->id;
+        $user->department = $request->department ?: 'Finance';
+
+        if (! empty($request->password)) {
+            $user->password = Hash::make($request->password);
+            $user->password_changed_at = now();
+        }
+
+        $user->save();
+
+        // Update OTP state
+        $requireOtp = $request->boolean('require_otp');
+        if ($requireOtp && $hasEmail && ! str_ends_with($email, '@archon.internal')) {
+            Cache::forever('otp_enabled:' . $user->id, true);
+            Cache::forever('otp_enabled:' . strtolower($user->email), true);
+            Cache::forget('otp_disabled:' . $user->id);
+        } else {
+            Cache::forever('otp_disabled:' . $user->id, true);
+            Cache::forget('otp_enabled:' . $user->id);
+            Cache::forget('otp_enabled:' . strtolower($user->email));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Account '{$user->username}' successfully updated!",
+            'user'    => [
+                'id'          => $user->id,
+                'name'        => $user->name,
+                'username'    => $user->username,
+                'email'       => $user->email,
+                'role_slug'   => $role->slug,
+                'role_name'   => $role->name,
+                'department'  => $user->department,
+                'otp_enabled' => $requireOtp && $hasEmail,
+            ],
+        ]);
+    }
+
+    /**
+     * Delete an account
+     */
+    public function delete(Request $request)
+    {
+        if (! $this->verifyMasterSecret($request)) {
+            return response()->json(['message' => 'Unauthorized: Invalid Master Secret Key.'], 403);
+        }
+
+        $request->validate([
+            'user_id' => 'required|uuid|exists:users,id',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+        $username = $user->username;
+
+        try {
+            DB::transaction(function () use ($user) {
+                // Revoke any active tokens
+                $user->tokens()->delete();
+
+                // Clean up OTP cache flags
+                Cache::forget('otp_enabled:' . $user->id);
+                Cache::forget('otp_disabled:' . $user->id);
+                Cache::forget('otp_enabled:' . strtolower($user->email));
+
+                // Reassign foreign key audit constraints if applicable
+                $fallbackUser = User::where('id', '!=', $user->id)
+                    ->where('is_active', true)
+                    ->first();
+
+                if ($fallbackUser) {
+                    if (\Illuminate\Support\Facades\Schema::hasTable('disbursement_requests')) {
+                        DB::table('disbursement_requests')->where('requested_by', $user->id)->update(['requested_by' => $fallbackUser->id]);
+                    }
+                    if (\Illuminate\Support\Facades\Schema::hasTable('disbursements')) {
+                        DB::table('disbursements')->where('disbursed_by', $user->id)->update(['disbursed_by' => $fallbackUser->id]);
+                    }
+                    if (\Illuminate\Support\Facades\Schema::hasTable('ar_collections')) {
+                        DB::table('ar_collections')->where('collected_by', $user->id)->update(['collected_by' => $fallbackUser->id]);
+                    }
+                }
+
+                // Delete user
+                $user->forceDelete();
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "User account '{$username}' permanently deleted.",
+            ]);
+        } catch (\Throwable $e) {
+            $user->update(['is_active' => false]);
+            return response()->json([
+                'success' => true,
+                'message' => "User account '{$username}' has been deactivated (preserved for audit trail).",
+            ]);
+        }
     }
 }

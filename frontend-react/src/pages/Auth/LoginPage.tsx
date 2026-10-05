@@ -222,7 +222,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSecr
           <div 
             onClick={handleLogoClick}
             className="w-56 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors select-none"
-            title="Archon Nell Incorporated (Triple-click for Super Provisioning)"
+            title="Archon Nell Incorporated"
           >
             <img src="/archon-nell-logo.png" alt="Archon Nell Incorporated" className="w-full h-auto object-contain" />
           </div>
@@ -399,40 +399,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSecr
             </form>
           )}
 
-          {/* ── Test Accounts Reference ── */}
-          <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700">
-            <h4 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">
-              Available Test Accounts
-            </h4>
-            <div className="space-y-2 text-xs">
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60">
-                <span className="font-bold text-indigo-600 dark:text-indigo-400">🔐 OTP Enabled (2FA Demo):</span>
-                <p className="text-slate-700 dark:text-slate-300 font-mono mt-0.5">ferrerasmigy@gmail.com / Admintesting123</p>
-                <p className="text-slate-700 dark:text-slate-300 font-mono">rexsemerebot@gmail.com / Admintesting123</p>
-              </div>
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60">
-                <span className="font-semibold text-slate-600 dark:text-slate-400">Direct Login (No OTP):</span>
-                <p className="text-slate-600 dark:text-slate-400 font-mono mt-0.5">admin01 / Admin@2026</p>
-                <p className="text-slate-600 dark:text-slate-400 font-mono">manager01 / Manager@2026</p>
-              </div>
-            </div>
-
-            {/* Secret Master Portal Access */}
-            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700/60 flex items-center justify-between">
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">PASS: ArchonMaster2026!</span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenSecretProvision) onOpenSecretProvision();
-                  else window.location.hash = '#secret-provision';
-                }}
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors py-1 px-2.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer"
-              >
-                <Sparkles size={13} />
-                <span>Super Account Provisioning</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
