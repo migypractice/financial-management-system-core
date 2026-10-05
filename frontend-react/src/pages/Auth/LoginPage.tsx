@@ -258,7 +258,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onOpenSecr
                     onChange={(e) => { setIdentifier(e.target.value); setFieldError(null); }}
                     onBlur={() => identifier && setFieldError(validateLoginIdentifier(identifier))}
                     className={`appearance-none block w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-900 border rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm ${fieldError ? 'border-red-400' : 'border-slate-300 dark:border-slate-700'}`}
-                    placeholder="admin@hw.com or ferrerasmigy@gmail.com"
+                    placeholder="admin@hw.com"
                   />
                 </div>
                 {fieldError && <p className="mt-1 text-xs text-red-600">{fieldError}</p>}
