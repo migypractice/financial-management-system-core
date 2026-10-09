@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Budget;
+use App\Models\BudgetAllocation;
 use App\Models\ChartOfAccount;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
@@ -136,8 +137,9 @@ class OpeningBalanceSeeder extends Seeder
             ],
         ];
 
+        // 2.1 Seed FY2026 Annual Master Budgets
         foreach ($budgets as $b) {
-            Budget::updateOrCreate(
+            $createdBudget = Budget::updateOrCreate(
                 [
                     'department' => $b['department'],
                     'category'   => $b['category'],
@@ -148,6 +150,102 @@ class OpeningBalanceSeeder extends Seeder
                     'created_by'  => $adminUser->id,
                 ])
             );
+
+            BudgetAllocation::firstOrCreate(
+                [
+                    'department' => $b['department'],
+                    'period'     => 'FY2026',
+                ],
+                [
+                    'budget_id'        => $createdBudget->id,
+                    'category'         => $b['category'],
+                    'fiscal_year'      => '2026',
+                    'allocated_amount' => $b['allocated_amount'],
+                    'action_type'      => 'ANNUAL_BUDGET_APPROVAL',
+                    'notes'            => 'Executive Board Approved Annual Master Budget for Fiscal Year 2026',
+                    'allocated_by'     => $adminUser->id,
+                ]
+            );
+        }
+
+        // 2.2 Seed Historical and Current Monthly Department Budgets (July, August, September, October 2026)
+        $monthlyBudgets = [
+            '2026-07' => [
+                'Human Resources (HRMS)'       => ['amount' => 1000000.00, 'notes' => 'July 2026 Department Operations Budget'],
+                'Supply Chain & Procurement'   => ['amount' => 2000000.00, 'notes' => 'July 2026 Hardware Restocking & Warehouse POs'],
+                'Fleet & Logistics'            => ['amount' => 400000.00,  'notes' => 'July 2026 Fuel, Delivery Logistics & Truck Maintenance'],
+                'Facilities & Operations'      => ['amount' => 650000.00,  'notes' => 'July 2026 Commercial Leases & Utility Bills'],
+                'IT & Infrastructure'          => ['amount' => 300000.00,  'notes' => 'July 2026 Cloud Services & POS Maintenance'],
+                'E-Commerce Marketing'         => ['amount' => 500000.00,  'notes' => 'July 2026 Mid-Year Digital Promo Campaigns'],
+            ],
+            '2026-08' => [
+                'Human Resources (HRMS)'       => ['amount' => 1000000.00, 'notes' => 'August 2026 Department Operations Budget'],
+                'Supply Chain & Procurement'   => ['amount' => 2100000.00, 'notes' => 'August 2026 Stock Replenishment & Cement Supplies'],
+                'Fleet & Logistics'            => ['amount' => 420000.00,  'notes' => 'August 2026 Delivery Fleet Diesel & Maintenance'],
+                'Facilities & Operations'      => ['amount' => 650000.00,  'notes' => 'August 2026 Commercial Leases & Utility Bills'],
+                'IT & Infrastructure'          => ['amount' => 300000.00,  'notes' => 'August 2026 Server Hosting & POS Licenses'],
+                'E-Commerce Marketing'         => ['amount' => 500000.00,  'notes' => 'August 2026 Customer Acquisition Ads'],
+            ],
+            '2026-09' => [
+                'Human Resources (HRMS)'       => ['amount' => 1050000.00, 'notes' => 'September 2026 Operations & Staff Overtime'],
+                'Supply Chain & Procurement'   => ['amount' => 2200000.00, 'notes' => 'September 2026 Steel & Heavy Hardware Procurement'],
+                'Fleet & Logistics'            => ['amount' => 450000.00,  'notes' => 'September 2026 Logistics Dispatch & Fuel Allocation'],
+                'Facilities & Operations'      => ['amount' => 680000.00,  'notes' => 'September 2026 Power & Water Commercial Leases'],
+                'IT & Infrastructure'          => ['amount' => 320000.00,  'notes' => 'September 2026 Network Upgrade & Security'],
+                'E-Commerce Marketing'         => ['amount' => 550000.00,  'notes' => 'September 2026 9.9 Mega Sale Ad Campaigns'],
+            ],
+            '2026-10' => [
+                'Human Resources (HRMS)'       => ['amount' => 1100000.00, 'notes' => 'October 2026 Active Payroll & Department Budget'],
+                'Supply Chain & Procurement'   => ['amount' => 2500000.00, 'notes' => 'October 2026 Active Stock & Procurement Budget'],
+                'Fleet & Logistics'            => ['amount' => 500000.00,  'notes' => 'October 2026 Active Logistics & Fuel Allocation'],
+                'Facilities & Operations'      => ['amount' => 700000.00,  'notes' => 'October 2026 Active Rent & Facility Utilities'],
+                'IT & Infrastructure'          => ['amount' => 350000.00,  'notes' => 'October 2026 Active IT Systems & Support Budget'],
+                'E-Commerce Marketing'         => ['amount' => 600000.00,  'notes' => 'October 2026 Active 10.10 Promo & Marketing Budget'],
+            ],
+        ];
+
+        // Map departments to their COA and category
+        $deptLookup = [];
+        foreach ($budgets as $b) {
+            $deptLookup[$b['department']] = $b;
+        }
+
+        foreach ($monthlyBudgets as $periodKey => $deptAllocations) {
+            foreach ($deptAllocations as $deptName => $allocData) {
+                $base = $deptLookup[$deptName] ?? null;
+                if (!$base) continue;
+
+                $monthlyBudget = Budget::updateOrCreate(
+                    [
+                        'department' => $deptName,
+                        'category'   => $base['category'],
+                        'period'     => $periodKey,
+                    ],
+                    [
+                        'fiscal_year'         => '2026',
+                        'allocated_amount'    => $allocData['amount'],
+                        'chart_of_account_id' => $base['chart_of_account_id'],
+                        'notes'               => $allocData['notes'],
+                        'created_by'          => $adminUser->id,
+                    ]
+                );
+
+                BudgetAllocation::firstOrCreate(
+                    [
+                        'department' => $deptName,
+                        'period'     => $periodKey,
+                    ],
+                    [
+                        'budget_id'        => $monthlyBudget->id,
+                        'category'         => $base['category'],
+                        'fiscal_year'      => '2026',
+                        'allocated_amount' => $allocData['amount'],
+                        'action_type'      => 'MONTHLY_GRANT',
+                        'notes'            => $allocData['notes'],
+                        'allocated_by'     => $adminUser->id,
+                    ]
+                );
+            }
         }
     }
 }

@@ -122,8 +122,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/ar-invoices/{arInvoice}/collect', [\App\Http\Controllers\API\CollectionController::class, 'collect'])
         ->middleware('role:super_admin,finance_manager,accountant');
 
-    // Budgets (Planned vs Actual Department Spending)
+    // Budgets (Planned vs Actual Department Spending & Monthly History Archive)
     Route::get('/budgets', [\App\Http\Controllers\API\BudgetController::class, 'index']);
+    Route::get('/budgets/history', [\App\Http\Controllers\API\BudgetController::class, 'history']);
     Route::post('/budgets', [\App\Http\Controllers\API\BudgetController::class, 'store'])
         ->middleware('role:super_admin,finance_manager');
 });

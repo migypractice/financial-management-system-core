@@ -6,37 +6,33 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Budget extends Model
+class BudgetAllocation extends Model
 {
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'budget_id',
         'department',
         'category',
         'fiscal_year',
         'period',
         'allocated_amount',
-        'chart_of_account_id',
+        'action_type',
         'notes',
-        'created_by',
+        'allocated_by',
     ];
 
     protected $casts = [
         'allocated_amount' => 'decimal:2',
     ];
 
-    public function chartOfAccount()
+    public function budget()
     {
-        return $this->belongsTo(ChartOfAccount::class, 'chart_of_account_id');
+        return $this->belongsTo(Budget::class, 'budget_id');
     }
 
-    public function creator()
+    public function allocator()
     {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function allocations()
-    {
-        return $this->hasMany(BudgetAllocation::class, 'budget_id');
+        return $this->belongsTo(User::class, 'allocated_by');
     }
 }
