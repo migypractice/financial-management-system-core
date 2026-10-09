@@ -266,7 +266,7 @@ export const SimulatorPage: React.FC = () => {
       fee_amount: isRevenue ? parseFloat(amount) * 0.02 : 0,
       currency: 'PHP',
       description,
-      metadata: { simulator: true, sent_at: new Date().toISOString() },
+      metadata: { simulator: true, sent_at: new Date().toISOString(), has_attachment: true },
     };
 
     if (!isRevenue) {
@@ -350,13 +350,13 @@ export const SimulatorPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-gray-200 dark:border-slate-800 gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">M2M API Simulator</h1>
-            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-[10px] font-bold rounded-full uppercase tracking-wide border border-amber-200 dark:border-amber-800">
-              Dev Mode
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">System Integration Gateway (M2M)</h1>
+            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold rounded-full uppercase tracking-wide border border-emerald-200 dark:border-emerald-800">
+              Live Gateway Active
             </span>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Simulate external modules (HR, Supply Chain, E-Commerce, Fleet) sending transactions to the Core API.
+            Machine-to-machine ingestion interface for external modules (Supply Chain, HRMS, E-Commerce, Fleet Logistics).
           </p>
         </div>
         <div className="flex items-center gap-2">

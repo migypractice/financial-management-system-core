@@ -50,6 +50,7 @@ export interface Transaction {
   createdAt: string;
   updatedAt: string;
   createdBy?: string | number;
+  metadata?: Record<string, any>;
 }
 
 export interface ChartOfAccount {
