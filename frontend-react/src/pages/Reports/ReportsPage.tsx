@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
+import { Lock, ShieldCheck, AlertCircle, X, CheckCircle2 } from 'lucide-react';
 
 /**
  * Financial Reporting & Analytics Module
@@ -9,6 +10,58 @@ import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 
 export const ReportsPage: React.FC = () => {
   const { transactions, loading } = useDashboardData();
+
+  // MPIN Authorization State for Protected Confidential Export
+  const [isMpinModalOpen, setIsMpinModalOpen] = useState(false);
+  const [mpin, setMpin] = useState(['', '', '', '']);
+  const [mpinError, setMpinError] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleOpenExportModal = () => {
+    setMpin(['', '', '', '']);
+    setMpinError(false);
+    setIsSuccess(false);
+    setIsMpinModalOpen(true);
+  };
+
+  const handleMpinChange = (index: number, val: string) => {
+    if (!/^\d*$/.test(val)) return;
+    const nextPin = [...mpin];
+    nextPin[index] = val.slice(-1);
+    setMpin(nextPin);
+    setMpinError(false);
+
+    if (val && index < 3) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleMpinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !mpin[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (mpin.every(d => d !== '')) {
+      const code = mpin.join('');
+      if (code === '1111') {
+        setIsSuccess(true);
+        setTimeout(() => {
+          setIsMpinModalOpen(false);
+          setIsSuccess(false);
+          window.print();
+        }, 700);
+      } else {
+        setMpinError(true);
+        setTimeout(() => {
+          setMpin(['', '', '', '']);
+          inputRefs.current[0]?.focus();
+        }, 600);
+      }
+    }
+  }, [mpin]);
 
   // Compute real totals from approved/posted transactions
   const approvedRevenue = transactions
@@ -34,10 +87,11 @@ export const ReportsPage: React.FC = () => {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Automated P&L, Balance Sheet summaries, and AI-driven insights.</p>
         </div>
         <button
-          onClick={() => window.print()}
-          className="print:hidden px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-sm"
+          onClick={handleOpenExportModal}
+          className="print:hidden px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
         >
-          Export Full Report (PDF)
+          <Lock size={13} className="text-amber-400" />
+          <span>Export Full Report (PDF)</span>
         </button>
       </div>
 
@@ -152,6 +206,73 @@ export const ReportsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Executive MPIN Authorization Modal ── */}
+      {isMpinModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-sm p-6 shadow-2xl relative text-center space-y-4 text-slate-100">
+            <button
+              onClick={() => setIsMpinModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Lock size={22} />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white">Executive Authorization</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Financial statements contain confidential proprietary data. Enter your 4-digit Executive MPIN to export.
+              </p>
+            </div>
+
+            {/* 4 Digit Inputs */}
+            <div className="flex justify-center gap-3 pt-2">
+              {mpin.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => (inputRefs.current[idx] = el)}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  autoFocus={idx === 0}
+                  onChange={(e) => handleMpinChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleMpinKeyDown(idx, e)}
+                  className={`w-12 h-14 text-center font-mono text-2xl font-bold rounded-xl border transition-all bg-slate-950 text-white focus:outline-none ${
+                    mpinError
+                      ? 'border-rose-500 shadow-rose-500/20 shadow-lg animate-shake'
+                      : isSuccess
+                      ? 'border-emerald-500 text-emerald-400'
+                      : 'border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {mpinError && (
+              <div className="flex items-center justify-center gap-1.5 text-xs text-rose-400 font-semibold animate-fadeIn">
+                <AlertCircle size={14} />
+                <span>Invalid MPIN. Access Denied.</span>
+              </div>
+            )}
+
+            {isSuccess && (
+              <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 font-semibold animate-fadeIn">
+                <CheckCircle2 size={14} />
+                <span>Clearance Granted. Exporting PDF...</span>
+              </div>
+            )}
+
+            <div className="pt-2 text-[11px] text-slate-500 border-t border-slate-800">
+              Internal Control: Data Loss Prevention (DLP) Active
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
