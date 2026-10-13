@@ -66,3 +66,12 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Disable native Edge/Windows password reveal and clear icons so they do not conflict with custom eye buttons */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+

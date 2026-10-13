@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, UserPlus, X, CheckCircle2 } from 'lucide-react';
+import { Users, UserPlus, X, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import apiClient from '../../services/apiClient';
 import PasswordStrength from '../../components/ui/PasswordStrength';
 import {
@@ -38,6 +38,8 @@ export const UserManagementCard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -155,11 +157,55 @@ export const UserManagementCard: React.FC = () => {
               </div>
               <div>
                 <label htmlFor="um-password" className="block text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1">Password</label>
-                <input id="um-password" type="password" value={form.password} onChange={set('password')} className={inputCls} autoComplete="new-password" />
+                <div className="relative">
+                  <input
+                    id="um-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={set('password')}
+                    className={`${inputCls} pr-10`}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowPassword((s) => !s);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer z-10"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label htmlFor="um-password-confirm" className="block text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1">Confirm Password</label>
-                <input id="um-password-confirm" type="password" value={form.password_confirmation} onChange={set('password_confirmation')} className={`${inputCls} ${mismatch ? 'border-red-400' : ''}`} autoComplete="new-password" />
+                <div className="relative">
+                  <input
+                    id="um-password-confirm"
+                    type={showConfirm ? 'text' : 'password'}
+                    value={form.password_confirmation}
+                    onChange={set('password_confirmation')}
+                    className={`${inputCls} pr-10 ${mismatch ? 'border-red-400' : ''}`}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowConfirm((s) => !s);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer z-10"
+                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
                 {mismatch && <p className="mt-1 text-[11px] text-red-600">Passwords do not match.</p>}
               </div>
             </div>

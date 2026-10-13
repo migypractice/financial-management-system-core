@@ -102,6 +102,7 @@ export const SecretProvisionPage: React.FC<SecretProvisionPageProps> = ({ onBack
   const [editDepartment, setEditDepartment] = useState('Finance');
   const [editRequireOtp, setEditRequireOtp] = useState(false);
   const [editShowPassword, setEditShowPassword] = useState(false);
+  const [showMasterKey, setShowMasterKey] = useState(false);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
 
   // Delete Confirmation Modal State
@@ -412,15 +413,28 @@ export const SecretProvisionPage: React.FC<SecretProvisionPageProps> = ({ onBack
             <div className="relative">
               <KeyRound size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
-                type="password"
+                type={showMasterKey ? 'text' : 'password'}
                 value={masterKey}
                 onChange={(e) => {
                   setMasterKey(e.target.value);
                   fetchAccounts(e.target.value);
                 }}
                 placeholder="Master Secret Passkey"
-                className="pl-8 pr-3 py-1.5 text-xs font-mono bg-slate-950 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48 sm:w-56"
+                className="pl-8 pr-8 py-1.5 text-xs font-mono bg-slate-950 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48 sm:w-56"
               />
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowMasterKey((s) => !s);
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer z-10"
+                aria-label={showMasterKey ? 'Hide master passkey' : 'Show master passkey'}
+              >
+                {showMasterKey ? <EyeOff size={13} /> : <Eye size={13} />}
+              </button>
             </div>
             <div className={`px-2.5 py-1.5 rounded-xl text-[11px] font-semibold flex items-center gap-1.5 border ${
               isKeyValid 
@@ -949,8 +963,14 @@ export const SecretProvisionPage: React.FC<SecretProvisionPageProps> = ({ onBack
                   />
                   <button
                     type="button"
-                    onClick={() => setEditShowPassword(!editShowPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                    tabIndex={-1}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setEditShowPassword(!editShowPassword);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer z-10"
+                    aria-label={editShowPassword ? 'Hide password' : 'Show password'}
                   >
                     {editShowPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
