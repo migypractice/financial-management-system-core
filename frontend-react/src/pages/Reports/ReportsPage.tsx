@@ -211,7 +211,7 @@ export const ReportsPage: React.FC = () => {
 
       {/* ── Executive MPIN Authorization Modal ── */}
       {isMpinModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 !mt-0 z-[999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-sm p-6 shadow-2xl relative text-center space-y-4 text-slate-100">
             <button
               onClick={() => setIsMpinModalOpen(false)}

@@ -697,8 +697,8 @@ export const DisbursementPage: React.FC = () => {
 
       {/* MODAL: Reject Reason */}
       {rejectModal.isOpen && rejectModal.pr && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 !mt-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col p-6 shadow-2xl overflow-y-auto space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Reject Payment Request
@@ -754,9 +754,9 @@ export const DisbursementPage: React.FC = () => {
 
       {/* MODAL: Execute Disbursement Payout */}
       {disburseModal.isOpen && disburseModal.pr && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 !mt-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
                   <DollarSign className="w-4 h-4" />
@@ -774,7 +774,7 @@ export const DisbursementPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleConfirmDisburse} className="space-y-4">
+            <form onSubmit={handleConfirmDisburse} className="flex-1 overflow-y-auto p-6 space-y-4">
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs space-y-1">
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Payee:</span>
