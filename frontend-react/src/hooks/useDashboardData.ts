@@ -13,7 +13,8 @@ export const useDashboardData = () => {
         const response = await apiClient.get('/dashboard/transactions', {
           params: { status: 'all', per_page: 200 }
         });
-        const rows: any[] = response.data?.data ?? [];
+        const rawData = response.data?.data ?? response.data;
+        const rows: any[] = Array.isArray(rawData) ? rawData : [];
 
         // Map snake_case backend response to camelCase frontend types
         const mapped: Transaction[] = rows.map((row: any) => ({

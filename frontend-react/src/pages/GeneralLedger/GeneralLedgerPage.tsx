@@ -139,7 +139,8 @@ export const GeneralLedgerPage: React.FC = () => {
   const fetchJournalEntries = useCallback(async (search: string = '') => {
     try {
       const res = await apiClient.get('/dashboard/gl', { params: { search: search || undefined } });
-      setEntries(res.data?.data || []);
+      const raw = res.data?.data ?? res.data;
+      setEntries(Array.isArray(raw) ? raw : []);
       setGlSummary(res.data?.summary || null);
     } catch (err) {
       console.error('Failed to load GL entries:', err);
@@ -149,7 +150,8 @@ export const GeneralLedgerPage: React.FC = () => {
   const fetchTrialBalance = useCallback(async () => {
     try {
       const res = await apiClient.get('/dashboard/gl/trial-balance');
-      setTrialAccounts(res.data?.data || []);
+      const raw = res.data?.data ?? res.data;
+      setTrialAccounts(Array.isArray(raw) ? raw : []);
       setTrialSummary(res.data?.summary || null);
     } catch (err) {
       console.error('Failed to load Trial Balance:', err);
@@ -163,13 +165,17 @@ export const GeneralLedgerPage: React.FC = () => {
         apiClient.get('/dashboard/gl/ap-subledger'),
         apiClient.get('/dashboard/gl/payroll-subledger'),
       ]);
-      setArSubledger(arRes.data?.data || []);
+      const arRaw = arRes.data?.data ?? arRes.data;
+      const apRaw = apRes.data?.data ?? apRes.data;
+      const payRaw = payRes.data?.data ?? payRes.data;
+
+      setArSubledger(Array.isArray(arRaw) ? arRaw : []);
       setArTotal(arRes.data?.summary?.total_receivable || 0);
 
-      setApSubledger(apRes.data?.data || []);
+      setApSubledger(Array.isArray(apRaw) ? apRaw : []);
       setApTotal(apRes.data?.summary?.total_payable || 0);
 
-      setPayrollEntries(payRes.data?.data || []);
+      setPayrollEntries(Array.isArray(payRaw) ? payRaw : []);
       setPayrollTotal(payRes.data?.summary?.total_payroll_ytd || 0);
     } catch (err) {
       console.error('Failed to load subledgers:', err);
@@ -195,6 +201,12 @@ export const GeneralLedgerPage: React.FC = () => {
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+
+  const safeEntries = Array.isArray(entries) ? entries : [];
+  const safeTrialAccounts = Array.isArray(trialAccounts) ? trialAccounts : [];
+  const safeArSubledger = Array.isArray(arSubledger) ? arSubledger : [];
+  const safeApSubledger = Array.isArray(apSubledger) ? apSubledger : [];
+  const safePayrollEntries = Array.isArray(payrollEntries) ? payrollEntries : [];
 
   if (loading) return <SkeletonLoader />;
 
@@ -240,7 +252,7 @@ export const GeneralLedgerPage: React.FC = () => {
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          General Journal ({entries.length})
+          General Journal ({safeEntries.length})
         </button>
 
         <button
@@ -364,7 +376,7 @@ export const GeneralLedgerPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
-                  {entries.length === 0 ? (
+                  {safeEntries.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400">
                         <BookOpen className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
@@ -372,9 +384,9 @@ export const GeneralLedgerPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    entries.map((entry) => {
+                    safeEntries.map((entry) => {
                       const isExpanded = !!expandedRows[entry.id];
-                      const hasLines = entry.lines && entry.lines.length > 0;
+                      const hasLines = Array.isArray(entry.lines) && entry.lines.length > 0;
 
                       return (
                         <React.Fragment key={entry.id}>
@@ -449,7 +461,7 @@ export const GeneralLedgerPage: React.FC = () => {
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800 font-mono">
-                                        {entry.lines?.map((line) => (
+                                        {(Array.isArray(entry.lines) ? entry.lines : []).map((line) => (
                                           <tr key={line.id} className="text-slate-700 dark:text-slate-300">
                                             <td className="py-2">
                                               <span className="font-bold text-indigo-600 dark:text-indigo-400">[{line.account_code}]</span>{' '}
@@ -514,7 +526,7 @@ export const GeneralLedgerPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
-                  {trialAccounts.map((acc) => (
+                  {safeTrialAccounts.map((acc) => (
                     <tr key={acc.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{acc.code}</td>
                       <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">{acc.name}</td>
@@ -588,7 +600,7 @@ export const GeneralLedgerPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
-                  {arSubledger.map((c) => (
+                  {safeArSubledger.map((c) => (
                     <tr key={c.customer_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
                       <td className="py-3.5 px-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">{c.customer_code}</td>
                       <td className="py-3.5 px-4">
@@ -652,7 +664,7 @@ export const GeneralLedgerPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
-                  {apSubledger.map((s) => (
+                  {safeApSubledger.map((s) => (
                     <tr key={s.supplier_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
                       <td className="py-3.5 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">{s.supplier_code}</td>
                       <td className="py-3.5 px-4">
@@ -715,7 +727,7 @@ export const GeneralLedgerPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
-                  {payrollEntries.length === 0 ? (
+                  {safePayrollEntries.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-slate-400">
                         <Briefcase className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
@@ -723,7 +735,7 @@ export const GeneralLedgerPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    payrollEntries.map((p) => (
+                    safePayrollEntries.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
                         <td className="py-3.5 px-4">
                           <span className="font-mono font-bold text-slate-900 dark:text-white block">{p.reference}</span>

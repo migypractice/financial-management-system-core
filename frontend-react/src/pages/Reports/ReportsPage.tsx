@@ -64,11 +64,13 @@ export const ReportsPage: React.FC = () => {
   }, [mpin]);
 
   // Compute real totals from approved/posted transactions
-  const approvedRevenue = transactions
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
+  const approvedRevenue = safeTransactions
     .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'INBOUND')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const approvedExpenses = transactions
+  const approvedExpenses = safeTransactions
     .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'OUTBOUND')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 

@@ -121,9 +121,20 @@ class ApBillController extends Controller
         return DB::transaction(function () use ($validated, $request) {
             $user = $request->user();
             $apAccount = ChartOfAccount::where('code', '2010-AP')->firstOrFail();
-            $debitAccount = !empty($validated['chart_of_account_id'])
-                ? ChartOfAccount::findOrFail($validated['chart_of_account_id'])
-                : ChartOfAccount::where('code', '1200-INV')->firstOrFail();
+
+            if (!empty($validated['chart_of_account_id'])) {
+                $debitAccount = ChartOfAccount::findOrFail($validated['chart_of_account_id']);
+            } else {
+                $category = $validated['category_type'] ?? 'SUPPLIER_INVOICE';
+                $defaultCode = match ($category) {
+                    'UTILITIES_BILL'                      => '5200-EXP-UTIL',
+                    'FREIGHT_SHIPPING'                    => '5400-EXP-LOGISTICS',
+                    'OFFICE_SUPPLIES', 'EQUIPMENT_REPAIR' => '5500-EXP-SUPPLIES',
+                    default                               => '1200-INV',
+                };
+                $debitAccount = ChartOfAccount::where('code', $defaultCode)->first()
+                             ?? ChartOfAccount::where('code', '1200-INV')->firstOrFail();
+            }
 
             $totalAmount = (float) $validated['total_amount'];
 

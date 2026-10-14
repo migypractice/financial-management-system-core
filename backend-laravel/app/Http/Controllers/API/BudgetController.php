@@ -302,8 +302,24 @@ class BudgetController extends Controller
                 }
             });
 
-        if ($b->chart_of_account_id) {
-            $actualSpent = (float) (clone $jeQuery)->where('chart_of_account_id', $b->chart_of_account_id)->sum('debit');
+        $targetCoaId = $b->chart_of_account_id;
+        if (!$targetCoaId) {
+            $defaultCoaCode = match ($b->department) {
+                'Human Resources (HRMS)'     => '5100-EXP-SALARY',
+                'Supply Chain & Procurement' => '1200-INV',
+                'Fleet & Logistics'          => '5400-EXP-LOGISTICS',
+                'Facilities & Operations'    => '5200-EXP-UTIL',
+                'IT & Infrastructure'        => '5500-EXP-SUPPLIES',
+                'E-Commerce Marketing'       => '5500-EXP-SUPPLIES',
+                default                      => null,
+            };
+            if ($defaultCoaCode) {
+                $targetCoaId = ChartOfAccount::where('code', $defaultCoaCode)->value('id');
+            }
+        }
+
+        if ($targetCoaId) {
+            $actualSpent = (float) (clone $jeQuery)->where('chart_of_account_id', $targetCoaId)->sum('debit');
         }
 
         // 2. If 0 or fallback, capture from posted Transactions mapped to this department module

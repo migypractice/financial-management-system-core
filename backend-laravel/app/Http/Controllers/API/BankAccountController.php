@@ -72,8 +72,8 @@ class BankAccountController extends Controller
     {
         $bankAccountId = $request->query('bank_account_id');
 
-        $disbursementsQuery = Disbursement::with(['paymentRequest.bill.supplier', 'bankAccount', 'attachments']);
-        $collectionsQuery = Collection::with(['invoice.customer', 'bankAccount', 'attachments']);
+        $disbursementsQuery = Disbursement::with(['paymentRequest.bill.supplier', 'paymentRequest.attachments', 'bankAccount', 'attachments']);
+        $collectionsQuery = Collection::with(['invoice.customer', 'invoice.attachments', 'bankAccount', 'attachments']);
 
         if ($bankAccountId) {
             $disbursementsQuery->where('bank_account_id', $bankAccountId);
@@ -81,11 +81,15 @@ class BankAccountController extends Controller
         }
 
         $disbursements = $disbursementsQuery->get()->map(function ($d) {
+            $attachPath = $d->attachments->first()?->file_path 
+                ?? $d->paymentRequest?->attachments->first()?->file_path;
+
             return [
                 'id'               => $d->id,
                 'flow_type'        => 'OUTFLOW',
                 'type'             => 'Disbursement / Bill Payment',
                 'date'             => $d->disbursement_date?->toDateString() ?? $d->created_at->toDateString(),
+                'created_at'       => $d->created_at?->toIso8601String(),
                 'reference_number' => $d->reference_number ?? $d->disbursement_number,
                 'bank_id'          => $d->bank_account_id,
                 'bank_name'        => $d->bankAccount?->bank_name,
@@ -95,16 +99,20 @@ class BankAccountController extends Controller
                 'amount'           => (float) $d->amount,
                 'payment_method'   => $d->payment_method,
                 'status'           => 'CLEARED',
-                'attachment'       => $d->attachments->first()?->file_path ? asset('storage/' . $d->attachments->first()->file_path) : null,
+                'attachment'       => $attachPath ? asset('storage/' . $attachPath) : null,
             ];
         });
 
         $collections = $collectionsQuery->get()->map(function ($c) {
+            $attachPath = $c->attachments->first()?->file_path 
+                ?? $c->invoice?->attachments->first()?->file_path;
+
             return [
                 'id'               => $c->id,
                 'flow_type'        => 'INFLOW',
                 'type'             => 'Receivable Collection',
                 'date'             => $c->collection_date?->toDateString() ?? $c->created_at->toDateString(),
+                'created_at'       => $c->created_at?->toIso8601String(),
                 'reference_number' => $c->reference_number ?? $c->collection_number,
                 'bank_id'          => $c->bank_account_id,
                 'bank_name'        => $c->bankAccount?->bank_name,
@@ -114,11 +122,17 @@ class BankAccountController extends Controller
                 'amount'           => (float) $c->amount,
                 'payment_method'   => $c->payment_method,
                 'status'           => 'CLEARED',
-                'attachment'       => $c->attachments->first()?->file_path ? asset('storage/' . $c->attachments->first()->file_path) : null,
+                'attachment'       => $attachPath ? asset('storage/' . $attachPath) : null,
             ];
         });
 
-        $unified = $disbursements->concat($collections)->sortByDesc('date')->values();
+        $unified = $disbursements->concat($collections)
+            ->sort(function ($a, $b) {
+                $dateCmp = strcmp($b['date'] ?? '', $a['date'] ?? '');
+                if ($dateCmp !== 0) return $dateCmp;
+                return strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
+            })
+            ->values();
 
         return response()->json([
             'success' => true,

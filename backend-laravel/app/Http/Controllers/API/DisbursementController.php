@@ -117,7 +117,46 @@ class DisbursementController extends Controller
 
             // 3. Create Balanced Double-Entry Journal Entry
             $cashCoa = ChartOfAccount::where('code', '1010-CASH')->firstOrFail();
-            $apCoa   = ChartOfAccount::where('code', '2010-AP')->firstOrFail();
+
+            if ($paymentRequest->ap_bill_id) {
+                // Scenario 1: Linked to an AP Bill — Settle Accounts Payable liability
+                $debitCoa = ChartOfAccount::where('code', '2010-AP')->firstOrFail();
+                $debitDescription = "Disbursement #{$disbNumber} - AP settlement to {$paymentRequest->payee_name}";
+                $sourceModule = 'DISBURSEMENT_MANAGEMENT';
+                $categoryType = 'SUPPLIER_PAYMENT';
+            } else {
+                // Scenario 2: Direct / Standalone Payment Request — Debit Department Expense to burn budget
+                $requesterDept = $paymentRequest->requester?->department ?? '';
+                $text = strtolower($requesterDept . ' ' . $paymentRequest->purpose . ' ' . $paymentRequest->payee_name);
+
+                $targetCoaCode = '5500-EXP-SUPPLIES';
+                $sourceModule = 'DISBURSEMENT_MANAGEMENT';
+
+                if (str_contains($text, 'human resources') || str_contains($text, 'hrms') || str_contains($text, 'hr') || str_contains($text, 'salary') || str_contains($text, 'payroll') || str_contains($text, 'wages')) {
+                    $targetCoaCode = '5100-EXP-SALARY';
+                    $sourceModule = 'HRMS';
+                } elseif (str_contains($text, 'logistics') || str_contains($text, 'fleet') || str_contains($text, 'fuel') || str_contains($text, 'transport') || str_contains($text, 'freight') || str_contains($text, 'delivery')) {
+                    $targetCoaCode = '5400-EXP-LOGISTICS';
+                    $sourceModule = 'FLEET';
+                } elseif (str_contains($text, 'facilities') || str_contains($text, 'operations') || str_contains($text, 'rent') || str_contains($text, 'lease') || str_contains($text, 'meralco') || str_contains($text, 'power') || str_contains($text, 'water') || str_contains($text, 'electric') || str_contains($text, 'utility')) {
+                    $targetCoaCode = (str_contains($text, 'rent') || str_contains($text, 'lease')) ? '5300-EXP-RENT' : '5200-EXP-UTIL';
+                    $sourceModule = 'FACILITIES_LEGAL';
+                } elseif (str_contains($text, 'supply chain') || str_contains($text, 'procurement') || str_contains($text, 'inventory') || str_contains($text, 'cement') || str_contains($text, 'steel') || str_contains($text, 'hardware stock')) {
+                    $targetCoaCode = '1200-INV';
+                    $sourceModule = 'SUPPLY_CHAIN';
+                } elseif (str_contains($text, 'marketing') || str_contains($text, 'e-commerce') || str_contains($text, 'ecommerce') || str_contains($text, 'ads') || str_contains($text, 'promo')) {
+                    $targetCoaCode = '5500-EXP-SUPPLIES';
+                    $sourceModule = 'ECOMMERCE_CORE';
+                } elseif (str_contains($text, 'it & infrastructure') || str_contains($text, 'it') || str_contains($text, 'software') || str_contains($text, 'server') || str_contains($text, 'network')) {
+                    $targetCoaCode = '5500-EXP-SUPPLIES';
+                    $sourceModule = 'IT';
+                }
+
+                $debitCoa = ChartOfAccount::where('code', $targetCoaCode)->first()
+                         ?? ChartOfAccount::where('code', '5500-EXP-SUPPLIES')->firstOrFail();
+                $debitDescription = "Disbursement #{$disbNumber} - {$debitCoa->name} ({$paymentRequest->purpose})";
+                $categoryType = 'DEPARTMENT_EXPENSE';
+            }
 
             $disbModule = Subsystem::where('slug', 'disbursement-management')->first()
                        ?? Subsystem::where('slug', 'general-ledger')->first();
@@ -128,8 +167,8 @@ class DisbursementController extends Controller
                 'id'                    => (string) Str::uuid(),
                 'transaction_code'      => $txnCode,
                 'subsystem_id'          => $disbModule?->id ?? (string) Str::uuid(),
-                'source_module'         => 'DISBURSEMENT_MANAGEMENT',
-                'category_type'         => 'SUPPLIER_PAYMENT',
+                'source_module'         => $sourceModule,
+                'category_type'         => $categoryType,
                 'external_reference_id' => $disbNumber,
                 'type'                  => 'EXPENSE',
                 'amount'                => $amount,
@@ -138,8 +177,8 @@ class DisbursementController extends Controller
                 'description'           => "Disbursement released for {$paymentRequest->payee_name} via {$bankAccount->account_name}: {$paymentRequest->purpose}",
                 'status'                => 'posted',
                 'ai_confidence_score'   => 0.9800,
-                'ai_suggested_gl_code'  => $apCoa->code,
-                'ai_suggested_gl_name'  => $apCoa->name,
+                'ai_suggested_gl_code'  => $debitCoa->code,
+                'ai_suggested_gl_name'  => $debitCoa->name,
                 'ai_anomaly_flag'       => false,
                 'created_by'            => $user->id,
                 'approved_by'           => $user->id,
@@ -157,13 +196,13 @@ class DisbursementController extends Controller
             ]);
 
             // Balanced Double Entry Lines:
-            // DEBIT: Accounts Payable (Liability decreases)
+            // DEBIT: Accounts Payable or Department Expense (Budget consumption)
             JournalEntryLine::create([
                 'journal_entry_id'    => $je->id,
-                'chart_of_account_id' => $apCoa->id,
+                'chart_of_account_id' => $debitCoa->id,
                 'debit'               => $amount,
                 'credit'              => 0.00,
-                'description'         => "Disbursement #{$disbNumber} - AP settlement to {$paymentRequest->payee_name}",
+                'description'         => $debitDescription,
             ]);
 
             // CREDIT: Cash in Bank (Asset decreases)

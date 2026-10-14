@@ -553,14 +553,14 @@ export const SimulatorPage: React.FC = () => {
             </div>
 
             <div className="max-h-[600px] overflow-y-auto divide-y divide-gray-100 dark:divide-slate-700/60">
-              {logs.length === 0 ? (
+              {(Array.isArray(logs) ? logs : []).length === 0 ? (
                 <div className="p-8 text-center">
                   <Zap size={24} className="text-gray-300 dark:text-slate-600 mx-auto mb-2" />
                   <p className="text-xs text-gray-400 dark:text-slate-500">No transactions sent yet.</p>
                   <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Click a scenario and hit "Send to Core"</p>
                 </div>
               ) : (
-                logs.map((log) => {
+                (Array.isArray(logs) ? logs : []).map((log) => {
                   const badge = getStatusBadge(log.status, log.httpStatus);
 
                   return (

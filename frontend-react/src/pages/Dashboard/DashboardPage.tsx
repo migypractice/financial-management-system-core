@@ -76,21 +76,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [showBalances, setShowBalances] = useState(true);
 
   const { transactions, loading } = useDashboardData();
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
 
   // Compute live financial totals
-  const approvedRevenue = transactions
+  const approvedRevenue = safeTransactions
     .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'INBOUND')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const approvedExpenses = transactions
+  const approvedExpenses = safeTransactions
     .filter(t => (t.status === 'approved' || t.status === 'posted') && t.flowType === 'OUTBOUND')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const pendingApprovalsCount = transactions.filter(
+  const pendingApprovalsCount = safeTransactions.filter(
     t => t.status === 'pending_approval' || t.status === 'ai_flagged'
   ).length;
 
-  const postedCount = transactions.filter(
+  const postedCount = safeTransactions.filter(
     t => t.status === 'posted' || t.status === 'approved'
   ).length;
 
@@ -99,8 +100,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const cashPosition = 12450800 + approvedRevenue - approvedExpenses;
 
   // Real or fallback transactions
-  const displayTransactions = transactions.length > 0
-    ? transactions.slice(0, 5).map(t => ({
+  const displayTransactions = safeTransactions.length > 0
+    ? safeTransactions.slice(0, 5).map(t => ({
         code: t.transactionCode,
         module: t.externalModule || 'SYSTEM',
         amount: Number(t.amount),
