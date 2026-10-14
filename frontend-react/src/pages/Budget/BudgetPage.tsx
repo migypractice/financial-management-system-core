@@ -91,11 +91,14 @@ export const BudgetPage: React.FC = () => {
         apService.getChartOfAccounts(),
       ]);
 
-      setBudgets(budgetRes.data);
-      setSummary(budgetRes.summary);
-      setChartOfAccounts(coaRes);
+      setBudgets(Array.isArray(budgetRes?.data) ? budgetRes.data : []);
+      setSummary(budgetRes?.summary || null);
 
-      if (budgetRes.meta?.available_periods && budgetRes.meta.available_periods.length > 0) {
+      const rawCoa = (coaRes && typeof coaRes === 'object' && 'data' in coaRes) ? coaRes.data : coaRes;
+      const coaList = Array.isArray(rawCoa) ? rawCoa : [];
+      setChartOfAccounts(coaList);
+
+      if (budgetRes?.meta?.available_periods && budgetRes.meta.available_periods.length > 0) {
         setAvailablePeriods(budgetRes.meta.available_periods);
       }
     } catch (err: any) {
@@ -113,10 +116,12 @@ export const BudgetPage: React.FC = () => {
         period: historyFilterPeriod !== 'ALL' ? historyFilterPeriod : undefined,
       });
 
-      setHistoryItems(res.history);
-      setAllocationLogs(res.allocation_logs);
+      setHistoryItems(Array.isArray(res?.history) ? res.history : []);
+      setAllocationLogs(Array.isArray(res?.allocation_logs) ? res.allocation_logs : []);
     } catch (err: any) {
       console.error('Failed to load budget archive:', err);
+      setHistoryItems([]);
+      setAllocationLogs([]);
     } finally {
       setHistoryLoading(false);
     }
@@ -142,15 +147,18 @@ export const BudgetPage: React.FC = () => {
     setRefreshing(false);
   };
 
-  const handleDepartmentSelect = (deptName: string) => {
+  const handleDepartmentSelect = (deptName: string, coaOverride?: any[]) => {
+    const list = Array.isArray(coaOverride)
+      ? coaOverride
+      : (Array.isArray(chartOfAccounts) ? chartOfAccounts : []);
     const found = departmentPresets.find(p => p.department === deptName);
     if (found) {
-      const coa = chartOfAccounts.find(c => c.code === found.defaultCoaCode);
+      const coa = list.find(c => c?.code === found.defaultCoaCode);
       setForm(prev => ({
         ...prev,
         department: found.department,
         category: found.category,
-        chart_of_account_id: coa ? coa.id : prev.chart_of_account_id,
+        chart_of_account_id: coa ? coa.id : (prev.chart_of_account_id || ''),
       }));
     } else {
       setForm(prev => ({ ...prev, department: deptName }));
@@ -160,9 +168,8 @@ export const BudgetPage: React.FC = () => {
   const openAllocateModal = (prefillDept?: string, mode: 'SET' | 'ADD' = 'SET') => {
     setModalError(null);
     setModalSuccess(null);
-    if (prefillDept) {
-      handleDepartmentSelect(prefillDept);
-    }
+    const targetDept = prefillDept || form.department || departmentPresets[0]?.department || 'Human Resources (HRMS)';
+    handleDepartmentSelect(targetDept);
     setForm(prev => ({
       ...prev,
       period: selectedPeriod !== 'ALL' ? selectedPeriod : '2026-10',
@@ -218,13 +225,14 @@ export const BudgetPage: React.FC = () => {
   };
 
   // Filtered Archive Items
-  const filteredHistory = historyItems.filter(item => {
-    const matchesSearch = 
-      item.department.toLowerCase().includes(historySearch.toLowerCase()) ||
-      item.category.toLowerCase().includes(historySearch.toLowerCase()) ||
-      (item.notes && item.notes.toLowerCase().includes(historySearch.toLowerCase())) ||
-      item.period.toLowerCase().includes(historySearch.toLowerCase());
-    return matchesSearch;
+  const safeHistory = Array.isArray(historyItems) ? historyItems : [];
+  const filteredHistory = safeHistory.filter(item => {
+    const s = (historySearch || '').toLowerCase();
+    const dept = (item.department || '').toLowerCase();
+    const cat = (item.category || '').toLowerCase();
+    const notes = (item.notes || '').toLowerCase();
+    const per = (item.period || '').toLowerCase();
+    return dept.includes(s) || cat.includes(s) || notes.includes(s) || per.includes(s);
   });
 
   if (loading) return <SkeletonLoader />;
@@ -903,9 +911,9 @@ export const BudgetPage: React.FC = () => {
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">-- Auto-detect by Department --</option>
-                  {chartOfAccounts.map((coa) => (
+                  {(Array.isArray(chartOfAccounts) ? chartOfAccounts : []).map((coa) => (
                     <option key={coa.id} value={coa.id}>
-                      {coa.code} &mdash; {coa.name} ({coa.type})
+                      {coa.code} &mdash; {coa.name} {coa.type ? `(${coa.type})` : ''}
                     </option>
                   ))}
                 </select>

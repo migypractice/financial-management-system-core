@@ -71,15 +71,18 @@ export const CashManagementPage: React.FC = () => {
         cashService.getBankTransactions(),
       ]);
 
-      setBankAccounts(accountsRes.data);
-      setSummary(accountsRes.summary);
-      setTransactions(txnsRes.data);
+      const safeAccounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
+      const safeTxns = Array.isArray(txnsRes?.data) ? txnsRes.data : [];
 
-      if (accountsRes.data.length >= 2 && !transferForm.from_bank_account_id) {
+      setBankAccounts(safeAccounts);
+      setSummary(accountsRes?.summary || null);
+      setTransactions(safeTxns);
+
+      if (safeAccounts.length >= 2 && !transferForm.from_bank_account_id) {
         setTransferForm(prev => ({
           ...prev,
-          from_bank_account_id: accountsRes.data[0].id,
-          to_bank_account_id: accountsRes.data[1].id,
+          from_bank_account_id: safeAccounts[0].id,
+          to_bank_account_id: safeAccounts[1].id,
         }));
       }
     } catch (err: any) {
@@ -154,21 +157,23 @@ export const CashManagementPage: React.FC = () => {
   };
 
   // Filtered transactions
-  const filteredTransactions = transactions.filter(t => {
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const filteredTransactions = safeTransactions.filter(t => {
     if (selectedBankFilter !== 'ALL' && t.bank_id !== selectedBankFilter) return false;
     if (flowFilter !== 'ALL' && t.flow_type !== flowFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchParty = t.party_name.toLowerCase().includes(q);
-      const matchRef = t.reference_number.toLowerCase().includes(q);
-      const matchDesc = t.description.toLowerCase().includes(q);
+      const matchParty = (t.party_name || '').toLowerCase().includes(q);
+      const matchRef = (t.reference_number || '').toLowerCase().includes(q);
+      const matchDesc = (t.description || '').toLowerCase().includes(q);
       const matchBank = t.bank_name?.toLowerCase().includes(q) ?? false;
       if (!matchParty && !matchRef && !matchDesc && !matchBank) return false;
     }
     return true;
   });
 
-  const sourceAccount = bankAccounts.find(b => b.id === transferForm.from_bank_account_id);
+  const safeBankAccounts = Array.isArray(bankAccounts) ? bankAccounts : [];
+  const sourceAccount = safeBankAccounts.find(b => b.id === transferForm.from_bank_account_id);
 
   if (loading) return <SkeletonLoader />;
 
@@ -281,7 +286,7 @@ export const CashManagementPage: React.FC = () => {
       {activeTab === 'accounts' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {bankAccounts.map((account) => {
+            {safeBankAccounts.map((account) => {
               const isPrimary = account.account_type.toLowerCase().includes('operating');
               return (
                 <div
