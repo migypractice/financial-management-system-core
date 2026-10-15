@@ -224,6 +224,26 @@ return [
             'gl_name'    => 'Legal and Professional Services',
             'confidence' => 0.9200,
         ],
+        'UTILITIES_BILL' => [
+            'gl_code'    => '5200-EXP-UTIL',
+            'gl_name'    => 'Utilities & Electricity Expense',
+            'confidence' => 0.9650,
+        ],
+        'FREIGHT_SHIPPING' => [
+            'gl_code'    => '5400-EXP-LOGISTICS',
+            'gl_name'    => 'Freight and Logistics Expense',
+            'confidence' => 0.9500,
+        ],
+        'OFFICE_SUPPLIES' => [
+            'gl_code'    => '5500-EXP-SUPPLIES',
+            'gl_name'    => 'Office Supplies & Materials',
+            'confidence' => 0.9400,
+        ],
+        'EQUIPMENT_REPAIR' => [
+            'gl_code'    => '5500-EXP-SUPPLIES',
+            'gl_name'    => 'Equipment Maintenance and Repairs',
+            'confidence' => 0.9350,
+        ],
     ],
 
     /*

@@ -15,7 +15,15 @@ import {
   Filter,
   Search,
   RefreshCw,
-  X
+  X,
+  Landmark,
+  Calculator,
+  Percent,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  Activity,
+  Info
 } from 'lucide-react';
 import {
   apService,
@@ -23,6 +31,8 @@ import {
   DisbursementItem,
   BankAccountItem
 } from '../../services/apService';
+import { arService } from '../../services/arService';
+import { CorporateLiquidityBanner } from '../../components/treasury/CorporateLiquidityBanner';
 import { useAuth } from '../../context/AuthContext';
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
@@ -35,6 +45,9 @@ export const DisbursementPage: React.FC = () => {
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequestItem[]>([]);
   const [disbursements, setDisbursements] = useState<DisbursementItem[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccountItem[]>([]);
+  const [unpaidAp, setUnpaidAp] = useState<number>(0);
+  const [collectibleAr, setCollectibleAr] = useState<number>(0);
+  const [ewtType, setEwtType] = useState<'WC158' | 'WC160'>('WC160');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -86,15 +99,25 @@ export const DisbursementPage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [prRes, dbRes, banksRes] = await Promise.all([
+      const [prRes, dbRes, banksRes, apRes, arRes] = await Promise.all([
         apService.getPaymentRequests(),
         apService.getDisbursements(),
         apService.getBankAccounts(),
+        apService.getApBills().catch(() => null),
+        arService.getArInvoices().catch(() => null),
       ]);
 
-      setPaymentRequests(prRes.data || []);
+      const safePrs = prRes.data || [];
+      setPaymentRequests(safePrs);
       setDisbursements(dbRes.data || []);
       setBankAccounts(banksRes.data || []);
+
+      const apTotal = Number(apRes?.summary?.total_payable ?? 0);
+      const prPendingTotal = safePrs
+        .filter((p: PaymentRequestItem) => p.status !== 'DISBURSED' && p.status !== 'REJECTED')
+        .reduce((sum: number, p: PaymentRequestItem) => sum + Number(p.amount), 0);
+      setUnpaidAp(apTotal > 0 ? apTotal : prPendingTotal);
+      setCollectibleAr(Number(arRes?.summary?.total_receivable ?? 0));
     } catch (err: any) {
       console.error('Failed to load disbursement data:', err);
     } finally {
@@ -105,16 +128,26 @@ export const DisbursementPage: React.FC = () => {
   const refreshData = async () => {
     try {
       setRefreshing(true);
-      const [prRes, dbRes, banksRes] = await Promise.all([
+      const [prRes, dbRes, banksRes, apRes, arRes] = await Promise.all([
         apService.getPaymentRequests({
           status: prStatusFilter !== 'ALL' ? prStatusFilter : undefined,
         }),
         apService.getDisbursements(),
         apService.getBankAccounts(),
+        apService.getApBills().catch(() => null),
+        arService.getArInvoices().catch(() => null),
       ]);
-      setPaymentRequests(prRes.data || []);
+      const safePrs = prRes.data || [];
+      setPaymentRequests(safePrs);
       setDisbursements(dbRes.data || []);
       setBankAccounts(banksRes.data || []);
+
+      const apTotal = Number(apRes?.summary?.total_payable ?? 0);
+      const prPendingTotal = safePrs
+        .filter((p: PaymentRequestItem) => p.status !== 'DISBURSED' && p.status !== 'REJECTED')
+        .reduce((sum: number, p: PaymentRequestItem) => sum + Number(p.amount), 0);
+      setUnpaidAp(apTotal > 0 ? apTotal : prPendingTotal);
+      setCollectibleAr(Number(arRes?.summary?.total_receivable ?? 0));
     } catch (err) {
       console.error(err);
     } finally {
@@ -188,6 +221,8 @@ export const DisbursementPage: React.FC = () => {
 
   const handleOpenDisburse = (pr: PaymentRequestItem) => {
     const defaultBank = bankAccounts[0]?.id || '';
+    const isGoods = /supply|supplies|material|goods|hardware|parts|paint/i.test(pr.purpose);
+    setEwtType(isGoods ? 'WC158' : 'WC160');
     setDisburseModal({
       isOpen: true,
       pr,
@@ -220,6 +255,9 @@ export const DisbursementPage: React.FC = () => {
   };
 
   // Calculations
+  const totalLiquidCash = useMemo(() => {
+    return bankAccounts.reduce((sum, b) => sum + Number(b.current_balance), 0);
+  }, [bankAccounts]);
   const pendingCount = paymentRequests.filter((p) => p.status === 'PENDING_APPROVAL').length;
   const pendingTotal = paymentRequests
     .filter((p) => p.status === 'PENDING_APPROVAL')
@@ -300,6 +338,14 @@ export const DisbursementPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Corporate Liquidity & Solvency Monitor Strip */}
+      <CorporateLiquidityBanner
+        liquidCash={totalLiquidCash}
+        unpaidAp={unpaidAp}
+        collectibleAr={collectibleAr}
+        onRefresh={refreshData}
+      />
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -421,7 +467,7 @@ export const DisbursementPage: React.FC = () => {
                     <th className="py-3.5 px-4">Supporting Doc</th>
                     <th className="py-3.5 px-4 text-center">AI Audit Status</th>
                     <th className="py-3.5 px-4 text-center">Status</th>
-                    <th className="py-3.5 px-4 text-right">Maker-Checker Actions</th>
+                    <th className="py-3.5 px-4 text-right sticky right-0 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xs z-10 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)]">Maker-Checker Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -528,7 +574,7 @@ export const DisbursementPage: React.FC = () => {
                           </td>
 
                           {/* Actions */}
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-3.5 px-4 text-right sticky right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xs z-10 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)]">
                             {pr.status === 'PENDING_APPROVAL' && (
                               <div className="flex items-center justify-end gap-1.5 flex-wrap">
                                 {pr.ai_anomaly_flag ? (
@@ -774,15 +820,15 @@ export const DisbursementPage: React.FC = () => {
       {/* MODAL: Execute Disbursement Payout */}
       {disburseModal.isOpen && disburseModal.pr && (
         <div className="fixed inset-0 !mt-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
                   <DollarSign className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Execute Disbursement Release</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Voucher #{disburseModal.pr.request_number}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Voucher #{disburseModal.pr.request_number} — Treasury Liquidity & Tax Verification</p>
                 </div>
               </div>
               <button
@@ -794,18 +840,182 @@ export const DisbursementPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleConfirmDisburse} className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Payee Info Banner */}
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs space-y-1">
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Payee:</span>
                   <span className="font-semibold text-slate-900 dark:text-white">{disburseModal.pr.payee_name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Amount to Release:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Voucher Memo / Purpose:</span>
+                  <span className="text-slate-700 dark:text-slate-300 italic truncate max-w-xs">{disburseModal.pr.purpose}</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Voucher Amount:</span>
                   <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
                     PHP {disburseModal.pr.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
+
+              {/* Pre-Disbursement Liquidity Impact Simulator & Corporate Tax Engine */}
+              {(() => {
+                const selectedBank = bankAccounts.find(b => b.id === disburseModal.bank_account_id) || bankAccounts[0];
+                const selectedBankBalance = Number(selectedBank?.current_balance ?? 0);
+                const voucherAmount = Number(disburseModal.pr.amount ?? 0);
+                const projectedEndingBalance = selectedBankBalance - voucherAmount;
+                const isOverdraft = projectedEndingBalance < 0;
+
+                // Company-wide Liquidity Ratio Shift
+                const currentCoverage = unpaidAp > 0 ? (totalLiquidCash / unpaidAp) : (totalLiquidCash > 0 ? 99.9 : 0);
+                const projectedCash = Math.max(0, totalLiquidCash - voucherAmount);
+                const projectedAp = Math.max(0, unpaidAp - voucherAmount);
+                const projectedCoverage = projectedAp > 0 ? (projectedCash / projectedAp) : (projectedCash > 0 ? 99.9 : 0);
+                const isSafetyFloorBreached = projectedCoverage < 1.20;
+
+                // Corporate Tax & EWT Breakdown (BIR Standard)
+                const grossInvoiceAmount = voucherAmount;
+                const netOfVatBase = grossInvoiceAmount / 1.12;
+                const inputVat12 = grossInvoiceAmount - netOfVatBase;
+                const ewtRateVal = ewtType === 'WC158' ? 0.01 : 0.02;
+                const retainedEwt = netOfVatBase * ewtRateVal;
+                const finalNetSettlement = grossInvoiceAmount - retainedEwt;
+
+                return (
+                  <div className="space-y-3.5">
+                    {/* Live Liquidity Simulator Box */}
+                    <div className="rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-gradient-to-br from-indigo-50/70 via-white to-slate-50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 p-3.5 space-y-3 shadow-xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-indigo-100 dark:border-indigo-900/60">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-md bg-indigo-600 text-white flex items-center justify-center">
+                            <Activity size={13} className="animate-pulse" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                            AI Treasury & Liquidity Impact Check
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 font-semibold">
+                          Live Bank Balance Simulation
+                        </span>
+                      </div>
+
+                      {/* Bank Balance Progression */}
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div className="p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Bank Balance</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white text-xs block mt-0.5 tabular-nums">
+                            PHP {selectedBankBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-lg bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/60">
+                          <span className="text-[10px] text-rose-600 dark:text-rose-400 block font-medium">Less: Voucher Payout</span>
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-xs block mt-0.5 tabular-nums">
+                            - PHP {voucherAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className={`p-2 rounded-lg border ${isOverdraft ? 'bg-rose-100 dark:bg-rose-950/70 border-rose-400 text-rose-700 dark:text-rose-300' : 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'}`}>
+                          <span className="text-[10px] block font-medium">Projected Ending</span>
+                          <span className="font-mono font-bold text-xs block mt-0.5 tabular-nums">
+                            PHP {projectedEndingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {isOverdraft && (
+                        <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200 text-[11px] flex items-center gap-2 font-medium animate-pulse">
+                          <AlertTriangle size={14} className="shrink-0" />
+                          <span>CRITICAL OVERDRAFT WARNING: Selected bank account has insufficient balance to cover this voucher payout.</span>
+                        </div>
+                      )}
+
+                      {/* Cash Liquidity Ratio Shift */}
+                      <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block">
+                            Company Cash Liquidity Ratio:
+                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="font-mono font-bold text-slate-600 dark:text-slate-400">
+                              {currentCoverage >= 99 ? '99.9x+' : `${currentCoverage.toFixed(2)}x`}
+                            </span>
+                            <ArrowRight size={11} className="text-slate-400" />
+                            <span className={`font-mono font-bold ${isSafetyFloorBreached ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                              {projectedCoverage >= 99 ? '99.9x+' : `${projectedCoverage.toFixed(2)}x`}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              ({isSafetyFloorBreached ? '⚠️ Below 1.20x Safety Floor' : 'Above 1.20x Safety Floor'})
+                            </span>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${isSafetyFloorBreached ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/70 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300'}`}>
+                          {isSafetyFloorBreached ? 'Tight Liquidity' : 'Healthy Liquidity'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Corporate Tax & BIR EWT Withholding Box */}
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/50 p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Percent size={13} className="text-indigo-600 dark:text-indigo-400" />
+                          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                            Corporate Tax & EWT Breakdown
+                          </span>
+                        </div>
+                        {/* EWT Selector */}
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => setEwtType('WC160')}
+                            className={`px-2 py-0.5 rounded font-medium transition-colors ${ewtType === 'WC160' ? 'bg-indigo-600 text-white font-bold' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'}`}
+                          >
+                            2% WC160 (Services/Rent)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEwtType('WC158')}
+                            className={`px-2 py-0.5 rounded font-medium transition-colors ${ewtType === 'WC158' ? 'bg-indigo-600 text-white font-bold' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'}`}
+                          >
+                            1% WC158 (Goods/Materials)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                          <span>Gross Invoice Amount:</span>
+                          <span className="font-mono text-slate-900 dark:text-white font-semibold">
+                            PHP {grossInvoiceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-slate-500 dark:text-slate-400 text-[11px] pl-2 border-l-2 border-slate-300 dark:border-slate-600">
+                          <span>12% Input VAT (Tax Base: PHP {netOfVatBase.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}):</span>
+                          <span className="font-mono">
+                            PHP {inputVat12.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-amber-700 dark:text-amber-400 font-medium">
+                          <span>Less: Retained EWT ({ewtType === 'WC158' ? '1% WC158' : '2% WC160'} for BIR remittance):</span>
+                          <span className="font-mono">
+                            - PHP {retainedEwt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between pt-1.5 border-t border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs">
+                          <span>Final Net Cash Settlement:</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400 text-sm">
+                            PHP {finalNetSettlement.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 italic pt-1">
+                        <Info size={11} className="shrink-0 text-slate-400" />
+                        <span>Retained tax credited to 2020-Withholding Tax Payable for BIR 1601-EQ & BIR 2307 issuance.</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -871,7 +1081,7 @@ export const DisbursementPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm shadow-emerald-600/30 disabled:opacity-50 transition-all"
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm shadow-emerald-600/30 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   {actionLoading ? 'Processing...' : 'Discharge Cash & Post to GL'}
                 </button>

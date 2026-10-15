@@ -1,7 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { reportsService, FinancialStatementsResponse } from '../../services/reportsService';
-import { Lock, ShieldCheck, AlertCircle, X, CheckCircle2, RefreshCw, Sparkles, TrendingUp, DollarSign } from 'lucide-react';
+import { 
+  Lock, 
+  ShieldCheck, 
+  AlertCircle, 
+  X, 
+  CheckCircle2, 
+  RefreshCw, 
+  Sparkles, 
+  TrendingUp, 
+  DollarSign,
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  Scale,
+  Landmark,
+  Gauge
+} from 'lucide-react';
 
 export const ReportsPage: React.FC = () => {
   const [data, setData] = useState<FinancialStatementsResponse | null>(null);
@@ -118,6 +134,30 @@ export const ReportsPage: React.FC = () => {
 
   const aiInsights = data?.ai_insights || [];
 
+  const currentAssets = bs.assets.total_current_assets;
+  const currentLiabilities = bs.liabilities.total_current_liabilities;
+  const cashAndEquivalents = bs.assets.cash_and_equivalents;
+  const arOutstanding = bs.assets.accounts_receivable;
+  const apOutstanding = bs.liabilities.accounts_payable;
+
+  const liveCurrentRatio = ratios.current_ratio;
+  const liveQuickRatio = ratios.quick_ratio;
+  const liveCashRatio = currentLiabilities > 0 
+    ? (cashAndEquivalents / currentLiabilities).toFixed(2)
+    : (cashAndEquivalents > 0 ? '99.9+' : '0.00');
+  const netWorkingCapital = currentAssets - currentLiabilities;
+  const workingCapitalVelocityFloat = arOutstanding - apOutstanding;
+
+  let liquidityVerdict = 'HEALTHY LIQUIDITY & SOLVENCY';
+  let verdictColor = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30';
+  let verdictDesc = 'Liquid cash reserves and collectible AR comfortably cover near-term trade payables and tax liabilities. System permits discretionary expenditures and capital allocations.';
+
+  if (Number(liveCashRatio) < 0.5 || liveCurrentRatio < 1.0) {
+    liquidityVerdict = 'TIGHT LIQUIDITY / WATCHLIST';
+    verdictColor = 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30';
+    verdictDesc = 'Cash ratio is below 0.50x or Current ratio is below 1.0x. Treasury policy recommends accelerating AR invoice collections before approving non-essential supplier payouts.';
+  }
+
   return (
     <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
       {/* Header */}
@@ -160,6 +200,212 @@ export const ReportsPage: React.FC = () => {
           <span>{error}</span>
         </div>
       )}
+
+      {/* ── Pillar: Liquidity, Solvency & Working Capital Analytics Card ── */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-5 sm:p-6 shadow-sm relative overflow-hidden space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-700/80">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
+              <Scale size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                  Corporate Treasury: Liquidity, Solvency & Working Capital Analytics
+                </h2>
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                  Panel Defense View
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Executive solvency metrics, Acid-Test coverage benchmarks, and cash flow velocity derived from General Ledger balances.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${verdictColor}`}>
+              <ShieldCheck size={14} />
+              <span>{liquidityVerdict}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Core Financial Solvency Tiles */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Tile 1: Current Ratio */}
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Current Ratio</span>
+              <Gauge size={14} className="text-indigo-500" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
+                {liveCurrentRatio}x
+              </span>
+              <span className={`text-[10px] font-bold ${liveCurrentRatio >= 1.5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+                {liveCurrentRatio >= 1.5 ? 'Optimal (>= 1.5x)' : 'Caution (< 1.5x)'}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+              Assets: PHP {currentAssets.toLocaleString('en-US', { maximumFractionDigits: 0 })} / Liab: PHP {currentLiabilities.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+            </div>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/60 dark:border-slate-800">
+              Formula: Current Assets ÷ Current Liabilities
+            </p>
+          </div>
+
+          {/* Tile 2: Quick (Acid-Test) Ratio */}
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Quick (Acid-Test) Ratio</span>
+              <Activity size={14} className="text-emerald-500" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
+                {liveQuickRatio}x
+              </span>
+              <span className={`text-[10px] font-bold ${liveQuickRatio >= 1.0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+                {liveQuickRatio >= 1.0 ? 'Solvent (>= 1.0x)' : 'Constrained (< 1.0x)'}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+              (Cash PHP {cashAndEquivalents.toLocaleString('en-US', { maximumFractionDigits: 0 })} + AR PHP {arOutstanding.toLocaleString('en-US', { maximumFractionDigits: 0 })})
+            </div>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/60 dark:border-slate-800">
+              Formula: (Cash + AR) ÷ Current Liabilities
+            </p>
+          </div>
+
+          {/* Tile 3: Cash Liquidity Ratio */}
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Cash Liquidity Ratio</span>
+              <Landmark size={14} className="text-cyan-500" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
+                {liveCashRatio}x
+              </span>
+              <span className={`text-[10px] font-bold ${Number(liveCashRatio) >= 0.5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+                {Number(liveCashRatio) >= 0.5 ? 'Target (>= 0.5x)' : 'Low Cash (< 0.5x)'}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+              Bank Cash Reserves Only
+            </div>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/60 dark:border-slate-800">
+              Formula: Cash & Bank Balances ÷ Liabilities
+            </p>
+          </div>
+
+          {/* Tile 4: Net Working Capital */}
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+              <span>Net Working Capital</span>
+              <DollarSign size={14} className="text-emerald-500" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className={`text-xl font-bold font-mono ${netWorkingCapital >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                PHP {netWorkingCapital.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">
+              {netWorkingCapital >= 0 ? 'Operational Cushion Surplus' : 'Working Capital Deficit'}
+            </div>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/60 dark:border-slate-800">
+              Formula: Current Assets - Current Liabilities
+            </p>
+          </div>
+        </div>
+
+        {/* 2 Detailed Analytical Strips */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
+          {/* Left: AR vs AP Velocity */}
+          <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Activity size={13} className="text-indigo-600 dark:text-indigo-400" />
+                AR Collection vs. AP Payment Velocity
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${workingCapitalVelocityFloat >= 0 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300'}`}>
+                {workingCapitalVelocityFloat >= 0 ? 'Positive Float (+)' : 'Payable Float (-)'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] text-slate-400 block font-medium">Collectible AR</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white text-xs mt-0.5 block tabular-nums">
+                  PHP {arOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] text-slate-400 block font-medium">Committed AP</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white text-xs mt-0.5 block tabular-nums">
+                  PHP {apOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] text-slate-400 block font-medium">Net Trade Float</span>
+                <span className={`font-mono font-bold text-xs mt-0.5 block tabular-nums ${workingCapitalVelocityFloat >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  PHP {workingCapitalVelocityFloat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {workingCapitalVelocityFloat >= 0 ? (
+                <>
+                  <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">Self-Sustaining Operating Cycle: </strong>
+                  Incoming customer receivables exceed supplier accounts payable by PHP {workingCapitalVelocityFloat.toLocaleString('en-US', { minimumFractionDigits: 2 })}. As customers settle their invoices, incoming cash flow will automatically liquidate supplier obligations without requiring external debt.
+                </>
+              ) : (
+                <>
+                  <strong className="text-amber-600 dark:text-amber-400 font-semibold">Working Capital Caution: </strong>
+                  Supplier accounts payable exceed outstanding receivables. Ensure cash reserves in BDO/BPI bank accounts are reserved for near-term voucher disbursements.
+                </>
+              )}
+            </p>
+          </div>
+
+          {/* Right: Treasury Recommendations for the Defense Panel */}
+          <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/60 via-slate-50/60 to-white dark:from-slate-900/60 dark:via-slate-800/60 dark:to-slate-800/80 border border-indigo-100 dark:border-indigo-900/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles size={13} className="text-indigo-600 dark:text-indigo-400" />
+                Panel Defense: How our system handles Liquidity
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-semibold">
+                Treasury Policy
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {verdictDesc}
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-indigo-100 dark:border-indigo-900/40 text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                <span>1.20x Immediate Cash Floor Enforced</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                <span>Pre-Disbursement Payout Simulator</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                <span>EWT Retained for BIR Remittance</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                <span>Live Subledger Sync to General Ledger</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Statements */}

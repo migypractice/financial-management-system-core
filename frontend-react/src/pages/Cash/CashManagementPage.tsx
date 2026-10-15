@@ -18,6 +18,9 @@ import {
   CreditCard,
   Wallet
 } from 'lucide-react';
+import { apService } from '../../services/apService';
+import { arService } from '../../services/arService';
+import { CorporateLiquidityBanner } from '../../components/treasury/CorporateLiquidityBanner';
 
 /**
  * Real-Time Corporate Treasury & Cash Management Module
@@ -27,6 +30,8 @@ export const CashManagementPage: React.FC = () => {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [summary, setSummary] = useState<BankSummary | null>(null);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
+  const [unpaidAp, setUnpaidAp] = useState<number>(0);
+  const [collectibleAr, setCollectibleAr] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,9 +71,11 @@ export const CashManagementPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setError(null);
-      const [accountsRes, txnsRes] = await Promise.all([
+      const [accountsRes, txnsRes, apRes, arRes] = await Promise.all([
         cashService.getBankAccounts(),
         cashService.getBankTransactions(),
+        apService.getApBills().catch(() => null),
+        arService.getArInvoices().catch(() => null),
       ]);
 
       const safeAccounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
@@ -77,6 +84,8 @@ export const CashManagementPage: React.FC = () => {
       setBankAccounts(safeAccounts);
       setSummary(accountsRes?.summary || null);
       setTransactions(safeTxns);
+      setUnpaidAp(Number(apRes?.summary?.total_payable ?? 0));
+      setCollectibleAr(Number(arRes?.summary?.total_receivable ?? 0));
 
       if (safeAccounts.length >= 2 && !transferForm.from_bank_account_id) {
         setTransferForm(prev => ({
@@ -223,6 +232,14 @@ export const CashManagementPage: React.FC = () => {
           <span>{error}</span>
         </div>
       )}
+
+      {/* Corporate Liquidity & Solvency Monitor Banner */}
+      <CorporateLiquidityBanner
+        liquidCash={Number(summary?.total_cash_in_bank ?? bankAccounts.reduce((sum, b) => sum + Number(b.current_balance), 0))}
+        unpaidAp={unpaidAp}
+        collectibleAr={collectibleAr}
+        onRefresh={handleRefresh}
+      />
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
