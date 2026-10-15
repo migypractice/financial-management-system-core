@@ -14,7 +14,8 @@ import {
   Send,
   X,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 import { apService, ApBillItem, ApBillSummary, Supplier, ChartOfAccountItem } from '../../services/apService';
 import { FileUploadZone } from '../../components/ui/FileUploadZone';
@@ -263,7 +264,7 @@ export const AccountsPayablePage: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-xs shadow-indigo-600/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
             <Plus className="w-4 h-4" />
-            Record Supplier Bill
+            Receive Supplier Bill
           </button>
         </div>
       </div>
@@ -417,7 +418,25 @@ export const AccountsPayablePage: React.FC = () => {
                   return (
                     <tr key={bill.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
                       <td className="py-3.5 px-4">
-                        <span className="font-mono font-bold text-slate-900 dark:text-white block">{bill.bill_number}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">{bill.bill_number}</span>
+                          {bill.ai_audit_badge && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase inline-flex items-center ${
+                                bill.ai_audit_badge === 'AI_VERIFIED'
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                  : bill.ai_audit_badge.includes('DUPLICATE')
+                                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 animate-pulse'
+                                  : bill.ai_audit_badge.includes('OVERRUN')
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                  : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'
+                              }`}
+                              title={`Audit Guard: ${bill.ai_audit_badge}`}
+                            >
+                              {bill.ai_audit_badge === 'AI_VERIFIED' ? '✓ Clean' : bill.ai_audit_badge.replace(/_/g, ' ')}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 mt-0.5">
                           <Calendar className="w-3 h-3 text-slate-400" />
                           {bill.bill_date}
@@ -523,8 +542,8 @@ export const AccountsPayablePage: React.FC = () => {
                   <Plus className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Record Supplier Bill (Money Out)</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Creates obligation and posts balanced GL Journal Entry.</p>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Receive Supplier Bill (Money Out)</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Enter received external supplier invoice, auto-calculate BIR taxes, and queue payment voucher.</p>
                 </div>
               </div>
               <button
@@ -678,6 +697,97 @@ export const AccountsPayablePage: React.FC = () => {
                 />
               </div>
 
+              {/* AI Smart Bookkeeper — Auto-GL & BIR Tax Preview Card */}
+              {(() => {
+                const gross = Number(billForm.total_amount) || 0;
+                const vatable = gross > 0 ? Math.round((gross / 1.12) * 100) / 100 : 0;
+                const inputVat = gross > 0 ? Math.round((gross - vatable) * 100) / 100 : 0;
+                const isGoods = billForm.category_type === 'INVENTORY_PURCHASE';
+                const ewtRate = isGoods ? 1.0 : 2.0;
+                const ewtCode = isGoods ? 'WC158 (1% Goods)' : 'WC160 (2% Services)';
+                const ewtAmount = gross > 0 ? Math.round((vatable * (ewtRate / 100)) * 100) / 100 : 0;
+                const netPayable = gross > 0 ? Math.round((gross - ewtAmount) * 100) / 100 : 0;
+
+                let glLabel = '[1200-INV] Merchandise Inventory';
+                if (billForm.chart_of_account_id) {
+                  const matched = accounts.find((a) => a.id === billForm.chart_of_account_id);
+                  if (matched) glLabel = `[${matched.code}] ${matched.name}`;
+                } else {
+                  switch (billForm.category_type) {
+                    case 'UTILITIES_BILL': glLabel = '[5200-EXP-UTIL] Utilities & Electricity'; break;
+                    case 'FREIGHT_SHIPPING': glLabel = '[5400-EXP-LOGISTICS] Freight & Shipping'; break;
+                    case 'OFFICE_SUPPLIES': glLabel = '[5500-EXP-SUPPLIES] Office Supplies & Tools'; break;
+                    case 'EQUIPMENT_REPAIR': glLabel = '[5500-EXP-SUPPLIES] Equipment Maintenance'; break;
+                    default: glLabel = '[1200-INV] Merchandise Inventory'; break;
+                  }
+                }
+
+                return (
+                  <div className="rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/40 dark:from-indigo-950/40 dark:via-slate-800 dark:to-purple-950/20 p-4 space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs shadow-xs">
+                          <Sparkles size={13} />
+                        </span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                          AI Smart Bookkeeper — Auto-GL & BIR Tax Preview
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700">
+                        BIR Compliant
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
+                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700/80">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">Matched Debit GL</span>
+                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs block truncate" title={glLabel}>
+                          {glLabel}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block truncate">Auto-Classified</span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700/80">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">VATable Base (Net)</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs block">
+                          PHP {vatable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block">Gross / 1.12</span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700/80">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">12% Input VAT</span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs block">
+                          PHP {inputVat.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block">Claimable Tax Credit</span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700/80">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">EWT ({ewtCode})</span>
+                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs block">
+                          PHP {ewtAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block">BIR Form 1601-EQ</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 border-t border-indigo-100 dark:border-indigo-900/40 gap-2 text-xs">
+                      <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px]">
+                        <CheckCircle2 size={13} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span>✓ Automatically queues a verified Payment Voucher in Disbursement Management upon receipt.</span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 mr-2">Net Cash Payable:</span>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">
+                          PHP {netPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Supporting Document Upload Zone */}
               <FileUploadZone
                 file={billAttachment}
@@ -700,7 +810,7 @@ export const AccountsPayablePage: React.FC = () => {
                   disabled={billSubmitting}
                   className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-xs transition-all disabled:opacity-50"
                 >
-                  {billSubmitting ? 'Recording...' : 'Record & Post to GL'}
+                  {billSubmitting ? 'Receiving...' : 'Receive Bill & Post GL'}
                 </button>
               </div>
             </form>

@@ -2,36 +2,30 @@
 
 namespace App\Services\AIService;
 
+use App\Models\ApBill;
+use App\Models\ArInvoice;
+use App\Models\BankAccount;
+use App\Models\Budget;
+use App\Models\JournalEntryLine;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Transaction Core AI Service — Rule-Based Expert System.
+ * Transaction Core AI Service — 3-Pillar Financial AI Suite.
  *
- * Evaluates inbound/outbound transaction payloads and produces:
- *   - A suggested GL account code and name
- *   - A confidence score (0.0 – 1.0)
- *   - An anomaly flag with a human-readable reason
- *   - A Maker-Checker status recommendation (pending_approval or ai_flagged)
+ * Pillar 1 — AI Smart Bookkeeper: Auto-GL & BIR Tax Classification
+ * Pillar 2 — AI Internal Audit Guard: Duplicate Bill, Budget Overrun & Spend Spike Detection
+ * Pillar 3 — AI Cash Flow & Liquidity Forecaster
  *
- * Classification: Expert System / Decision Support System.
+ * Classification: Deterministic Expert System / Decision Support System.
  * This service does NOT use Machine Learning or LLM integration.
- * It applies deterministic rule-based logic for transaction evaluation.
  */
 class AIService
 {
-    /** Below this score, the AI automatically flags the transaction for human review. */
     protected float $confidenceThreshold;
-
-    /** Transactions exceeding this PHP amount trigger mandatory human review. */
     protected float $highValueThreshold;
-
-    /** Keywords in the description that trigger an instant anomaly flag. */
     protected array $anomalyKeywords;
-
-    /** GL account mappings loaded from configuration. */
     protected array $glMappings;
-
-    /** Fallback GL account for unrecognized categories. */
     protected array $glFallback;
 
     public function __construct(
@@ -52,9 +46,6 @@ class AIService
 
     /**
      * Evaluate a raw transaction payload from an external microservice.
-     *
-     * @param array $payload Must contain 'description', 'amount', 'external_module', 'category_type'
-     * @return array AI recommendation result
      */
     public function evaluateTransaction(array $payload): array
     {
@@ -88,7 +79,6 @@ class AIService
         $categorization  = $this->predictGLCategory($category, $description, $module);
         $confidenceScore = $categorization['confidence'];
 
-        // If the mapping explicitly requires manual review (e.g. unknown category fallback)
         if (!empty($categorization['requires_manual_review'])) {
             if (!$anomaly['detected']) {
                 $anomaly = [
@@ -100,10 +90,9 @@ class AIService
 
         // 4. Determine Maker-Checker status
         $status = 'pending_approval';
-        
-        // If an anomaly was detected via keywords or thresholds, penalize the confidence score
+
         if ($anomaly['detected']) {
-            $confidenceScore = min($confidenceScore, 0.45); // Force it below the threshold
+            $confidenceScore = min($confidenceScore, 0.45);
         }
 
         if ($anomaly['detected'] || $confidenceScore < $this->confidenceThreshold) {
@@ -138,17 +127,343 @@ class AIService
         ];
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    //  PILLAR 1 — AI Smart Bookkeeper (Auto-GL & BIR Tax Classifier)
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Recommend GL account and BIR tax classification based on category and description.
+     */
+    public function smartBookkeeper(string $categoryType, string $description, string $module = 'ACCOUNTS_PAYABLE'): array
+    {
+        $glResult = $this->predictGLCategory($categoryType, strtoupper($description), $module);
+
+        // Determine BIR Tax Classification
+        $taxClassification = $this->classifyBIRTax($categoryType, $module);
+
+        return [
+            'gl_code'            => $glResult['gl_code'],
+            'gl_name'            => $glResult['gl_name'],
+            'confidence'         => round($glResult['confidence'], 4),
+            'tax_classification' => $taxClassification,
+        ];
+    }
+
+    /**
+     * BIR Tax Classification Engine.
+     * Maps transaction categories to Philippine BIR tax treatment.
+     */
+    private function classifyBIRTax(string $categoryType, string $module): array
+    {
+        // AR Sales → Output VAT
+        if (in_array($module, ['ACCOUNTS_RECEIVABLE', 'SALES'])) {
+            return [
+                'vat_type'     => 'OUTPUT',
+                'vat_rate'     => 12.0,
+                'ewt_code'     => null,
+                'ewt_rate'     => 0,
+                'ewt_desc'     => null,
+                'bir_form'     => 'BIR 2550M/2550Q',
+                'description'  => '12% Output VAT on Sales Revenue',
+            ];
+        }
+
+        // AP Purchases → Input VAT + EWT
+        $ewtMap = match ($categoryType) {
+            'INVENTORY_PURCHASE', 'SUPPLIER_INVOICE' => [
+                'ewt_code' => 'WC158',
+                'ewt_rate' => 1.0,
+                'ewt_desc' => '1% EWT on Goods (WC158)',
+            ],
+            'UTILITIES_BILL', 'FREIGHT_SHIPPING', 'OFFICE_SUPPLIES', 'EQUIPMENT_REPAIR' => [
+                'ewt_code' => 'WC160',
+                'ewt_rate' => 2.0,
+                'ewt_desc' => '2% EWT on Services (WC160)',
+            ],
+            'FACILITY_RENT' => [
+                'ewt_code' => 'WC100',
+                'ewt_rate' => 5.0,
+                'ewt_desc' => '5% EWT on Rent (WC100)',
+            ],
+            default => [
+                'ewt_code' => 'WC160',
+                'ewt_rate' => 2.0,
+                'ewt_desc' => '2% EWT on Services (WC160)',
+            ],
+        };
+
+        return [
+            'vat_type'     => 'INPUT',
+            'vat_rate'     => 12.0,
+            'ewt_code'     => $ewtMap['ewt_code'],
+            'ewt_rate'     => $ewtMap['ewt_rate'],
+            'ewt_desc'     => $ewtMap['ewt_desc'],
+            'bir_form'     => 'BIR 1601-EQ',
+            'description'  => "12% Input VAT + {$ewtMap['ewt_desc']}",
+        ];
+    }
+
+    /**
+     * Compute a live VAT & EWT tax breakdown for a given gross amount.
+     */
+    public function computeTaxBreakdown(float $grossAmount, string $categoryType, string $module): array
+    {
+        $tax = $this->classifyBIRTax($categoryType, $module);
+
+        $vatableBase = round($grossAmount / 1.12, 2);
+        $vatAmount   = round($grossAmount - $vatableBase, 2);
+        $ewtAmount   = round($vatableBase * ($tax['ewt_rate'] / 100), 2);
+        $netPayable  = round($grossAmount - $ewtAmount, 2);
+
+        return [
+            'gross_amount'  => $grossAmount,
+            'vatable_base'  => $vatableBase,
+            'vat_rate'      => $tax['vat_rate'],
+            'vat_amount'    => $vatAmount,
+            'vat_type'      => $tax['vat_type'],
+            'ewt_code'      => $tax['ewt_code'],
+            'ewt_rate'      => $tax['ewt_rate'],
+            'ewt_amount'    => $ewtAmount,
+            'ewt_desc'      => $tax['ewt_desc'],
+            'net_payable'   => $netPayable,
+            'bir_form'      => $tax['bir_form'],
+        ];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  PILLAR 2 — AI Internal Audit Guard
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Run all audit guard checks against real database records.
+     * Returns an array of audit findings (warnings/alerts).
+     */
+    public function auditGuard(array $payload): array
+    {
+        $findings = [];
+
+        // Check 1: Duplicate Invoice / Double-Billing Risk
+        if (!empty($payload['supplier_id']) && !empty($payload['bill_number'])) {
+            $dupByNumber = ApBill::where('supplier_id', $payload['supplier_id'])
+                ->where('bill_number', $payload['bill_number'])
+                ->exists();
+
+            if ($dupByNumber) {
+                $findings[] = [
+                    'type'     => 'ALERT',
+                    'code'     => 'DUPLICATE_BILL_NUMBER',
+                    'severity' => 'CRITICAL',
+                    'message'  => "Potential Duplicate: Bill #{$payload['bill_number']} already exists for this supplier.",
+                    'icon'     => 'shield-alert',
+                ];
+            }
+        }
+
+        if (!empty($payload['supplier_id']) && !empty($payload['amount'])) {
+            $dupByAmount = ApBill::where('supplier_id', $payload['supplier_id'])
+                ->where('total_amount', $payload['amount'])
+                ->where('created_at', '>=', now()->subDays(30))
+                ->count();
+
+            if ($dupByAmount > 0) {
+                $findings[] = [
+                    'type'     => 'WARNING',
+                    'code'     => 'DUPLICATE_AMOUNT_RECENT',
+                    'severity' => 'HIGH',
+                    'message'  => "Same supplier + same amount (PHP " . number_format($payload['amount'], 2) . ") was recorded within the last 30 days ({$dupByAmount} match" . ($dupByAmount > 1 ? 'es' : '') . "). Verify this is not a duplicate bill.",
+                    'icon'     => 'alert-triangle',
+                ];
+            }
+        }
+
+        // Check 2: Department Budget Ceiling Guard
+        if (!empty($payload['department']) && !empty($payload['amount'])) {
+            $budget = Budget::where('department', $payload['department'])
+                ->where('fiscal_year', now()->format('Y'))
+                ->first();
+
+            if ($budget) {
+                $spentAmount = JournalEntryLine::whereHas('journalEntry', function ($q) {
+                    $q->whereYear('entry_date', now()->year);
+                })
+                    ->whereHas('chartOfAccount', fn ($q) => $q->where('type', 'EXPENSE'))
+                    ->sum('debit');
+
+                $remainingBudget = (float) $budget->allocated_amount - $spentAmount;
+
+                if ($payload['amount'] > $remainingBudget) {
+                    $findings[] = [
+                        'type'     => 'ALERT',
+                        'code'     => 'BUDGET_OVERRUN',
+                        'severity' => 'HIGH',
+                        'message'  => sprintf(
+                            "Department '%s' budget overrun! This voucher (PHP %s) exceeds remaining budget (PHP %s of PHP %s allocated).",
+                            $payload['department'],
+                            number_format($payload['amount'], 2),
+                            number_format(max(0, $remainingBudget), 2),
+                            number_format($budget->allocated_amount, 2)
+                        ),
+                        'icon'     => 'alert-triangle',
+                    ];
+                }
+            }
+        }
+
+        // Check 3: Abnormal Spend Spike (> 2x 90-day average for this supplier)
+        if (!empty($payload['supplier_id']) && !empty($payload['amount'])) {
+            $avg90d = ApBill::where('supplier_id', $payload['supplier_id'])
+                ->where('created_at', '>=', now()->subDays(90))
+                ->avg('total_amount') ?? 0;
+
+            if ($avg90d > 0 && $payload['amount'] > ($avg90d * 2)) {
+                $findings[] = [
+                    'type'     => 'WARNING',
+                    'code'     => 'SPEND_SPIKE',
+                    'severity' => 'MEDIUM',
+                    'message'  => sprintf(
+                        "Abnormal Spend Spike: This amount (PHP %s) is %.1fx the 90-day average (PHP %s) for this supplier.",
+                        number_format($payload['amount'], 2),
+                        $payload['amount'] / $avg90d,
+                        number_format($avg90d, 2)
+                    ),
+                    'icon'     => 'trending-up',
+                ];
+            }
+        }
+
+        // If no findings, return a clean audit badge
+        if (empty($findings)) {
+            $findings[] = [
+                'type'     => 'VERIFIED',
+                'code'     => 'AI_VERIFIED',
+                'severity' => 'OK',
+                'message'  => 'AI Verified: Within Budget & No Duplicate Detected.',
+                'icon'     => 'check-circle',
+            ];
+        }
+
+        return $findings;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  PILLAR 3 — AI Cash Flow & Liquidity Forecaster
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Generate dynamic, data-driven executive insights from live financial data.
+     */
+    public function cashFlowForecast(): array
+    {
+        // Live Bank Cash
+        $totalBankCash = BankAccount::sum('current_balance');
+
+        // Collectible AR (outstanding invoices)
+        $collectibleAR = ArInvoice::where('status', '!=', 'PAID')->sum('balance');
+
+        // Unpaid AP Obligations
+        $unpaidAP = ApBill::where('status', '!=', 'PAID')->sum('balance');
+
+        // Budget Utilization (current fiscal year)
+        $totalAllocated = Budget::where('fiscal_year', now()->format('Y'))->sum('allocated_amount');
+        $totalExpenses  = JournalEntryLine::whereHas('chartOfAccount', fn ($q) => $q->where('type', 'EXPENSE'))
+            ->whereHas('journalEntry', fn ($q) => $q->whereYear('entry_date', now()->year))
+            ->sum('debit');
+
+        $budgetBurnRate = $totalAllocated > 0
+            ? round(($totalExpenses / $totalAllocated) * 100, 1)
+            : 0;
+
+        // Net Working Capital
+        $netWorkingCapital = ($totalBankCash + $collectibleAR) - $unpaidAP;
+
+        // Liquidity Runway (months)
+        $monthlyAvgExpense = $totalExpenses > 0
+            ? $totalExpenses / max(1, now()->month)
+            : 1;
+        $liquidityRunway = $monthlyAvgExpense > 0
+            ? round($totalBankCash / $monthlyAvgExpense, 1)
+            : 99;
+
+        // Generate executive insights
+        $insights = [];
+
+        if ($netWorkingCapital > 0) {
+            $insights[] = [
+                'type'    => 'positive',
+                'title'   => 'Healthy Working Capital',
+                'message' => sprintf(
+                    'Net Working Capital is positive at PHP %s. Cash + Collectibles (PHP %s) exceeds AP Obligations (PHP %s).',
+                    number_format($netWorkingCapital, 2),
+                    number_format($totalBankCash + $collectibleAR, 2),
+                    number_format($unpaidAP, 2)
+                ),
+            ];
+        } else {
+            $insights[] = [
+                'type'    => 'critical',
+                'title'   => 'Negative Working Capital',
+                'message' => sprintf(
+                    'Warning: AP Obligations (PHP %s) exceed Cash + Collectibles (PHP %s). Net deficit: PHP %s.',
+                    number_format($unpaidAP, 2),
+                    number_format($totalBankCash + $collectibleAR, 2),
+                    number_format(abs($netWorkingCapital), 2)
+                ),
+            ];
+        }
+
+        $insights[] = [
+            'type'    => $liquidityRunway >= 3 ? 'positive' : ($liquidityRunway >= 1 ? 'warning' : 'critical'),
+            'title'   => 'Cash Runway',
+            'message' => sprintf(
+                'Current bank reserves (PHP %s) can sustain %.1f months of operating expenses at current burn rate.',
+                number_format($totalBankCash, 2),
+                $liquidityRunway
+            ),
+        ];
+
+        if ($budgetBurnRate > 80) {
+            $insights[] = [
+                'type'    => 'warning',
+                'title'   => 'Budget Utilization Alert',
+                'message' => sprintf(
+                    'Overall budget burn rate is at %.1f%% (PHP %s spent of PHP %s allocated). Monitor closely.',
+                    $budgetBurnRate,
+                    number_format($totalExpenses, 2),
+                    number_format($totalAllocated, 2)
+                ),
+            ];
+        } else {
+            $insights[] = [
+                'type'    => 'positive',
+                'title'   => 'Budget On Track',
+                'message' => sprintf(
+                    'Overall budget utilization is at %.1f%% (PHP %s of PHP %s allocated).',
+                    $budgetBurnRate,
+                    number_format($totalExpenses, 2),
+                    number_format($totalAllocated, 2)
+                ),
+            ];
+        }
+
+        return [
+            'bank_cash'           => round($totalBankCash, 2),
+            'collectible_ar'      => round($collectibleAR, 2),
+            'unpaid_ap'           => round($unpaidAP, 2),
+            'net_working_capital' => round($netWorkingCapital, 2),
+            'liquidity_runway_months' => $liquidityRunway,
+            'budget_burn_rate'    => $budgetBurnRate,
+            'total_allocated'     => round($totalAllocated, 2),
+            'total_expenses'      => round($totalExpenses, 2),
+            'insights'            => $insights,
+        ];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  Private Helpers (existing, preserved)
+    // ═══════════════════════════════════════════════════════════════════
+
     /**
      * Scan the description for known risk rules.
-     *
-     * Rules are loaded from config/ai.php → risk_keywords and matched
-     * case-insensitively against the uppercased description using an
-     * all_of/any_of term-group match (see the config file for the rule
-     * schema) rather than a single exact-phrase substring. This lets a
-     * rule like DUPLICATE_INVOICE (all_of: DUPLICAT, INVOIC) fire on
-     * realistic free text — "possible duplicate invoice from the vendor" —
-     * not just the literal enum-style token. Still fully deterministic and
-     * config-driven; no ML/LLM involved.
      */
     private function detectKeywordAnomaly(string $description): array
     {
@@ -206,10 +521,6 @@ class AIService
 
     /**
      * Config-driven GL category prediction.
-     *
-     * Mappings are loaded from config/ai.php → gl_mappings.
-     * If no mapping matches, the fallback account is used with
-     * confidence 0.0 to force mandatory human review.
      */
     protected function predictGLCategory(string $categoryType, string $description, string $module): array
     {

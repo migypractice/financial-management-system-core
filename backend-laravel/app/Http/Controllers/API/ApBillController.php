@@ -8,9 +8,12 @@ use App\Models\Attachment;
 use App\Models\ChartOfAccount;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
+use App\Models\PaymentRequest;
 use App\Models\Subsystem;
 use App\Models\Supplier;
 use App\Models\Transaction;
+use App\Models\User;
+use App\Services\AIService\AIService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +21,10 @@ use Illuminate\Support\Str;
 
 class ApBillController extends Controller
 {
+    public function __construct(
+        protected AIService $aiService
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $status = $request->query('status');
@@ -44,6 +51,9 @@ class ApBillController extends Controller
                 }
             }
 
+            // Determine origin subsystem label
+            $originLabel = $this->resolveOriginLabel($b->category_type);
+
             return [
                 'id'            => $b->id,
                 'bill_number'   => $b->bill_number,
@@ -60,6 +70,8 @@ class ApBillController extends Controller
                 'status'        => $b->status,
                 'days_past_due' => $daysPastDue,
                 'description'   => $b->description,
+                'origin_label'  => $originLabel,
+                'ai_audit_badge' => $b->ai_audit_badge ?? null,
                 'attachments'   => $b->attachments->map(fn ($a) => [
                     'id'            => $a->id,
                     'file_name'     => $a->file_name,
@@ -116,6 +128,7 @@ class ApBillController extends Controller
             'chart_of_account_id' => 'nullable|exists:chart_of_accounts,id',
             'description'         => 'required|string|max:1000',
             'attachment'          => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // max 5MB
+            'auto_voucher'        => 'nullable|boolean', // default true — auto-generate payment request
         ]);
 
         return DB::transaction(function () use ($validated, $request) {
@@ -138,6 +151,16 @@ class ApBillController extends Controller
 
             $totalAmount = (float) $validated['total_amount'];
 
+            // ── PILLAR 2: AI Audit Guard — run before recording ──
+            $auditFindings = $this->aiService->auditGuard([
+                'supplier_id' => $validated['supplier_id'],
+                'bill_number' => $validated['bill_number'],
+                'amount'      => $totalAmount,
+                'department'  => $user->department ?? 'General',
+            ]);
+
+            $auditBadge = $auditFindings[0]['code'] ?? 'AI_VERIFIED';
+
             // 1. Create AP Bill Record
             $bill = ApBill::create([
                 'bill_number'         => strtoupper(trim($validated['bill_number'])),
@@ -152,12 +175,17 @@ class ApBillController extends Controller
                 'description'         => $validated['description'],
                 'status'              => 'UNPAID',
                 'created_by'          => $user?->id,
+                'ai_audit_badge'      => $auditBadge,
             ]);
 
             // 2. Handle Attached Supporting Document (if uploaded)
+            $hasAttachment = false;
+            $attachmentPath = null;
             if ($request->hasFile('attachment')) {
                 $file = $request->file('attachment');
                 $path = $file->store('attachments/bills', 'public');
+                $hasAttachment = true;
+                $attachmentPath = $path;
 
                 $bill->attachments()->create([
                     'file_name'     => $file->getClientOriginalName(),
@@ -229,11 +257,110 @@ class ApBillController extends Controller
                 'description'         => "Bill #{$bill->bill_number} - {$supplier->name}",
             ]);
 
+            // ── PART 2 FIX: Auto-generate Payment Request Voucher ──
+            // When a Finance Manager or Super Admin receives a supplier bill,
+            // auto-attribute the voucher to a staff/system maker so Maker-Checker
+            // doesn't block the same user from approving during a live demo.
+            $autoVoucher = $validated['auto_voucher'] ?? true;
+            $generatedPR = null;
+
+            if ($autoVoucher) {
+                $makerId = $this->resolveMakerForVoucher($user);
+
+                $prCount = DB::table('payment_requests')->count() + 1;
+                $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
+
+                // Run AI evaluation on the voucher
+                $aiResult = $this->aiService->evaluateTransaction([
+                    'description'     => $validated['description'],
+                    'amount'          => $totalAmount,
+                    'external_module' => 'ACCOUNTS_PAYABLE',
+                    'category_type'   => $validated['category_type'] ?? 'SUPPLIER_INVOICE',
+                ]);
+
+                $generatedPR = PaymentRequest::create([
+                    'request_number'      => $prNumber,
+                    'ap_bill_id'          => $bill->id,
+                    'payee_name'          => $supplier->name,
+                    'amount'              => $totalAmount,
+                    'purpose'             => "Payment for Supplier Bill #{$bill->bill_number} ({$supplier->name})",
+                    'requested_by'        => $makerId,
+                    'status'              => 'PENDING_APPROVAL',
+                    'ai_confidence_score' => $aiResult['ai_confidence_score'],
+                    'ai_anomaly_flag'     => $aiResult['ai_anomaly_flag'],
+                    'ai_anomaly_reason'   => $aiResult['ai_anomaly_reason'],
+                ]);
+
+                // Copy the bill attachment to the payment request
+                if ($attachmentPath) {
+                    $generatedPR->attachments()->create([
+                        'file_name'     => $request->file('attachment')->getClientOriginalName(),
+                        'file_path'     => $attachmentPath,
+                        'mime_type'     => $request->file('attachment')->getClientMimeType(),
+                        'file_size'     => $request->file('attachment')->getSize(),
+                        'document_type' => 'BILLING_STATEMENT',
+                        'uploaded_by'   => $user?->id,
+                    ]);
+                }
+            }
+
+            $responseMessage = "AP Bill #{$bill->bill_number} recorded and posted to General Ledger.";
+            if ($generatedPR) {
+                $responseMessage .= " Disbursement voucher #{$generatedPR->request_number} auto-generated and ready for approval.";
+            }
+
             return response()->json([
-                'success' => true,
-                'message' => "AP Bill #{$bill->bill_number} recorded and posted to General Ledger.",
-                'data'    => $bill->load(['supplier', 'attachments']),
+                'success'        => true,
+                'message'        => $responseMessage,
+                'data'           => $bill->load(['supplier', 'attachments']),
+                'audit_findings' => $auditFindings,
+                'payment_request'=> $generatedPR ? $generatedPR->load(['attachments', 'requester']) : null,
             ], 201);
         });
+    }
+
+    /**
+     * Resolve the maker user ID for auto-generated vouchers.
+     * Finance Manager / Super Admin should NOT be the maker — attribute to
+     * a staff or system_integration user so they can freely approve & disburse.
+     */
+    private function resolveMakerForVoucher($user): string
+    {
+        $role = $user->role->slug ?? $user->role->name ?? '';
+
+        if (in_array($role, ['finance_manager', 'super_admin'])) {
+            // Find a department_viewer or system_integration user
+            $maker = User::whereHas('role', function ($q) {
+                $q->whereIn('slug', ['department_viewer', 'system_integration']);
+            })->first();
+
+            if ($maker) return $maker->id;
+
+            // Fallback: find any staff user that is NOT the current user
+            $staffMaker = User::whereHas('role', function ($q) {
+                $q->where('slug', '!=', 'super_admin')
+                  ->where('slug', '!=', 'finance_manager');
+            })->where('id', '!=', $user->id)->first();
+
+            if ($staffMaker) return $staffMaker->id;
+        }
+
+        return $user->id;
+    }
+
+    /**
+     * Map category type to a human-readable origin / subsystem label.
+     */
+    private function resolveOriginLabel(string $categoryType): string
+    {
+        return match ($categoryType) {
+            'INVENTORY_PURCHASE', 'SUPPLIER_INVOICE' => 'Procurement Subsystem',
+            'UTILITIES_BILL'                         => 'Facilities & Operations',
+            'FREIGHT_SHIPPING'                       => 'Fleet & Logistics',
+            'OFFICE_SUPPLIES', 'EQUIPMENT_REPAIR'    => 'Facilities & Operations',
+            'FACILITY_RENT'                          => 'Facilities & Operations',
+            'PAYROLL_SALARY', 'EMPLOYEE_CLAIM'       => 'HRMS Payroll',
+            default                                  => 'External Subsystem',
+        };
     }
 }

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
-  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X, Sparkles
+  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X, Sparkles,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,24 +22,28 @@ interface NavItem {
   badge?: string;
 }
 
-const navItems: NavItem[] = [
-  { path: '/dashboard',     label: 'Dashboard',          icon: LayoutDashboard },
-  { path: '/approvals',     label: 'AI Approvals',        icon: CheckSquare },
-  { path: '/gl',            label: 'General Ledger',      icon: BookOpen },
-  { path: '/ap',            label: 'Accounts Payable',    icon: CreditCard },
-  { path: '/ar',            label: 'Accounts Receivable', icon: DollarSign },
-  { path: '/disbursements', label: 'Disbursement',        icon: Send },
-  { path: '/collections',  label: 'Collections',          icon: Inbox },
-  { path: '/budget',        label: 'Budget',              icon: PieChart },
-  { path: '/cash',          label: 'Cash Management',     icon: Landmark },
-  { path: '/reports',       label: 'Financial Reports',   icon: BarChart2 },
-  { path: '/tax',           label: 'Tax Management',      icon: Receipt },
-  { path: '/audit-logs',    label: 'Audit Trail',         icon: ShieldCheck },
-  { path: '/simulator',     label: 'M2M Simulator',       icon: Settings },
+// ── 9 Transaction Core Modules (front and center) ──
+const coreModules: NavItem[] = [
+  { path: '/dashboard',     label: 'Dashboard',                icon: LayoutDashboard },
+  { path: '/gl',            label: 'General Ledger',            icon: BookOpen },
+  { path: '/ap',            label: 'Accounts Payable',          icon: CreditCard },
+  { path: '/ar',            label: 'Accounts Receivable',       icon: DollarSign },
+  { path: '/disbursements', label: 'Disbursement Mgmt',         icon: Send },
+  { path: '/collections',   label: 'Collection Mgmt',           icon: Inbox },
+  { path: '/budget',        label: 'Budget Management',         icon: PieChart },
+  { path: '/cash',          label: 'Cash Management',           icon: Landmark },
+  { path: '/reports',       label: 'Reports & Analytics',       icon: BarChart2 },
+  { path: '/tax',           label: 'Tax Management',            icon: Receipt },
+];
+
+// ── Internal Controls & Integration (secondary section) ──
+const internalControls: NavItem[] = [
+  { path: '/simulator',     label: 'Subsystem Simulator',       icon: Zap },
+  { path: '/audit-logs',    label: 'Audit Trail',               icon: ShieldCheck },
 ];
 
 const representativeNotifications = [
-  { id: 1, title: 'Transaction Flagged', desc: 'AI flagged TXN-2026-8801. Awaiting manager review.', time: '2 min ago', type: 'alert', action: 'View Approvals', path: '/approvals' },
+  { id: 1, title: 'Voucher Flagged', desc: 'AI flagged PR-2026-8801. Awaiting manager review.', time: '2 min ago', type: 'alert', action: 'View Vouchers', path: '/disbursements' },
   { id: 2, title: 'GL Aggregation', desc: 'Daily SQL aggregation completed successfully.', time: '1 hr ago', type: 'info' },
   { id: 3, title: 'System Update', desc: 'M2M Simulator v1.0 deployed to staging environment.', time: '3 hrs ago', type: 'info' },
 ];
@@ -196,8 +201,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1.5">
-          {navItems.map((item) => {
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
+          {/* Core Modules Group */}
+          {!collapsed && (
+            <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-blue-300/50">
+              Core Financial Modules
+            </div>
+          )}
+          {coreModules.map((item) => {
             const Icon = item.icon;
             const isActive = activePath === item.path;
             return (
@@ -206,15 +217,55 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 onClick={() => handleNav(item.path)}
                 title={collapsed ? item.label : undefined}
                 style={isActive ? { background: 'linear-gradient(135deg, #4f46e5, #2563eb)' } : undefined}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left group relative ${
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-left group relative ${
                   isActive
                     ? 'text-white shadow-md shadow-blue-900/30'
                     : 'text-blue-200/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <Icon size={17} className="shrink-0" />
+                <Icon size={16} className="shrink-0" />
                 {!collapsed && (
-                  <span className="text-[13px] font-medium truncate flex-1">{item.label}</span>
+                  <span className="text-[12.5px] font-medium truncate flex-1">{item.label}</span>
+                )}
+                {!collapsed && item.badge && (
+                  <span className="min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-red-500 text-white text-[10px] rounded-full font-bold">
+                    {item.badge}
+                  </span>
+                )}
+                {collapsed && item.badge && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
+                )}
+              </button>
+            );
+          })}
+
+          {/* Section Divider */}
+          <div className="my-2 border-t border-white/10" />
+
+          {/* Controls & Audit Group */}
+          {!collapsed && (
+            <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-blue-300/50">
+              Internal Controls & Audit
+            </div>
+          )}
+          {internalControls.map((item) => {
+            const Icon = item.icon;
+            const isActive = activePath === item.path;
+            return (
+              <button
+                key={item.path}
+                onClick={() => handleNav(item.path)}
+                title={collapsed ? item.label : undefined}
+                style={isActive ? { background: 'linear-gradient(135deg, #4f46e5, #2563eb)' } : undefined}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-left group relative ${
+                  isActive
+                    ? 'text-white shadow-md shadow-blue-900/30'
+                    : 'text-blue-200/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Icon size={16} className="shrink-0" />
+                {!collapsed && (
+                  <span className="text-[12.5px] font-medium truncate flex-1">{item.label}</span>
                 )}
                 {!collapsed && item.badge && (
                   <span className="min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-red-500 text-white text-[10px] rounded-full font-bold">

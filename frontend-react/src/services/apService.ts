@@ -38,6 +38,7 @@ export interface ApBillItem {
   status: 'UNPAID' | 'PARTIAL' | 'PAID' | 'OVERDUE';
   days_past_due: number;
   description: string;
+  ai_audit_badge?: string;
   attachments: AttachmentItem[];
 }
 

@@ -418,8 +418,8 @@ export const DisbursementPage: React.FC = () => {
                     <th className="py-3.5 px-4">Purpose / Memo</th>
                     <th className="py-3.5 px-4">Requester</th>
                     <th className="py-3.5 px-4 text-right">Amount</th>
-                    <th className="py-3.5 px-4 text-center">Supporting Doc</th>
-                    <th className="py-3.5 px-4 text-center">AI Risk</th>
+                    <th className="py-3.5 px-4">Supporting Doc</th>
+                    <th className="py-3.5 px-4 text-center">AI Audit Status</th>
                     <th className="py-3.5 px-4 text-center">Status</th>
                     <th className="py-3.5 px-4 text-right">Maker-Checker Actions</th>
                   </tr>
@@ -501,19 +501,23 @@ export const DisbursementPage: React.FC = () => {
                             )}
                           </td>
 
-                          {/* AI Risk Score & Flag */}
+                          {/* AI Internal Audit Status Badge */}
                           <td className="py-3.5 px-4 text-center">
                             {pr.ai_anomaly_flag ? (
                               <span
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 cursor-help"
-                                title={pr.ai_anomaly_reason || 'Anomaly Detected'}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 cursor-help whitespace-nowrap shadow-xs"
+                                title={pr.ai_anomaly_reason || 'AI Audit Anomaly Flagged'}
                               >
-                                <ShieldAlert className="w-3 h-3 text-rose-500" />
-                                Flagged
+                                <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                <span>{pr.ai_anomaly_reason ? (pr.ai_anomaly_reason.length > 28 ? pr.ai_anomaly_reason.substring(0, 26) + '...' : pr.ai_anomaly_reason) : 'AI Warning'}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20">
-                                {Math.round(pr.ai_confidence_score * 100)}% Conf
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/80 whitespace-nowrap shadow-xs"
+                                title={`AI Verified: Within Budget & No Duplicate Detected (${Math.round(pr.ai_confidence_score * 100)}% Confidence)`}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span>AI Verified: Within Budget & No Duplicate</span>
                               </span>
                             )}
                           </td>
@@ -526,7 +530,17 @@ export const DisbursementPage: React.FC = () => {
                           {/* Actions */}
                           <td className="py-3.5 px-4 text-right">
                             {pr.status === 'PENDING_APPROVAL' && (
-                              <div className="flex items-center justify-end gap-1.5">
+                              <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                {pr.ai_anomaly_flag ? (
+                                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 flex items-center gap-1" title={pr.ai_anomaly_reason || ''}>
+                                    <ShieldAlert size={11} /> AI Warning
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1" title="Within Budget & No Duplicate">
+                                    <CheckCircle2 size={11} /> AI Verified
+                                  </span>
+                                )}
+
                                 {isOwner ? (
                                   <span className="text-[11px] text-slate-400 dark:text-slate-500 italic" title="Maker-Checker: You created this voucher and cannot approve it.">
                                     Awaiting Checker
@@ -555,17 +569,22 @@ export const DisbursementPage: React.FC = () => {
                             )}
 
                             {pr.status === 'APPROVED' && (
-                              canDisburse ? (
-                                <button
-                                  onClick={() => handleOpenDisburse(pr)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs shadow-sm transition-all"
-                                >
-                                  <DollarSign className="w-3.5 h-3.5" />
-                                  Release Payout
-                                </button>
-                              ) : (
-                                <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">Ready for Release</span>
-                              )
+                              <div className="flex items-center justify-end gap-2 flex-wrap">
+                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                                  <CheckCircle2 size={11} /> Budget Cleared
+                                </span>
+                                {canDisburse ? (
+                                  <button
+                                    onClick={() => handleOpenDisburse(pr)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs shadow-sm transition-all"
+                                  >
+                                    <DollarSign className="w-3.5 h-3.5" />
+                                    Release Payout
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">Ready for Release</span>
+                                )}
+                              </div>
                             )}
 
                             {pr.status === 'DISBURSED' && (

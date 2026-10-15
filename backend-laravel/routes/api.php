@@ -127,7 +127,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/budgets/history', [\App\Http\Controllers\API\BudgetController::class, 'history']);
     Route::post('/budgets', [\App\Http\Controllers\API\BudgetController::class, 'store'])
         ->middleware('role:super_admin,finance_manager');
-});
 
+    // Tax Management — 100% Live VAT & EWT from AR/AP records
+    Route::get('/tax/summary', [\App\Http\Controllers\API\TaxController::class, 'summary']);
+
+    // Financial Reporting — 100% Live P&L, Balance Sheet, Ratios & AI Insights
+    Route::get('/reports/financial-statements', [\App\Http\Controllers\API\ReportsController::class, 'financialStatements']);
+});
 
 

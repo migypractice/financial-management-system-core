@@ -16,7 +16,8 @@ import {
   RefreshCw,
   CheckCircle2,
   TrendingUp,
-  Receipt
+  Receipt,
+  Sparkles
 } from 'lucide-react';
 import { arService, ArInvoiceItem, ArInvoiceSummary, Customer } from '../../services/arService';
 import { apService, BankAccountItem, ChartOfAccountItem } from '../../services/apService';
@@ -668,6 +669,76 @@ export const AccountsReceivablePage: React.FC = () => {
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
+
+              {/* AI Smart Bookkeeper — Revenue & Output VAT Preview Card */}
+              {(() => {
+                const gross = Number(invoiceForm.total_amount) || 0;
+                const vatable = gross > 0 ? Math.round((gross / 1.12) * 100) / 100 : 0;
+                const outputVat = gross > 0 ? Math.round((gross - vatable) * 100) / 100 : 0;
+
+                let revAccountLabel = '[4000-REV] Sales Revenue';
+                if (invoiceForm.chart_of_account_id) {
+                  const matched = accounts.find((a) => a.id === invoiceForm.chart_of_account_id);
+                  if (matched) revAccountLabel = `[${matched.code}] ${matched.name}`;
+                }
+
+                return (
+                  <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/80 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 p-4 space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs shadow-xs">
+                          <Sparkles size={13} />
+                        </span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                          AI Smart Bookkeeper — Revenue & Output VAT Preview
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        BIR Form 2550M/Q
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
+                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">Matched Credit GL</span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs block truncate" title={revAccountLabel}>
+                          {revAccountLabel}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block truncate">Revenue Classification</span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">VATable Sales (Net of VAT)</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs block">
+                          PHP {vatable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block">Invoice Amount / 1.12</span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">12% Output VAT</span>
+                        <span className="font-mono font-bold text-teal-600 dark:text-teal-400 text-xs block">
+                          PHP {outputVat.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 block">Tax Liability Accrued</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 border-t border-emerald-100 dark:border-emerald-900/40 gap-2 text-xs">
+                      <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px]">
+                        <CheckCircle2 size={13} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span>Balanced Entry: Debit 1120-AR (Asset), Credit Revenue & 2100-VAT Output.</span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 mr-2">Total Customer Receivable:</span>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">
+                          PHP {gross.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Supporting Document Upload Zone */}
               <FileUploadZone

@@ -24,6 +24,7 @@ class ApBill extends Model
         'status',
         'created_by',
         'journal_entry_id',
+        'ai_audit_badge',
     ];
 
     protected $casts = [
