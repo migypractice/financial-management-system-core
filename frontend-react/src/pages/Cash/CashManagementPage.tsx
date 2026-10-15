@@ -130,7 +130,7 @@ export const CashManagementPage: React.FC = () => {
 
     const sourceAccount = bankAccounts.find(b => b.id === transferForm.from_bank_account_id);
     if (sourceAccount && amountNum > sourceAccount.current_balance) {
-      setTransferError(`Insufficient funds in ${sourceAccount.bank_name}. Available: PHP ${sourceAccount.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+      setTransferError(`Insufficient funds in ${sourceAccount.bank_name}. Available: ₱${sourceAccount.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
       return;
     }
 
@@ -187,30 +187,23 @@ export const CashManagementPage: React.FC = () => {
   if (loading) return <SkeletonLoader />;
 
   return (
-    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-full space-y-6">
+    <div className="p-4 lg:p-5 bg-slate-50 dark:bg-slate-900 min-h-full space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-600/20">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-                Corporate Treasury & Cash Management
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Real-time bank liquidity positions, daily cash flow reconciliation, and inter-bank fund transfers.
-              </p>
-            </div>
-          </div>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight">
+            Cash Management
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Monitor bank accounts and cash transfers.
+          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-sm transition-all"
+            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-xs transition-all"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
@@ -218,7 +211,7 @@ export const CashManagementPage: React.FC = () => {
 
           <button
             onClick={() => setIsTransferOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/20 transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all"
           >
             <ArrowLeftRight className="w-3.5 h-3.5" />
             Inter-Bank Transfer
@@ -227,7 +220,7 @@ export const CashManagementPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-3">
+        <div className="p-3.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2.5">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -242,31 +235,27 @@ export const CashManagementPage: React.FC = () => {
       />
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <StatCard
           title="Total Cash in Banks"
-          value={`PHP ${(summary?.total_cash_in_bank ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          accentColor="bg-blue-600"
+          value={`₱${(summary?.total_cash_in_bank ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           subtitle={`Across ${summary?.account_count ?? bankAccounts.length} corporate accounts`}
         />
         <StatCard
-          title="Verified Inflows (Deposits)"
-          value={`PHP ${(summary?.total_inflows ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          accentColor="bg-emerald-500"
+          title="Total Deposits"
+          value={`₱${(summary?.total_inflows ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           isPositive={true}
           subtitle="Customer receipts credited to bank"
         />
         <StatCard
-          title="Verified Outflows (Payouts)"
-          value={`PHP ${(summary?.total_outflows ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          accentColor="bg-rose-500"
+          title="Total Payouts"
+          value={`₱${(summary?.total_outflows ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           isPositive={false}
           subtitle="Approved disbursements released"
         />
         <StatCard
           title="Net Cash Position"
-          value={`PHP ${(summary?.net_cash_flow ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          accentColor="bg-indigo-500"
+          value={`₱${(summary?.net_cash_flow ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           isPositive={(summary?.net_cash_flow ?? 0) >= 0}
           subtitle="Net corporate cash variance"
         />
@@ -308,34 +297,34 @@ export const CashManagementPage: React.FC = () => {
               return (
                 <div
                   key={account.id}
-                  className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-5 shadow-sm flex flex-col justify-between hover:border-blue-400 dark:hover:border-blue-500/50 transition-all"
+                  className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700/80 p-4 shadow-xs flex flex-col justify-between hover:border-blue-400 dark:hover:border-blue-500/50 transition-all"
                 >
                   <div>
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase ${
+                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide ${
                           isPrimary
                             ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
                             : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                         }`}>
                           {account.account_type}
                         </span>
-                        <h3 className="font-bold text-slate-900 dark:text-white text-base mt-2">
+                        <h3 className="font-semibold text-slate-900 dark:text-white text-base mt-2">
                           {account.bank_name}
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400">{account.account_name}</p>
                       </div>
-                      <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center">
                         <Wallet className="w-4 h-4" />
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60">
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60">
                       <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Current Ledger Balance</p>
-                      <p className="font-mono text-xl font-bold text-slate-900 dark:text-white mt-0.5">
-                        PHP {account.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <p className="tabular-nums text-lg font-semibold text-slate-900 dark:text-white mt-0.5">
+                        ₱{account.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </p>
-                      <p className="text-[11px] font-mono text-slate-400 dark:text-slate-500 mt-1">
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                         Acct: {account.account_number}
                       </p>
                     </div>
@@ -362,51 +351,51 @@ export const CashManagementPage: React.FC = () => {
           </div>
 
           {/* Detailed Bank Ledger Table */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm">
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-xs">
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
               <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Bank Balances Breakdown & Audit</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Live beginning balance + real deposits - real disbursements = actual balance.</p>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Bank Balances Breakdown & Audit</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Live beginning balance + deposits - disbursements = actual balance.</p>
               </div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-lg">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
                 Audited: {new Date().toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-slate-700/40 text-slate-500 dark:text-slate-400 font-semibold tracking-wider uppercase text-[11px] border-b border-slate-200 dark:border-slate-700">
+                <thead className="bg-slate-50 dark:bg-slate-700/40 text-slate-600 dark:text-slate-300 font-semibold text-[11px] border-b border-slate-200 dark:border-slate-700">
                   <tr>
-                    <th className="px-5 py-3.5">Bank Institution</th>
-                    <th className="px-5 py-3.5">Account Number</th>
-                    <th className="px-5 py-3.5">Type & Purpose</th>
-                    <th className="px-5 py-3.5 text-right">Beginning Balance</th>
-                    <th className="px-5 py-3.5 text-right text-emerald-600 dark:text-emerald-400">+ Inflows (Deposits)</th>
-                    <th className="px-5 py-3.5 text-right text-rose-600 dark:text-rose-400">- Outflows (Disbursements)</th>
-                    <th className="px-5 py-3.5 text-right">Current Ledger Balance</th>
-                    <th className="px-5 py-3.5 text-center">Status</th>
+                    <th className="px-4 py-2.5">Bank Institution</th>
+                    <th className="px-4 py-2.5">Account Number</th>
+                    <th className="px-4 py-2.5">Type & Purpose</th>
+                    <th className="px-4 py-2.5 text-right">Beginning Balance</th>
+                    <th className="px-4 py-2.5 text-right text-emerald-600 dark:text-emerald-400">+ Inflows (Deposits)</th>
+                    <th className="px-4 py-2.5 text-right text-rose-600 dark:text-rose-400">- Outflows (Disbursements)</th>
+                    <th className="px-4 py-2.5 text-right">Current Ledger Balance</th>
+                    <th className="px-4 py-2.5 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   {bankAccounts.map((b) => (
                     <tr key={b.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="px-5 py-3.5 font-bold text-slate-900 dark:text-white">{b.bank_name}</td>
-                      <td className="px-5 py-3.5 font-mono text-slate-600 dark:text-slate-300">{b.account_number}</td>
-                      <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">{b.account_type}</td>
-                      <td className="px-5 py-3.5 text-right font-mono text-slate-600 dark:text-slate-400">
-                        PHP {b.beginning_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td className="px-4 py-2.5 font-semibold text-slate-900 dark:text-white">{b.bank_name}</td>
+                      <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{b.account_number}</td>
+                      <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{b.account_type}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-400">
+                        ₱{b.beginning_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-5 py-3.5 text-right font-mono font-medium text-emerald-600 dark:text-emerald-400">
-                        +PHP {b.total_inflows.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td className="px-4 py-2.5 text-right tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
+                        +₱{b.total_inflows.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-5 py-3.5 text-right font-mono font-medium text-rose-600 dark:text-rose-400">
-                        -PHP {b.total_outflows.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td className="px-4 py-2.5 text-right tabular-nums font-medium text-rose-600 dark:text-rose-400">
+                        -₱{b.total_outflows.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">
-                        PHP {b.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-900 dark:text-white">
+                        ₱{b.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-5 py-3.5 text-center">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                           <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                           {b.reconciliation_status}
                         </span>
@@ -414,22 +403,22 @@ export const CashManagementPage: React.FC = () => {
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-slate-50/90 dark:bg-slate-800/90 font-bold border-t border-slate-200 dark:border-slate-700">
+                <tfoot className="bg-slate-50/90 dark:bg-slate-800/90 font-semibold border-t border-slate-200 dark:border-slate-700">
                   <tr>
-                    <td colSpan={3} className="px-5 py-3.5 text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
+                    <td colSpan={3} className="px-4 py-2.5 text-slate-900 dark:text-white text-xs">
                       Total Cash Equivalents
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono text-slate-700 dark:text-slate-300">
-                      PHP {bankAccounts.reduce((sum, b) => sum + b.beginning_balance, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-700 dark:text-slate-300">
+                      ₱{bankAccounts.reduce((sum, b) => sum + b.beginning_balance, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono text-emerald-600 dark:text-emerald-400">
-                      +PHP {(summary?.total_inflows ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <td className="px-4 py-2.5 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                      +₱{(summary?.total_inflows ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono text-rose-600 dark:text-rose-400">
-                      -PHP {(summary?.total_outflows ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <td className="px-4 py-2.5 text-right tabular-nums text-rose-600 dark:text-rose-400">
+                      -₱{(summary?.total_outflows ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono text-sm text-blue-600 dark:text-blue-400">
-                      PHP {(summary?.total_cash_in_bank ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <td className="px-4 py-2.5 text-right tabular-nums text-xs text-blue-600 dark:text-blue-400 font-bold">
+                      ₱{(summary?.total_cash_in_bank ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td></td>
                   </tr>
@@ -444,7 +433,7 @@ export const CashManagementPage: React.FC = () => {
       {activeTab === 'ledger' && (
         <div className="space-y-4">
           {/* Controls / Filter Bar */}
-          <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div className="bg-white dark:bg-slate-800 p-3.5 rounded-lg border border-slate-200 dark:border-slate-700/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
               <div className="relative flex-1 sm:w-64">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -453,14 +442,14 @@ export const CashManagementPage: React.FC = () => {
                   placeholder="Search ref, payee, notes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <select
                 value={selectedBankFilter}
                 onChange={(e) => setSelectedBankFilter(e.target.value)}
-                className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
+                className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
               >
                 <option value="ALL">All Bank Accounts</option>
                 {bankAccounts.map((b) => (
@@ -473,7 +462,7 @@ export const CashManagementPage: React.FC = () => {
               <select
                 value={flowFilter}
                 onChange={(e) => setFlowFilter(e.target.value as any)}
-                className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
+                className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
               >
                 <option value="ALL">All Flows (In & Out)</option>
                 <option value="INFLOW">Deposits / Inflows Only</option>
@@ -482,39 +471,39 @@ export const CashManagementPage: React.FC = () => {
             </div>
 
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              Showing <span className="font-bold text-slate-900 dark:text-white">{filteredTransactions.length}</span> bank transaction{filteredTransactions.length === 1 ? '' : 's'}
+              Showing <span className="font-semibold text-slate-900 dark:text-white">{filteredTransactions.length}</span> transaction{filteredTransactions.length === 1 ? '' : 's'}
             </div>
           </div>
 
           {/* Transactions Ledger Table */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-slate-700/40 text-slate-500 dark:text-slate-400 font-semibold tracking-wider uppercase text-[11px] border-b border-slate-200 dark:border-slate-700">
+                <thead className="bg-slate-50 dark:bg-slate-700/40 text-slate-600 dark:text-slate-300 font-semibold text-[11px] border-b border-slate-200 dark:border-slate-700">
                   <tr>
-                    <th className="px-5 py-3.5">Date</th>
-                    <th className="px-5 py-3.5">Flow & Type</th>
-                    <th className="px-5 py-3.5">Bank Institution</th>
-                    <th className="px-5 py-3.5">Reference No.</th>
-                    <th className="px-5 py-3.5">Counterparty & Description</th>
-                    <th className="px-5 py-3.5 text-right">Amount</th>
-                    <th className="px-5 py-3.5 text-center">Status</th>
-                    <th className="px-5 py-3.5 text-center">Attachment</th>
+                    <th className="px-4 py-2.5">Date</th>
+                    <th className="px-4 py-2.5">Flow</th>
+                    <th className="px-4 py-2.5">Bank Institution</th>
+                    <th className="px-4 py-2.5">Reference No.</th>
+                    <th className="px-4 py-2.5">Counterparty & Description</th>
+                    <th className="px-4 py-2.5 text-right">Amount</th>
+                    <th className="px-4 py-2.5 text-center">Status</th>
+                    <th className="px-4 py-2.5 text-center">Attachment</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   {filteredTransactions.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-10 text-center text-slate-400 dark:text-slate-500">
+                      <td colSpan={8} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
                         No transactions found matching criteria.
                       </td>
                     </tr>
                   ) : (
                     filteredTransactions.map((t) => (
                       <tr key={t.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors">
-                        <td className="px-5 py-3.5 font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">{t.date}</td>
-                        <td className="px-5 py-3.5">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">{t.date}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${
                             t.flow_type === 'INFLOW'
                               ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                               : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
@@ -523,26 +512,26 @@ export const CashManagementPage: React.FC = () => {
                             {t.flow_type === 'INFLOW' ? 'DEPOSIT' : 'PAYOUT'}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-4 py-2.5">
                           <div className="font-semibold text-slate-900 dark:text-white">{t.bank_name || 'Bank Account'}</div>
-                          <div className="font-mono text-[10px] text-slate-400">{t.account_number || ''}</div>
+                          <div className="text-[10px] text-slate-400">{t.account_number || ''}</div>
                         </td>
-                        <td className="px-5 py-3.5 font-mono text-slate-700 dark:text-slate-300 font-medium">{t.reference_number}</td>
-                        <td className="px-5 py-3.5 max-w-xs">
+                        <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">{t.reference_number}</td>
+                        <td className="px-4 py-2.5 max-w-xs">
                           <div className="font-medium text-slate-900 dark:text-white truncate">{t.party_name}</div>
                           <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{t.description}</div>
                         </td>
-                        <td className="px-5 py-3.5 text-right font-mono font-bold whitespace-nowrap">
+                        <td className="px-4 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap">
                           <span className={t.flow_type === 'INFLOW' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-                            {t.flow_type === 'INFLOW' ? '+' : '-'}PHP {t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {t.flow_type === 'INFLOW' ? '+' : '-'}₱{t.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-center">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                        <td className="px-4 py-2.5 text-center">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                             {t.status}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-center">
+                        <td className="px-4 py-2.5 text-center">
                           {t.attachment ? (
                             <button
                               onClick={() => setPreviewDoc({
@@ -573,14 +562,12 @@ export const CashManagementPage: React.FC = () => {
       {/* Inter-Bank Fund Transfer Modal */}
       {isTransferOpen && (
         <div className="fixed inset-0 !mt-0 z-[999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                  <ArrowLeftRight className="w-4 h-4" />
-                </div>
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
+              <div className="flex items-center gap-2">
+                <ArrowLeftRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-sm">Inter-Bank Fund Transfer</h3>
+                  <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Inter-Bank Fund Transfer</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Transfer treasury cash between corporate bank accounts</p>
                 </div>
               </div>
@@ -592,16 +579,16 @@ export const CashManagementPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleTransferSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+            <form onSubmit={handleTransferSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
               {transferError && (
-                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>{transferError}</span>
                 </div>
               )}
 
               {transferSuccess && (
-                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>{transferSuccess}</span>
                 </div>
@@ -616,17 +603,17 @@ export const CashManagementPage: React.FC = () => {
                     value={transferForm.from_bank_account_id}
                     onChange={(e) => setTransferForm({ ...transferForm, from_bank_account_id: e.target.value })}
                     required
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {bankAccounts.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.bank_name} (PHP {b.current_balance.toLocaleString()})
+                        {b.bank_name} (₱{b.current_balance.toLocaleString()})
                       </option>
                     ))}
                   </select>
                   {sourceAccount && (
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                      Available: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">PHP {sourceAccount.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      Available: <span className="tabular-nums font-semibold text-slate-800 dark:text-slate-200">₱{sourceAccount.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </p>
                   )}
                 </div>
@@ -639,7 +626,7 @@ export const CashManagementPage: React.FC = () => {
                     value={transferForm.to_bank_account_id}
                     onChange={(e) => setTransferForm({ ...transferForm, to_bank_account_id: e.target.value })}
                     required
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {bankAccounts.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -653,7 +640,7 @@ export const CashManagementPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Transfer Amount (PHP)
+                    Transfer Amount (₱)
                   </label>
                   <input
                     type="number"
@@ -663,7 +650,7 @@ export const CashManagementPage: React.FC = () => {
                     value={transferForm.amount}
                     onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
                     required
-                    className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-xs tabular-nums font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -676,7 +663,7 @@ export const CashManagementPage: React.FC = () => {
                     value={transferForm.transfer_date}
                     onChange={(e) => setTransferForm({ ...transferForm, transfer_date: e.target.value })}
                     required
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -690,7 +677,7 @@ export const CashManagementPage: React.FC = () => {
                   placeholder="e.g. TRF-202610-098"
                   value={transferForm.reference_number}
                   onChange={(e) => setTransferForm({ ...transferForm, reference_number: e.target.value })}
-                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -703,22 +690,22 @@ export const CashManagementPage: React.FC = () => {
                   placeholder="e.g. Replenishment of AP and Payroll disbursement account"
                   value={transferForm.notes}
                   onChange={(e) => setTransferForm({ ...transferForm, notes: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-700">
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setIsTransferOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  className="px-3.5 py-2 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={transferSubmitting}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:opacity-50 transition-all"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs disabled:opacity-50 transition-all"
                 >
                   {transferSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ArrowLeftRight className="w-3.5 h-3.5" />}
                   Execute Transfer

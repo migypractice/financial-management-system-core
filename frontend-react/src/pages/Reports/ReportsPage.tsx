@@ -163,16 +163,11 @@ export const ReportsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Financial Reporting & Analytics
-            </h1>
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700">
-              100% Live Subledger Sync
-            </span>
-          </div>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
+            Financial Statements & Reporting
+          </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Automated P&L, Balance Sheet, Financial Ratios, and AI Cash Flow Insights generated directly from General Ledger.
+            Financial statements and accounting reports.
           </p>
         </div>
 
@@ -202,154 +197,151 @@ export const ReportsPage: React.FC = () => {
       )}
 
       {/* ── Pillar: Liquidity, Solvency & Working Capital Analytics Card ── */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-5 sm:p-6 shadow-sm relative overflow-hidden space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-700/80">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700/80 p-5 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
-              <Scale size={20} />
+            <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/40">
+              <Scale size={18} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                  Corporate Treasury: Liquidity, Solvency & Working Capital Analytics
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Corporate Treasury: Liquidity, Solvency & Working Capital
                 </h2>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                  Panel Defense View
-                </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Executive solvency metrics, Acid-Test coverage benchmarks, and cash flow velocity derived from General Ledger balances.
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Solvency metrics, coverage benchmarks, and cash flow velocity derived from General Ledger.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 self-start md:self-auto">
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${verdictColor}`}>
-              <ShieldCheck size={14} />
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${verdictColor}`}>
+              <ShieldCheck size={13} />
               <span>{liquidityVerdict}</span>
             </span>
           </div>
         </div>
 
         {/* 4 Core Financial Solvency Tiles */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Tile 1: Current Ratio */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+          <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
               <span>Current Ratio</span>
               <Gauge size={14} className="text-indigo-500" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
+              <span className="text-xl font-bold tabular-nums text-slate-900 dark:text-white">
                 {liveCurrentRatio}x
               </span>
-              <span className={`text-[10px] font-bold ${liveCurrentRatio >= 1.5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+              <span className={`text-[10px] font-semibold ${liveCurrentRatio >= 1.5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
                 {liveCurrentRatio >= 1.5 ? 'Optimal (>= 1.5x)' : 'Caution (< 1.5x)'}
               </span>
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-              Assets: PHP {currentAssets.toLocaleString('en-US', { maximumFractionDigits: 0 })} / Liab: PHP {currentLiabilities.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+              Assets: ₱{currentAssets.toLocaleString('en-US', { maximumFractionDigits: 0 })} / Liab: ₱{currentLiabilities.toLocaleString('en-US', { maximumFractionDigits: 0 })}
             </div>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/60 dark:border-slate-800">
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/60 dark:border-slate-800">
               Formula: Current Assets ÷ Current Liabilities
             </p>
           </div>
 
           {/* Tile 2: Quick (Acid-Test) Ratio */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+          <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
               <span>Quick (Acid-Test) Ratio</span>
               <Activity size={14} className="text-emerald-500" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
+              <span className="text-xl font-bold tabular-nums text-slate-900 dark:text-white">
                 {liveQuickRatio}x
               </span>
-              <span className={`text-[10px] font-bold ${liveQuickRatio >= 1.0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+              <span className={`text-[10px] font-semibold ${liveQuickRatio >= 1.0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
                 {liveQuickRatio >= 1.0 ? 'Solvent (>= 1.0x)' : 'Constrained (< 1.0x)'}
               </span>
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-              (Cash PHP {cashAndEquivalents.toLocaleString('en-US', { maximumFractionDigits: 0 })} + AR PHP {arOutstanding.toLocaleString('en-US', { maximumFractionDigits: 0 })})
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+              (Cash ₱{cashAndEquivalents.toLocaleString('en-US', { maximumFractionDigits: 0 })} + AR ₱{arOutstanding.toLocaleString('en-US', { maximumFractionDigits: 0 })})
             </div>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/60 dark:border-slate-800">
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/60 dark:border-slate-800">
               Formula: (Cash + AR) ÷ Current Liabilities
             </p>
           </div>
 
           {/* Tile 3: Cash Liquidity Ratio */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+          <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
               <span>Cash Liquidity Ratio</span>
               <Landmark size={14} className="text-cyan-500" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
+              <span className="text-xl font-bold tabular-nums text-slate-900 dark:text-white">
                 {liveCashRatio}x
               </span>
-              <span className={`text-[10px] font-bold ${Number(liveCashRatio) >= 0.5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+              <span className={`text-[10px] font-semibold ${Number(liveCashRatio) >= 0.5 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
                 {Number(liveCashRatio) >= 0.5 ? 'Target (>= 0.5x)' : 'Low Cash (< 0.5x)'}
               </span>
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">
               Bank Cash Reserves Only
             </div>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/60 dark:border-slate-800">
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/60 dark:border-slate-800">
               Formula: Cash & Bank Balances ÷ Liabilities
             </p>
           </div>
 
           {/* Tile 4: Net Working Capital */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
+          <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
               <span>Net Working Capital</span>
               <DollarSign size={14} className="text-emerald-500" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className={`text-xl font-bold font-mono ${netWorkingCapital >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                PHP {netWorkingCapital.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className={`text-xl font-bold tabular-nums ${netWorkingCapital >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                ₱{netWorkingCapital.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400">
               {netWorkingCapital >= 0 ? 'Operational Cushion Surplus' : 'Working Capital Deficit'}
             </div>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/60 dark:border-slate-800">
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/60 dark:border-slate-800">
               Formula: Current Assets - Current Liabilities
             </p>
           </div>
         </div>
 
         {/* 2 Detailed Analytical Strips */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-1">
           {/* Left: AR vs AP Velocity */}
-          <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+          <div className="p-3.5 rounded-lg bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-700/80 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
                 <Activity size={13} className="text-indigo-600 dark:text-indigo-400" />
                 AR Collection vs. AP Payment Velocity
               </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${workingCapitalVelocityFloat >= 0 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300'}`}>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${workingCapitalVelocityFloat >= 0 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300'}`}>
                 {workingCapitalVelocityFloat >= 0 ? 'Positive Float (+)' : 'Payable Float (-)'}
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <span className="text-[10px] text-slate-400 block font-medium">Collectible AR</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white text-xs mt-0.5 block tabular-nums">
-                  PHP {arOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span className="font-semibold text-slate-900 dark:text-white text-xs mt-0.5 block tabular-nums">
+                  ₱{arOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <span className="text-[10px] text-slate-400 block font-medium">Committed AP</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white text-xs mt-0.5 block tabular-nums">
-                  PHP {apOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span className="font-semibold text-slate-900 dark:text-white text-xs mt-0.5 block tabular-nums">
+                  ₱{apOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <span className="text-[10px] text-slate-400 block font-medium">Net Trade Float</span>
-                <span className={`font-mono font-bold text-xs mt-0.5 block tabular-nums ${workingCapitalVelocityFloat >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                  PHP {workingCapitalVelocityFloat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span className={`font-semibold text-xs mt-0.5 block tabular-nums ${workingCapitalVelocityFloat >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  ₱{workingCapitalVelocityFloat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -358,7 +350,7 @@ export const ReportsPage: React.FC = () => {
               {workingCapitalVelocityFloat >= 0 ? (
                 <>
                   <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">Self-Sustaining Operating Cycle: </strong>
-                  Incoming customer receivables exceed supplier accounts payable by PHP {workingCapitalVelocityFloat.toLocaleString('en-US', { minimumFractionDigits: 2 })}. As customers settle their invoices, incoming cash flow will automatically liquidate supplier obligations without requiring external debt.
+                  Incoming customer receivables exceed supplier accounts payable by ₱{workingCapitalVelocityFloat.toLocaleString('en-US', { minimumFractionDigits: 2 })}. Incoming cash flow from collected invoices covers supplier obligations without external debt.
                 </>
               ) : (
                 <>
@@ -369,14 +361,14 @@ export const ReportsPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Right: Treasury Recommendations for the Defense Panel */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/60 via-slate-50/60 to-white dark:from-slate-900/60 dark:via-slate-800/60 dark:to-slate-800/80 border border-indigo-100 dark:border-indigo-900/40 space-y-3">
+          {/* Right: Treasury Recommendations */}
+          <div className="p-3.5 rounded-lg bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-700/80 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
                 <Sparkles size={13} className="text-indigo-600 dark:text-indigo-400" />
-                Panel Defense: How our system handles Liquidity
+                Treasury Policy & Liquidity Controls
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-semibold">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 font-medium border border-slate-200 dark:border-slate-700">
                 Treasury Policy
               </span>
             </div>
@@ -385,10 +377,10 @@ export const ReportsPage: React.FC = () => {
               {verdictDesc}
             </p>
 
-            <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-indigo-100 dark:border-indigo-900/40 text-slate-600 dark:text-slate-400">
+            <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-                <span>1.20x Immediate Cash Floor Enforced</span>
+                <span>1.20x Cash Floor Enforced</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
@@ -400,7 +392,7 @@ export const ReportsPage: React.FC = () => {
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-                <span>Live Subledger Sync to General Ledger</span>
+                <span>Automated General Ledger Posting</span>
               </div>
             </div>
           </div>
@@ -426,46 +418,46 @@ export const ReportsPage: React.FC = () => {
               {/* Revenue */}
               <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2">
                 <span className="font-semibold text-slate-900 dark:text-white">Total Gross Revenue</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">
-                  PHP {is.total_revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                <span className="tabular-nums font-semibold text-slate-900 dark:text-white">
+                  ₱{is.total_revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
 
               {is.revenue_detail.map((rev) => (
                 <div key={rev.code} className="flex justify-between items-center pl-4 text-xs text-slate-600 dark:text-slate-400">
                   <span>{rev.code} — {rev.name}</span>
-                  <span className="font-mono">PHP {rev.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <span className="tabular-nums">₱{rev.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
               ))}
 
               {/* COGS */}
               <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2 pl-4">
                 <span className="text-slate-600 dark:text-slate-400">Less: Cost of Goods Sold (COGS)</span>
-                <span className="font-mono text-slate-600 dark:text-slate-400">
-                  (PHP {is.total_cogs.toLocaleString('en-US', { minimumFractionDigits: 2 })})
+                <span className="tabular-nums text-slate-600 dark:text-slate-400">
+                  (₱{is.total_cogs.toLocaleString('en-US', { minimumFractionDigits: 2 })})
                 </span>
               </div>
 
               {/* Gross Profit */}
               <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2 bg-slate-50/60 dark:bg-slate-700/20 px-3 py-2 rounded-lg">
                 <span className="font-semibold text-slate-900 dark:text-white">Gross Profit</span>
-                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                  PHP {is.gross_profit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                <span className="tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">
+                  ₱{is.gross_profit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
 
               {/* Operating Expenses */}
               <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2">
                 <span className="font-semibold text-slate-900 dark:text-white">Operating Expenses</span>
-                <span className="font-mono text-slate-600 dark:text-slate-400">
-                  (PHP {is.total_expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })})
+                <span className="tabular-nums text-slate-600 dark:text-slate-400">
+                  (₱{is.total_expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })})
                 </span>
               </div>
 
               {is.expense_detail.map((exp) => (
                 <div key={exp.code} className="flex justify-between items-center pl-4 text-xs text-slate-600 dark:text-slate-400">
                   <span>{exp.code} — {exp.name}</span>
-                  <span className="font-mono">(PHP {exp.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })})</span>
+                  <span className="tabular-nums">(₱{exp.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })})</span>
                 </div>
               ))}
 
@@ -473,13 +465,13 @@ export const ReportsPage: React.FC = () => {
               <div className="flex justify-between items-center pt-3 border-t-2 border-slate-200 dark:border-slate-700">
                 <span className="font-bold text-base text-slate-900 dark:text-white">Net Income / (Loss)</span>
                 <span
-                  className={`font-mono text-base font-bold border-double border-b-4 ${
+                  className={`tabular-nums text-base font-bold border-double border-b-4 ${
                     is.net_income >= 0
                       ? 'text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700'
                       : 'text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700'
                   }`}
                 >
-                  PHP {is.net_income.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  ₱{is.net_income.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -501,26 +493,26 @@ export const ReportsPage: React.FC = () => {
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">Cash & Bank Accounts</span>
-                    <span className="font-mono text-slate-900 dark:text-white">
-                      PHP {bs.assets.cash_and_equivalents.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span className="tabular-nums font-medium text-slate-900 dark:text-white">
+                      ₱{bs.assets.cash_and_equivalents.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">Accounts Receivable (AR)</span>
-                    <span className="font-mono text-slate-900 dark:text-white">
-                      PHP {bs.assets.accounts_receivable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span className="tabular-nums font-medium text-slate-900 dark:text-white">
+                      ₱{bs.assets.accounts_receivable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">Merchandise Inventory</span>
-                    <span className="font-mono text-slate-900 dark:text-white">
-                      PHP {bs.assets.merchandise_inventory.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span className="tabular-nums font-medium text-slate-900 dark:text-white">
+                      ₱{bs.assets.merchandise_inventory.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-slate-700 font-bold text-sm">
                     <span className="text-slate-900 dark:text-white">Total Assets</span>
-                    <span className="font-mono text-emerald-700 dark:text-emerald-400">
-                      PHP {bs.assets.total_current_assets.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span className="tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">
+                      ₱{bs.assets.total_current_assets.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
@@ -533,32 +525,32 @@ export const ReportsPage: React.FC = () => {
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">Accounts Payable (AP)</span>
-                    <span className="font-mono text-slate-900 dark:text-white">
-                      PHP {bs.liabilities.accounts_payable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span className="tabular-nums font-medium text-slate-900 dark:text-white">
+                      ₱{bs.liabilities.accounts_payable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">Estimated Tax Payable</span>
-                    <span className="font-mono text-slate-900 dark:text-white">
-                      PHP {bs.liabilities.tax_payable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span className="tabular-nums font-medium text-slate-900 dark:text-white">
+                      ₱{bs.liabilities.tax_payable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between pt-1 border-t border-slate-100 dark:border-slate-700 font-medium">
                     <span className="text-slate-700 dark:text-slate-300">Total Liabilities</span>
-                    <span className="font-mono text-slate-900 dark:text-white">
-                      PHP {bs.liabilities.total_current_liabilities.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span className="tabular-nums font-medium text-slate-900 dark:text-white">
+                      ₱{bs.liabilities.total_current_liabilities.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between pt-1 text-slate-600 dark:text-slate-400">
                     <span>Retained Earnings / Equity</span>
-                    <span className="font-mono text-slate-900 dark:text-white">
-                      PHP {bs.equity.total_equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span className="tabular-nums font-medium text-slate-900 dark:text-white">
+                      ₱{bs.equity.total_equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-slate-700 font-bold text-sm">
                     <span className="text-slate-900 dark:text-white">Total L & E</span>
-                    <span className="font-mono text-emerald-700 dark:text-emerald-400">
-                      PHP {(bs.liabilities.total_current_liabilities + bs.equity.total_equity).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span className="tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">
+                      ₱{(bs.liabilities.total_current_liabilities + bs.equity.total_equity).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
@@ -569,15 +561,15 @@ export const ReportsPage: React.FC = () => {
 
         {/* Right Column: AI Cash Flow Insights & Ratios */}
         <div className="space-y-6">
-          {/* AI Financial Insights (Pillar 3) */}
+          {/* AI Financial Insights */}
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-150 dark:border-slate-700 p-5 bg-gradient-to-br from-indigo-50/50 dark:from-indigo-900/20 to-white dark:to-slate-800 shadow-xs">
             <div className="flex items-center gap-2 mb-4">
               <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-600 text-white shadow-xs">
                 <Sparkles size={15} />
               </span>
               <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white">AI Financial Insights</h2>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Pillar 3: Cash Flow & Liquidity Forecaster</p>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">AI Financial Insights</h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Cash Flow & Liquidity Summary</p>
               </div>
             </div>
 
@@ -622,7 +614,7 @@ export const ReportsPage: React.FC = () => {
                   <p className="font-medium text-slate-700 dark:text-slate-300">Current Ratio</p>
                   <p className="text-[10px] text-slate-400">Current Assets / Current Liabilities</p>
                 </div>
-                <span className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                <span className="tabular-nums font-semibold text-sm text-emerald-600 dark:text-emerald-400">
                   {ratios.current_ratio}x
                 </span>
               </div>
@@ -631,7 +623,7 @@ export const ReportsPage: React.FC = () => {
                   <p className="font-medium text-slate-700 dark:text-slate-300">Quick Ratio (Acid-Test)</p>
                   <p className="text-[10px] text-slate-400">(Cash + AR) / Liabilities</p>
                 </div>
-                <span className="font-mono font-bold text-sm text-indigo-600 dark:text-indigo-400">
+                <span className="tabular-nums font-semibold text-sm text-indigo-600 dark:text-indigo-400">
                   {ratios.quick_ratio}x
                 </span>
               </div>
@@ -640,7 +632,7 @@ export const ReportsPage: React.FC = () => {
                   <p className="font-medium text-slate-700 dark:text-slate-300">Net Profit Margin</p>
                   <p className="text-[10px] text-slate-400">Net Income / Total Revenue</p>
                 </div>
-                <span className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                <span className="tabular-nums font-semibold text-sm text-slate-900 dark:text-white">
                   {ratios.net_profit_margin}%
                 </span>
               </div>
@@ -649,7 +641,7 @@ export const ReportsPage: React.FC = () => {
                   <p className="font-medium text-slate-700 dark:text-slate-300">Budget Burn Rate</p>
                   <p className="text-[10px] text-slate-400">Actual YTD Expenses / Allocated Budget</p>
                 </div>
-                <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400">
+                <span className="tabular-nums font-semibold text-sm text-amber-600 dark:text-amber-400">
                   {ratios.budget_burn_rate}%
                 </span>
               </div>
@@ -693,7 +685,7 @@ export const ReportsPage: React.FC = () => {
                   autoFocus={idx === 0}
                   onChange={(e) => handleMpinChange(idx, e.target.value)}
                   onKeyDown={(e) => handleMpinKeyDown(idx, e)}
-                  className={`w-12 h-14 text-center font-mono text-2xl font-bold rounded-xl border transition-all bg-slate-950 text-white focus:outline-none ${
+                  className={`w-12 h-14 text-center tabular-nums text-2xl font-bold rounded-xl border transition-all bg-slate-950 text-white focus:outline-none ${
                     mpinError
                       ? 'border-rose-500 shadow-rose-500/20 shadow-lg animate-shake'
                       : isSuccess

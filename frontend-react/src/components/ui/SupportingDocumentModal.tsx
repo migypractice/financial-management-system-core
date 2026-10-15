@@ -256,7 +256,7 @@ export const SupportingDocumentModal: React.FC<SupportingDocumentModalProps> = (
               <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">
                 Voucher & Supporting Document Preview
               </h3>
-              <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] font-sans tabular-nums text-slate-500 dark:text-slate-400">
                 Ref: {tx.transactionCode} &bull; {tx.externalModule}
               </p>
             </div>
@@ -312,7 +312,7 @@ export const SupportingDocumentModal: React.FC<SupportingDocumentModalProps> = (
               }`}>
                 {doc.isAnomaly ? 'AUDIT HOLD / FLAGGED' : '3-WAY MATCH CLEARED'}
               </span>
-              <p className="font-mono text-sm font-bold text-slate-900 dark:text-white">
+              <p className="font-sans tabular-nums text-sm font-bold text-slate-900 dark:text-white">
                 {doc.docNumber}
               </p>
               <p className="text-[10px] text-slate-500">
@@ -329,7 +329,7 @@ export const SupportingDocumentModal: React.FC<SupportingDocumentModalProps> = (
             </div>
             <div className="sm:text-right">
               <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Category & Origin</p>
-              <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 font-mono">
+              <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 font-sans tabular-nums">
                 {tx.externalModule} &bull; {tx.categoryType}
               </p>
             </div>
@@ -340,14 +340,14 @@ export const SupportingDocumentModal: React.FC<SupportingDocumentModalProps> = (
             <div className="space-y-1">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Payee / Issuer</p>
               <p className="text-xs font-bold text-slate-900 dark:text-white">{doc.issuerName}</p>
-              <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{doc.issuerTin}</p>
+              <p className="text-[11px] font-sans tabular-nums text-slate-500 dark:text-slate-400">{doc.issuerTin}</p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{doc.issuerAddress}</p>
             </div>
             <div className="space-y-1 sm:text-right">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Payment & Bank Details</p>
               <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{doc.payeeAccount}</p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">Payment Term: <strong className="text-slate-700 dark:text-slate-300">{doc.paymentTerm}</strong></p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Currency: <strong className="font-mono text-slate-700 dark:text-slate-300">{tx.currency || 'PHP'}</strong></p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Currency: <strong className="font-sans text-slate-700 dark:text-slate-300">₱ (PHP)</strong></p>
             </div>
           </div>
 
@@ -360,7 +360,7 @@ export const SupportingDocumentModal: React.FC<SupportingDocumentModalProps> = (
               <div className="col-span-2 sm:col-span-1 text-right">Total</div>
             </div>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-700/60 font-mono text-xs">
+            <div className="divide-y divide-slate-100 dark:divide-slate-700/60 font-sans tabular-nums text-xs">
               {doc.items.map((item, idx) => (
                 <div key={idx} className="p-3 grid grid-cols-12 gap-2 items-center hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                   <div className="col-span-6 sm:col-span-7 font-sans font-medium text-slate-800 dark:text-slate-200">
@@ -380,7 +380,7 @@ export const SupportingDocumentModal: React.FC<SupportingDocumentModalProps> = (
             </div>
 
             {/* Total Computation Box */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-700 space-y-1.5 font-mono text-xs">
+            <div className="p-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-700 space-y-1.5 font-sans tabular-nums text-xs">
               <div className="flex justify-between text-slate-600 dark:text-slate-400">
                 <span>Subtotal (Net of Tax):</span>
                 <span>₱{doc.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
@@ -421,7 +421,7 @@ export const SupportingDocumentModal: React.FC<SupportingDocumentModalProps> = (
 
             <div className="shrink-0 text-right sm:border-l sm:pl-4 border-slate-300 dark:border-slate-700">
               <p className="text-[10px] uppercase font-bold text-slate-500">AI Confidence</p>
-              <p className="text-lg font-bold font-mono">
+              <p className="text-lg font-bold font-sans tabular-nums">
                 {Math.round(tx.aiConfidenceScore * 100)}%
               </p>
             </div>

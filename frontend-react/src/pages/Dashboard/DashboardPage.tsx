@@ -211,8 +211,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               <Clock size={20} />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Maker-Checker Approvals</p>
-              <h4 className="text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Approvals</p>
+              <h4 className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">
                 {pendingApprovalsCount} Transactions
               </h4>
             </div>
@@ -231,8 +231,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               <CheckCircle2 size={20} />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Posted Journal Vouchers</p>
-              <h4 className="text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Posted Journal Vouchers</p>
+              <h4 className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">
                 {postedCount} Balanced
               </h4>
             </div>
@@ -316,7 +316,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
                   >
                     <td className="px-5 py-3.5">
-                      <p className="font-mono text-xs font-semibold text-slate-900 dark:text-slate-100">{tx.code}</p>
+                      <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{tx.code}</p>
                       <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{tx.time}</p>
                     </td>
                     <td className="px-5 py-3.5">
@@ -325,7 +325,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     <td className="px-5 py-3.5">
                       <StatusBadge status={tx.status} />
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono text-xs font-bold text-slate-900 dark:text-white tabular-nums">
+                    <td className="px-5 py-3.5 text-right text-xs font-bold text-slate-900 dark:text-white tabular-nums">
                       {tx.flowType === 'OUTBOUND' ? '-' : '+'}₱{tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                   </tr>

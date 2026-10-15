@@ -222,48 +222,41 @@ export const AccountsPayablePage: React.FC = () => {
   if (loading) return <SkeletonLoader />;
 
   return (
-    <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-full space-y-6">
+    <div className="p-4 lg:p-5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-full space-y-4">
       {/* Toast Notification */}
       {successToast && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-xl backdrop-blur-md animate-slideDown">
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-xl backdrop-blur-md animate-slideDown">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           <span className="text-xs font-semibold">{successToast}</span>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 gap-3">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-xs">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Accounts Payable (AP)
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                Supplier bills, verified aging schedule, and payout authorization with supporting documents.
-              </p>
-            </div>
-          </div>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">
+            Accounts Payable (AP)
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Track supplier bills and schedule payments.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             onClick={refreshBills}
             disabled={refreshing}
-            className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-xs font-semibold shadow-xs"
+            className="p-2 sm:px-3 sm:py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-xs font-semibold shadow-xs"
             title="Refresh Data"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-indigo-500' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-500' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
           <button
             onClick={() => setIsBillModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-xs shadow-indigo-600/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-all"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             Receive Supplier Bill
           </button>
         </div>
@@ -271,66 +264,61 @@ export const AccountsPayablePage: React.FC = () => {
 
       {/* Real AP Aging Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-xs relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Outstanding</span>
-            <DollarSign className="w-4 h-4 text-indigo-500" />
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg p-3.5 shadow-xs">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Total Outstanding</span>
+            <DollarSign className="w-4 h-4 text-slate-400" />
           </div>
-          <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
-            PHP {(summary?.total_payable || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          <p className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+            ₱{(summary?.total_payable || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
             {summary?.unpaid_count || 0} unpaid bill{(summary?.unpaid_count || 0) !== 1 ? 's' : ''}
           </p>
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-indigo-500 to-cyan-500" />
         </div>
 
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-xs relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Current (Not Due)</span>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg p-3.5 shadow-xs">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Current (Not Due)</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
           </div>
-          <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
-            PHP {(summary?.current || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          <p className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+            ₱{(summary?.current || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Within terms</p>
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-emerald-500" />
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Within terms</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-xs relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">1 - 30 Days Due</span>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg p-3.5 shadow-xs">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">1–30 Days Due</span>
             <span className="w-2 h-2 rounded-full bg-amber-500" />
           </div>
-          <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
-            PHP {(summary?.days_1_30 || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          <p className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+            ₱{(summary?.days_1_30 || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Past terms 1-30d</p>
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-amber-500" />
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Past terms 1-30d</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-xs relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">31 - 60 Days</span>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg p-3.5 shadow-xs">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">31–60 Days</span>
             <span className="w-2 h-2 rounded-full bg-orange-500" />
           </div>
-          <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
-            PHP {(summary?.days_31_60 || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          <p className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+            ₱{(summary?.days_31_60 || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Past terms 31-60d</p>
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-orange-500" />
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Past terms 31-60d</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-xs relative overflow-hidden group col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">90+ Days (Critical)</span>
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg p-3.5 shadow-xs col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Over 60 Days Due</span>
+            <span className="w-2 h-2 rounded-full bg-rose-500" />
           </div>
-          <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
-            PHP {(summary?.days_90_plus || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          <p className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+            ₱{(summary?.days_90_plus || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Requires review</p>
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-rose-500" />
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Requires review</p>
         </div>
       </div>
 
@@ -389,25 +377,25 @@ export const AccountsPayablePage: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs min-w-[760px]">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3.5 px-4">Bill Number & Date</th>
-                <th className="py-3.5 px-4">Supplier / Vendor</th>
-                <th className="py-3.5 px-4">Category & GL Account</th>
-                <th className="py-3.5 px-4">Due Date & Aging</th>
-                <th className="py-3.5 px-4 text-right">Total Amount</th>
-                <th className="py-3.5 px-4 text-right">Balance Due</th>
-                <th className="py-3.5 px-4 text-center">Status</th>
-                <th className="py-3.5 px-4 text-center">Supporting Doc</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <th className="py-2.5 px-3">Bill # & Date</th>
+                <th className="py-2.5 px-3">Supplier</th>
+                <th className="py-2.5 px-3">Category & GL</th>
+                <th className="py-2.5 px-3">Due Date</th>
+                <th className="py-2.5 px-3 text-right">Total Amount</th>
+                <th className="py-2.5 px-3 text-right">Balance Due</th>
+                <th className="py-2.5 px-3 text-center">Status</th>
+                <th className="py-2.5 px-3 text-center">Supporting Doc</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
               {filteredBills.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
-                    <FileText className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No accounts payable bills found</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Click "Record Supplier Bill" to enter a new invoice.</p>
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
+                    <FileText className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-1.5" />
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">No accounts payable bills found</p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Click "Receive Supplier Bill" to enter a new invoice.</p>
                   </td>
                 </tr>
               ) : (
@@ -417,16 +405,16 @@ export const AccountsPayablePage: React.FC = () => {
 
                   return (
                     <tr key={bill.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-mono font-bold text-slate-900 dark:text-white">{bill.bill_number}</span>
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-slate-900 dark:text-white">{bill.bill_number}</span>
                           {bill.ai_audit_badge && (
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase inline-flex items-center ${
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-semibold inline-flex items-center ${
                                 bill.ai_audit_badge === 'AI_VERIFIED'
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                                   : bill.ai_audit_badge.includes('DUPLICATE')
-                                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 animate-pulse'
+                                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                                   : bill.ai_audit_badge.includes('OVERRUN')
                                   ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                                   : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'
@@ -443,24 +431,24 @@ export const AccountsPayablePage: React.FC = () => {
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <span className="font-semibold text-slate-800 dark:text-slate-200 block">{bill.supplier_name}</span>
                         {bill.company_name && (
                           <span className="text-[11px] text-slate-400 dark:text-slate-500">{bill.company_name}</span>
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 block w-fit">
+                      <td className="py-2.5 px-3">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 block w-fit">
                           {bill.category_type}
                         </span>
-                        <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-1 truncate max-w-[160px]">
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5 truncate max-w-[160px]">
                           {bill.account_name}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className="font-mono text-slate-700 dark:text-slate-300 block">{bill.due_date}</span>
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span className="text-slate-700 dark:text-slate-300 block">{bill.due_date}</span>
                         {bill.balance > 0 && bill.days_past_due > 0 ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 mt-0.5">
                             <AlertTriangle className="w-3 h-3" />
@@ -473,19 +461,19 @@ export const AccountsPayablePage: React.FC = () => {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-700 dark:text-slate-300 tabular-nums">
-                        PHP {bill.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td className="py-2.5 px-3 text-right tabular-nums font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                        ₱{bill.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white tabular-nums">
-                        PHP {bill.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td className="py-2.5 px-3 text-right tabular-nums font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                        ₱{bill.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
 
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         <StatusBadge status={bill.status} />
                       </td>
 
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         {hasAttachment && firstAttach ? (
                           <button
                             onClick={() =>
@@ -508,11 +496,11 @@ export const AccountsPayablePage: React.FC = () => {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">
                         {bill.balance > 0 ? (
                           <button
                             onClick={() => handleOpenPRModal(bill)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors"
                           >
                             <Send className="w-3 h-3" />
                             Request Payment
@@ -592,7 +580,7 @@ export const AccountsPayablePage: React.FC = () => {
                     placeholder="e.g. INV-HOLCIM-2026-001"
                     value={billForm.bill_number}
                     onChange={(e) => setBillForm({ ...billForm, bill_number: e.target.value.toUpperCase() })}
-                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 uppercase font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -607,7 +595,7 @@ export const AccountsPayablePage: React.FC = () => {
                     required
                     value={billForm.bill_date}
                     onChange={(e) => setBillForm({ ...billForm, bill_date: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -620,7 +608,7 @@ export const AccountsPayablePage: React.FC = () => {
                     required
                     value={billForm.due_date}
                     onChange={(e) => setBillForm({ ...billForm, due_date: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -633,7 +621,7 @@ export const AccountsPayablePage: React.FC = () => {
                   <select
                     value={billForm.category_type}
                     onChange={(e) => setBillForm({ ...billForm, category_type: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="INVENTORY_PURCHASE">Inventory Purchase (Merchandise)</option>
                     <option value="UTILITIES_BILL">Utilities & Electricity</option>
@@ -645,7 +633,7 @@ export const AccountsPayablePage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Total Amount (PHP) <span className="text-rose-500">*</span>
+                    Total Amount (₱) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -655,7 +643,7 @@ export const AccountsPayablePage: React.FC = () => {
                     placeholder="0.00"
                     value={billForm.total_amount}
                     onChange={(e) => setBillForm({ ...billForm, total_amount: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white tabular-nums font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -667,7 +655,7 @@ export const AccountsPayablePage: React.FC = () => {
                 <select
                   value={billForm.chart_of_account_id}
                   onChange={(e) => setBillForm({ ...billForm, chart_of_account_id: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Default (Auto-select by Category)</option>
                   {accounts
@@ -693,7 +681,7 @@ export const AccountsPayablePage: React.FC = () => {
                   placeholder="Details of the items or services purchased..."
                   value={billForm.description}
                   onChange={(e) => setBillForm({ ...billForm, description: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -723,64 +711,62 @@ export const AccountsPayablePage: React.FC = () => {
                 }
 
                 return (
-                  <div className="rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/40 dark:from-indigo-950/40 dark:via-slate-800 dark:to-purple-950/20 p-4 space-y-3 shadow-xs">
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-3.5 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs shadow-xs">
-                          <Sparkles size={13} />
-                        </span>
-                        <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                          AI Smart Bookkeeper — Auto-GL & BIR Tax Preview
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400" />
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                          Smart Bookkeeper — Auto-GL & Tax Preview
                         </span>
                       </div>
-                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                         BIR Compliant
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
-                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700/80">
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">Matched Debit GL</span>
-                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs block truncate" title={glLabel}>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                      <div className="p-2 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Matched Debit GL</span>
+                        <span className="font-semibold text-indigo-600 dark:text-indigo-400 text-xs block truncate" title={glLabel}>
                           {glLabel}
                         </span>
                         <span className="text-[9px] text-slate-400 dark:text-slate-500 block truncate">Auto-Classified</span>
                       </div>
 
-                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700/80">
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">VATable Base (Net)</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs block">
-                          PHP {vatable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <div className="p-2 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">VATable Base (Net)</span>
+                        <span className="tabular-nums font-semibold text-slate-800 dark:text-slate-200 text-xs block">
+                          ₱{vatable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                         <span className="text-[9px] text-slate-400 dark:text-slate-500 block">Gross / 1.12</span>
                       </div>
 
-                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700/80">
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">12% Input VAT</span>
-                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs block">
-                          PHP {inputVat.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <div className="p-2 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">12% Input VAT</span>
+                        <span className="tabular-nums font-semibold text-emerald-600 dark:text-emerald-400 text-xs block">
+                          ₱{inputVat.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                         <span className="text-[9px] text-slate-400 dark:text-slate-500 block">Claimable Tax Credit</span>
                       </div>
 
-                      <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-700/80">
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block">EWT ({ewtCode})</span>
-                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs block">
-                          PHP {ewtAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <div className="p-2 rounded-lg bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">EWT ({ewtCode})</span>
+                        <span className="tabular-nums font-semibold text-amber-600 dark:text-amber-400 text-xs block">
+                          ₱{ewtAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                         <span className="text-[9px] text-slate-400 dark:text-slate-500 block">BIR Form 1601-EQ</span>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 border-t border-indigo-100 dark:border-indigo-900/40 gap-2 text-xs">
-                      <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold text-[11px]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-1.5 border-t border-slate-200 dark:border-slate-700 gap-2 text-xs">
+                      <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-medium text-[11px]">
                         <CheckCircle2 size={13} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-                        <span>✓ Automatically queues a verified Payment Voucher in Disbursement Management upon receipt.</span>
+                        <span>Queues a verified payment voucher in Disbursements upon receipt.</span>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 mr-2">Net Cash Payable:</span>
-                        <span className="font-mono font-bold text-slate-900 dark:text-white">
-                          PHP {netPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 mr-1.5">Net Cash Payable:</span>
+                        <span className="tabular-nums font-semibold text-slate-900 dark:text-white">
+                          ₱{netPayable.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
@@ -801,14 +787,14 @@ export const AccountsPayablePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsBillModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  className="px-3.5 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={billSubmitting}
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-xs transition-all disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-all disabled:opacity-50"
                 >
                   {billSubmitting ? 'Receiving...' : 'Receive Bill & Post GL'}
                 </button>
@@ -821,14 +807,12 @@ export const AccountsPayablePage: React.FC = () => {
       {/* MODAL 2: Create Payment Request */}
       {isPaymentRequestModalOpen && selectedBillForPR && (
         <div className="fixed inset-0 !mt-0 z-[999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/60">
-                  <Send className="w-4 h-4" />
-                </div>
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden my-auto">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <div className="flex items-center gap-2">
+                <Send className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Submit Payment Request Voucher</h3>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Submit Payment Request Voucher</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     Bill #{selectedBillForPR.bill_number} &middot; Payee: {selectedBillForPR.supplier_name}
                   </p>
@@ -842,9 +826,9 @@ export const AccountsPayablePage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmitPaymentRequest} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+            <form onSubmit={handleSubmitPaymentRequest} className="flex-1 overflow-y-auto p-5 space-y-4">
               {/* Internal Control Alert */}
-              <div className="p-3.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-indigo-900 dark:text-indigo-200 text-xs">
+              <div className="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-indigo-900 dark:text-indigo-200 text-xs">
                 <p className="font-semibold flex items-center gap-1.5 text-indigo-700 dark:text-indigo-300">
                   <Building2 className="w-4 h-4" /> Internal Control Policy Requirement
                 </p>
@@ -854,7 +838,7 @@ export const AccountsPayablePage: React.FC = () => {
               </div>
 
               {prError && (
-                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>{prError}</span>
                 </div>
@@ -863,14 +847,14 @@ export const AccountsPayablePage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Outstanding Bill Balance</label>
-                  <p className="text-base font-mono font-bold text-amber-600 dark:text-amber-400">
-                    PHP {selectedBillForPR.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  <p className="text-base tabular-nums font-semibold text-amber-600 dark:text-amber-400">
+                    ₱{selectedBillForPR.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Request Amount (PHP) <span className="text-rose-500">*</span>
+                    Request Amount (₱) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -880,7 +864,7 @@ export const AccountsPayablePage: React.FC = () => {
                     required
                     value={prForm.amount}
                     onChange={(e) => setPrForm({ ...prForm, amount: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white tabular-nums font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -894,7 +878,7 @@ export const AccountsPayablePage: React.FC = () => {
                   rows={2}
                   value={prForm.purpose}
                   onChange={(e) => setPrForm({ ...prForm, purpose: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 

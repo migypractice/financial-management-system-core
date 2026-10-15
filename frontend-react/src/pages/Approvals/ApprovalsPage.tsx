@@ -26,7 +26,7 @@ const ConfidenceBar: React.FC<{ score: number }> = ({ score }) => {
       <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className={`text-[11px] font-mono font-semibold tabular-nums w-16 text-right ${
+      <span className={`text-[11px] font-sans font-semibold tabular-nums w-16 text-right ${
         pct < 70 ? 'text-rose-600 dark:text-rose-400' : pct < 90 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
       }`}>{pct}% {label}</span>
     </div>
@@ -228,24 +228,19 @@ export const ApprovalsPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Transaction Approvals & Disbursement Authorization
-            </h1>
-            <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-              Maker-Checker Protocol
-            </span>
-          </div>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight">
+            Transaction Approvals
+          </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Verify supporting documents, review AI anomaly evaluations, and authorize general ledger postings.
+            Review supporting documents and authorize pending transactions.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {counts.flagged > 0 && (
-            <span className="px-2.5 py-1 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-xs font-semibold rounded-xl border border-rose-200 dark:border-rose-800/60 flex items-center gap-1">
+            <span className="px-2.5 py-1 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-xs font-semibold rounded-lg border border-rose-200 dark:border-rose-800/60 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-              {counts.flagged} AI Flagged
+              {counts.flagged} Needs Review
             </span>
           )}
           <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-xl border border-amber-200 dark:border-amber-800/60 flex items-center gap-1">
@@ -262,33 +257,25 @@ export const ApprovalsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Enterprise Operational Summary Bar */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 border border-indigo-900/40 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase bg-indigo-500/20 text-indigo-300 rounded-md border border-indigo-500/30">
-              Internal Control Active
-            </span>
-            <span className="text-xs text-slate-400 font-mono">
-              Policy: Supporting Document Verification Required
-            </span>
-          </div>
-          <h2 className="text-sm sm:text-base font-bold text-white">
+      {/* Operational Summary Strip */}
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 sm:px-4 sm:py-3 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="space-y-0.5">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
             General Ledger Authorization & Voucher Queue
           </h2>
-          <p className="text-xs text-slate-300">
-            Click <strong>"View Supporting Document"</strong> on any transaction to inspect vendor invoices, receipts, and line-item breakdowns before signing off.
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Click <strong>"View Supporting Document"</strong> on any transaction to inspect vendor invoices and line-item breakdowns before signing off.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="p-3 bg-slate-800/90 rounded-xl border border-slate-700/70 text-center min-w-[105px]">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Pending</p>
-            <p className="text-lg font-bold font-mono text-amber-400">{counts.pending}</p>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 text-center min-w-[90px]">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Pending</p>
+            <p className="text-base font-semibold font-sans tabular-nums text-amber-600 dark:text-amber-400">{counts.pending}</p>
           </div>
-          <div className="p-3 bg-slate-800/90 rounded-xl border border-slate-700/70 text-center min-w-[105px]">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">AI Flagged</p>
-            <p className="text-lg font-bold font-mono text-rose-400">{counts.flagged}</p>
+          <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 text-center min-w-[90px]">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Needs Review</p>
+            <p className="text-base font-semibold font-sans tabular-nums text-rose-600 dark:text-rose-400">{counts.flagged}</p>
           </div>
         </div>
       </div>
@@ -350,7 +337,7 @@ export const ApprovalsPage: React.FC = () => {
                   {/* Left: Metadata & Details */}
                   <div className="flex-1 min-w-0 space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-md">
+                      <span className="font-sans tabular-nums text-xs font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-md">
                         {tx.transactionCode}
                       </span>
                       <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
@@ -418,8 +405,8 @@ export const ApprovalsPage: React.FC = () => {
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                         Voucher Amount
                       </p>
-                      <p className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
-                        {tx.currency} {tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <p className="text-xl sm:text-2xl font-semibold font-sans tabular-nums text-slate-900 dark:text-white">
+                        ₱{tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
 
@@ -427,7 +414,7 @@ export const ApprovalsPage: React.FC = () => {
                       <div className="flex items-center gap-2 w-full lg:w-auto mt-1">
                         {isMaker ? (
                           <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700/60 rounded-xl border border-slate-200 dark:border-slate-600">
-                            <Clock size={13} /> Maker-Checker: Secondary manager required
+                            <Clock size={13} /> Secondary authorization required
                           </span>
                         ) : (
                           <>

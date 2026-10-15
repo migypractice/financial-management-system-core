@@ -54,7 +54,7 @@ export const WorkflowPipeline: React.FC<WorkflowPipelineProps> = ({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-bold">
+                    <span className="text-[10px] font-sans tabular-nums text-slate-400 dark:text-slate-500 font-bold">
                       0{idx + 1}
                     </span>
                     <p className={`text-xs font-semibold truncate ${isActive ? 'text-indigo-950 dark:text-indigo-200' : 'text-slate-800 dark:text-slate-200'}`}>

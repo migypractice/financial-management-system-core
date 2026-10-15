@@ -43,14 +43,14 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
             <span className="text-slate-600 dark:text-slate-300 font-medium">Inbound Revenue</span>
-            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold ml-1">
+            <span className="tabular-nums font-semibold text-emerald-600 dark:text-emerald-400 ml-1">
               ₱{(totalInflow / 1000).toFixed(0)}k
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm bg-indigo-500" />
             <span className="text-slate-600 dark:text-slate-300 font-medium">Outbound Expenses</span>
-            <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold ml-1">
+            <span className="tabular-nums font-semibold text-indigo-600 dark:text-indigo-400 ml-1">
               ₱{(totalOutflow / 1000).toFixed(0)}k
             </span>
           </div>
@@ -76,7 +76,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({
                 {isHovered && (
                   <div className="absolute -top-12 z-20 bg-slate-900 text-white text-[10px] py-1.5 px-2.5 rounded-lg shadow-xl whitespace-nowrap pointer-events-none animate-fadeIn border border-slate-700">
                     <p className="font-bold text-slate-200">{item.label}</p>
-                    <div className="flex gap-2 font-mono mt-0.5">
+                    <div className="flex gap-2 tabular-nums font-medium mt-0.5">
                       <span className="text-emerald-400">In: ₱{item.inflow.toLocaleString()}</span>
                       <span className="text-indigo-400">Out: ₱{item.outflow.toLocaleString()}</span>
                     </div>

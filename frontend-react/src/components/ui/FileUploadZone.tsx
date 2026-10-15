@@ -87,8 +87,8 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
         <label className="font-semibold text-slate-300 flex items-center gap-1.5">
           {label}
           {required && (
-            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono text-[10px] tracking-wide border border-rose-500/30">
-              MANDATORY
+            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-sans text-[10px] tracking-wide border border-rose-500/30">
+              Required
             </span>
           )}
         </label>

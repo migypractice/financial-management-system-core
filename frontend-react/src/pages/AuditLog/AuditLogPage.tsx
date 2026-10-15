@@ -110,9 +110,9 @@ export const AuditLogPage: React.FC = () => {
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-gray-200 dark:border-slate-700 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Audit Trail</h1>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight">Audit Trail</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Every AI risk evaluation performed on incoming transactions.
+            System event logs and compliance audit trail.
           </p>
         </div>
 
@@ -218,14 +218,14 @@ export const AuditLogPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-md font-mono text-xs text-slate-700 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-md font-sans tabular-nums text-xs text-slate-700 dark:text-slate-300">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             {log.ip_address || '192.168.1.1'}
                           </span>
                         </td>
                         <td className="px-4 py-3 align-top max-w-md">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{log.transaction_code}</span>
+                            <span className="font-sans tabular-nums text-xs font-semibold text-indigo-600 dark:text-indigo-400">{log.transaction_code}</span>
                             <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-600">{log.type}</span>
                             <span className={`px-2 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded-full border ${
                               {

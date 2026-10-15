@@ -81,14 +81,9 @@ export const CollectionPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Receipt className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Cash Collections & Inflow</h1>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Reconciled bank deposits, customer payment settlements, and verified proof of payments.
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Cash Collections & Inflow</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Customer payment receipts, bank deposits, and settlement records.
           </p>
         </div>
 
@@ -96,7 +91,7 @@ export const CollectionPage: React.FC = () => {
           <button
             onClick={refreshData}
             disabled={refreshing}
-            className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+            className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
             title="Refresh Collections"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-emerald-500 dark:text-emerald-400' : ''}`} />
@@ -105,39 +100,36 @@ export const CollectionPage: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total Inflow Collected</span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg p-3.5 shadow-xs">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Inflow Collected</span>
             <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
-            PHP {totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          <p className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">
+            ₱{totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{collections.length} deposit settlements</p>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-emerald-500/80" />
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{collections.length} deposit settlements</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Bank Accounts Active</span>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg p-3.5 shadow-xs">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Bank Accounts Active</span>
             <Building2 className="w-4 h-4 text-indigo-500" />
           </div>
-          <p className="text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">4 Inflow Channels</p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">BDO, BPI, UnionBank, Metrobank</p>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-indigo-500/80" />
+          <p className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">4 Inflow Channels</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">BDO, BPI, UnionBank, Metrobank</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400">Official Receipts Attached</span>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg p-3.5 shadow-xs">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Official Receipts Attached</span>
             <FileCheck className="w-4 h-4 text-teal-500" />
           </div>
-          <p className="text-xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+          <p className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">
             {collections.filter((c) => c.attachments && c.attachments.length > 0).length} Verified
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Proof of deposit & OR docs</p>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-teal-500/80" />
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Proof of deposit & OR docs</p>
         </div>
       </div>
 
@@ -158,23 +150,23 @@ export const CollectionPage: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-xs min-w-[700px]">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                <th className="py-3.5 px-4">Receipt # & Date</th>
-                <th className="py-3.5 px-4">Customer & Settled Invoice</th>
-                <th className="py-3.5 px-4">Deposit Bank Account</th>
-                <th className="py-3.5 px-4">Method & Ref #</th>
-                <th className="py-3.5 px-4 text-right">Amount Deposited</th>
-                <th className="py-3.5 px-4">Collected By</th>
-                <th className="py-3.5 px-4 text-center">Proof of Payment</th>
+              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                <th className="py-2.5 px-3">Receipt # & Date</th>
+                <th className="py-2.5 px-3">Customer & Settled Invoice</th>
+                <th className="py-2.5 px-3">Deposit Bank Account</th>
+                <th className="py-2.5 px-3">Method & Ref #</th>
+                <th className="py-2.5 px-3 text-right">Amount Deposited (₱)</th>
+                <th className="py-2.5 px-3">Collected By</th>
+                <th className="py-2.5 px-3 text-center">Proof of Payment</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredCollections.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-500">
-                    <Receipt className="w-10 h-10 mx-auto text-slate-400 dark:text-slate-600 mb-2" />
+                    <Receipt className="w-8 h-8 mx-auto text-slate-400 dark:text-slate-600 mb-2" />
                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No collection records found</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Collect invoice payments from the Accounts Receivable page.</p>
                   </td>
@@ -186,30 +178,30 @@ export const CollectionPage: React.FC = () => {
 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <span className="font-mono font-semibold text-slate-900 dark:text-slate-200 block">{c.collection_number}</span>
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span className="font-semibold text-slate-900 dark:text-slate-200 block">{c.collection_number}</span>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                           <Calendar className="w-3 h-3 text-slate-400" />
                           {c.collection_date}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <span className="font-medium text-slate-900 dark:text-white block">{c.customer_name}</span>
                         {c.invoice_number && (
-                          <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                             Invoice #{c.invoice_number}
                           </span>
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <span className="font-medium text-indigo-600 dark:text-indigo-300 block">{c.bank_name}</span>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400">{c.account_name}</span>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 block w-fit">
+                      <td className="py-2.5 px-3">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 block w-fit">
                           {c.payment_method}
                         </span>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
@@ -217,11 +209,11 @@ export const CollectionPage: React.FC = () => {
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                        PHP {c.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td className="py-2.5 px-3 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums whitespace-nowrap">
+                        ₱{c.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <span className="text-slate-800 dark:text-slate-300 block font-medium">{c.collected_by_name || 'Staff'}</span>
                       </td>
 

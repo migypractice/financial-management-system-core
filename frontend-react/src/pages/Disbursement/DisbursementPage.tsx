@@ -294,11 +294,11 @@ export const DisbursementPage: React.FC = () => {
   if (loading) return <SkeletonLoader />;
 
   return (
-    <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-full space-y-6">
+    <div className="p-4 lg:p-5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-full space-y-4">
       {/* Toast Alert */}
       {toastMessage && (
         <div
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md animate-slideDown ${
+          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl backdrop-blur-md animate-slideDown ${
             toastMessage.type === 'success'
               ? 'bg-emerald-500/10 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
               : 'bg-rose-500/10 border border-rose-500/40 text-rose-700 dark:text-rose-300'
@@ -314,16 +314,11 @@ export const DisbursementPage: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <CreditCard className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Disbursement & Payouts</h1>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Maker-Checker payment authorization, mandatory source document audit, and bank cash discharge.
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Disbursements</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Review approved bills and release supplier payments.
           </p>
         </div>
 
@@ -331,10 +326,10 @@ export const DisbursementPage: React.FC = () => {
           <button
             onClick={refreshData}
             disabled={refreshing}
-            className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+            className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-xs cursor-pointer"
             title="Refresh Data"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-emerald-500 dark:text-emerald-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
           </button>
         </div>
       </div>
@@ -348,51 +343,35 @@ export const DisbursementPage: React.FC = () => {
       />
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Pending Approval</span>
-            <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-          <p className="text-lg font-bold text-slate-900 dark:text-white font-mono tabular-nums">
-            PHP {pendingTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3.5 shadow-xs">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Pending Approval</span>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums mt-0.5">
+            ₱{pendingTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{pendingCount} voucher{pendingCount !== 1 ? 's' : ''} awaiting review</p>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-amber-500/80" />
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{pendingCount} voucher{pendingCount !== 1 ? 's' : ''}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Approved for Release</span>
-            <FileCheck className="w-4 h-4 text-indigo-500" />
-          </div>
-          <p className="text-lg font-bold text-slate-900 dark:text-white font-mono tabular-nums">
-            PHP {approvedTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3.5 shadow-xs">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Ready to Pay</span>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums mt-0.5">
+            ₱{approvedTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{approvedCount} ready for bank payout</p>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-indigo-500/80" />
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{approvedCount} approved</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total Disbursed YTD</span>
-            <DollarSign className="w-4 h-4 text-emerald-500" />
-          </div>
-          <p className="text-lg font-bold text-slate-900 dark:text-white font-mono tabular-nums">
-            PHP {totalDisbursedAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3.5 shadow-xs">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Paid</span>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums mt-0.5">
+            ₱{totalDisbursedAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{disbursements.length} payments discharged</p>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-emerald-500/80" />
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{disbursements.length} payments</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">AI Risk Flags</span>
-            <ShieldAlert className="w-4 h-4 text-rose-500" />
-          </div>
-          <p className="text-lg font-bold text-slate-900 dark:text-white font-mono tabular-nums">{flaggedCount}</p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Rule-based anomaly warnings</p>
-          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-rose-500/80" />
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3.5 shadow-xs">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Needs Review</span>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums mt-0.5">{flaggedCount}</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Flagged items</p>
         </div>
       </div>
 
@@ -401,81 +380,80 @@ export const DisbursementPage: React.FC = () => {
         <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('REQUESTS')}
-            className={`pb-3 text-xs font-semibold transition-all relative shrink-0 ${
+            className={`pb-2.5 text-xs font-semibold transition-all relative shrink-0 cursor-pointer ${
               activeTab === 'REQUESTS'
-                ? 'text-indigo-600 dark:text-white border-b-2 border-indigo-600 dark:border-indigo-500'
+                ? 'text-blue-600 dark:text-white border-b-2 border-blue-600 dark:border-blue-500'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            Payment Request Vouchers ({paymentRequests.length})
+            Payment Vouchers ({paymentRequests.length})
           </button>
           <button
             onClick={() => setActiveTab('REGISTER')}
-            className={`pb-3 text-xs font-semibold transition-all relative shrink-0 ${
+            className={`pb-2.5 text-xs font-semibold transition-all relative shrink-0 cursor-pointer ${
               activeTab === 'REGISTER'
-                ? 'text-emerald-600 dark:text-white border-b-2 border-emerald-600 dark:border-emerald-500'
+                ? 'text-blue-600 dark:text-white border-b-2 border-blue-600 dark:border-blue-500'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            Cash Disbursement Register ({disbursements.length})
+            Disbursement Register ({disbursements.length})
           </button>
         </div>
 
         {/* Search */}
-        <div className="relative mb-2 w-full sm:w-64">
+        <div className="relative mb-1.5 w-full sm:w-64">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search payee or voucher..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-blue-500"
           />
         </div>
       </div>
 
       {/* TAB 1: Payment Request Vouchers */}
       {activeTab === 'REQUESTS' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Status Filter Buttons */}
           <div className="flex flex-wrap items-center gap-1.5">
             {(['ALL', 'PENDING_APPROVAL', 'APPROVED', 'DISBURSED', 'REJECTED'] as const).map((key) => (
               <button
                 key={key}
                 onClick={() => setPrStatusFilter(key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                   prStatusFilter === key
-                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800/80'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
                 }`}
               >
-                {key.replace('_', ' ')}
+                {key === 'ALL' ? 'All' : key === 'PENDING_APPROVAL' ? 'Pending' : key === 'APPROVED' ? 'Approved' : key === 'DISBURSED' ? 'Paid' : 'Rejected'}
               </button>
             ))}
           </div>
 
-          <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                    <th className="py-3.5 px-4">Voucher # & Date</th>
-                    <th className="py-3.5 px-4">Payee & Linked Bill</th>
-                    <th className="py-3.5 px-4">Purpose / Memo</th>
-                    <th className="py-3.5 px-4">Requester</th>
-                    <th className="py-3.5 px-4 text-right">Amount</th>
-                    <th className="py-3.5 px-4">Supporting Doc</th>
-                    <th className="py-3.5 px-4 text-center">AI Audit Status</th>
-                    <th className="py-3.5 px-4 text-center">Status</th>
-                    <th className="py-3.5 px-4 text-right sticky right-0 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xs z-10 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)]">Maker-Checker Actions</th>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-medium text-slate-600 dark:text-slate-400">
+                    <th className="py-2.5 px-3 whitespace-nowrap">Voucher #</th>
+                    <th className="py-2.5 px-3">Payee & Bill</th>
+                    <th className="py-2.5 px-3">Description</th>
+                    <th className="py-2.5 px-3">Department</th>
+                    <th className="py-2.5 px-3 text-right whitespace-nowrap">Amount</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap">Attachment</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap">Status</th>
+                    <th className="py-2.5 px-3 text-right whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredRequests.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-slate-500">
-                        <FileCheck className="w-10 h-10 mx-auto text-slate-400 dark:text-slate-600 mb-2" />
-                        <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No payment requests found</p>
+                      <td colSpan={8} className="py-10 text-center text-slate-500">
+                        <FileCheck className="w-8 h-8 mx-auto text-slate-400 dark:text-slate-600 mb-1.5" />
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400">No payment requests found</p>
                       </td>
                     </tr>
                   ) : (
@@ -485,24 +463,24 @@ export const DisbursementPage: React.FC = () => {
                       const firstDoc = hasDoc ? pr.attachments[0] : null;
 
                       return (
-                        <tr key={pr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                          <td className="py-3.5 px-4">
-                            <span className="font-mono font-semibold text-slate-900 dark:text-slate-200 block">{pr.request_number}</span>
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <tr key={pr.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className="font-semibold text-slate-900 dark:text-slate-200 block">{pr.request_number}</span>
+                            <span className="text-[11px] text-slate-400">
                               {new Date(pr.created_at).toLocaleDateString()}
                             </span>
                           </td>
 
-                          <td className="py-3.5 px-4">
+                          <td className="py-2.5 px-3">
                             <span className="font-medium text-slate-900 dark:text-white block">{pr.payee_name}</span>
                             {pr.bill_number ? (
-                              <span className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold">Bill #{pr.bill_number}</span>
+                              <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">Bill #{pr.bill_number}</span>
                             ) : (
-                              <span className="text-[11px] text-slate-400 dark:text-slate-500">Direct Expense</span>
+                              <span className="text-[11px] text-slate-400">Direct Expense</span>
                             )}
                           </td>
 
-                          <td className="py-3.5 px-4 max-w-[220px]">
+                          <td className="py-2.5 px-3 max-w-[200px]">
                             <p className="truncate text-slate-700 dark:text-slate-300" title={pr.purpose}>
                               {pr.purpose}
                             </p>
@@ -513,17 +491,17 @@ export const DisbursementPage: React.FC = () => {
                             )}
                           </td>
 
-                          <td className="py-3.5 px-4">
-                            <span className="text-slate-800 dark:text-slate-300 block font-medium">{pr.requester_name}</span>
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400">{pr.requester_dept}</span>
+                          <td className="py-2.5 px-3">
+                            <span className="text-slate-800 dark:text-slate-300 block">{pr.requester_name}</span>
+                            <span className="text-[11px] text-slate-400">{pr.requester_dept}</span>
                           </td>
 
-                          <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white tabular-nums">
-                            PHP {pr.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          <td className="py-2.5 px-3 text-right font-semibold text-slate-900 dark:text-white tabular-nums whitespace-nowrap">
+                            ₱{pr.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
 
-                          {/* Mandatory Supporting Document */}
-                          <td className="py-3.5 px-4 text-center">
+                          {/* Supporting Document */}
+                          <td className="py-2.5 px-3 text-center whitespace-nowrap">
                             {hasDoc && firstDoc ? (
                               <button
                                 onClick={() =>
@@ -535,112 +513,69 @@ export const DisbursementPage: React.FC = () => {
                                     type: firstDoc.document_type || 'BILLING_STATEMENT',
                                   })
                                 }
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 transition-colors"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                               >
-                                <Eye className="w-3.5 h-3.5" />
-                                <span>Verified</span>
+                                <Eye className="w-3 h-3" />
+                                <span>View</span>
                               </button>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
-                                <AlertTriangle className="w-3 h-3" /> Missing!
-                              </span>
-                            )}
-                          </td>
-
-                          {/* AI Internal Audit Status Badge */}
-                          <td className="py-3.5 px-4 text-center">
-                            {pr.ai_anomaly_flag ? (
-                              <span
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 cursor-help whitespace-nowrap shadow-xs"
-                                title={pr.ai_anomaly_reason || 'AI Audit Anomaly Flagged'}
-                              >
-                                <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                                <span>{pr.ai_anomaly_reason ? (pr.ai_anomaly_reason.length > 28 ? pr.ai_anomaly_reason.substring(0, 26) + '...' : pr.ai_anomaly_reason) : 'AI Warning'}</span>
-                              </span>
-                            ) : (
-                              <span
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/80 whitespace-nowrap shadow-xs"
-                                title={`AI Verified: Within Budget & No Duplicate Detected (${Math.round(pr.ai_confidence_score * 100)}% Confidence)`}
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                <span>AI Verified: Within Budget & No Duplicate</span>
-                              </span>
+                              <span className="text-[11px] text-slate-400 italic">None</span>
                             )}
                           </td>
 
                           {/* Status */}
-                          <td className="py-3.5 px-4 text-center">
+                          <td className="py-2.5 px-3 text-center whitespace-nowrap">
                             <StatusBadge status={pr.status} />
                           </td>
 
                           {/* Actions */}
-                          <td className="py-3.5 px-4 text-right sticky right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xs z-10 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)]">
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
                             {pr.status === 'PENDING_APPROVAL' && (
-                              <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                {pr.ai_anomaly_flag ? (
-                                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 flex items-center gap-1" title={pr.ai_anomaly_reason || ''}>
-                                    <ShieldAlert size={11} /> AI Warning
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1" title="Within Budget & No Duplicate">
-                                    <CheckCircle2 size={11} /> AI Verified
-                                  </span>
-                                )}
-
-                                {isOwner ? (
-                                  <span className="text-[11px] text-slate-400 dark:text-slate-500 italic" title="Maker-Checker: You created this voucher and cannot approve it.">
-                                    Awaiting Checker
-                                  </span>
-                                ) : isManagerOrAdmin ? (
-                                  <>
-                                    <button
-                                      onClick={() => handleApprove(pr)}
-                                      disabled={actionLoading}
-                                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-colors disabled:opacity-50"
-                                    >
-                                      Approve
-                                    </button>
-                                    <button
-                                      onClick={() => handleOpenReject(pr)}
-                                      disabled={actionLoading}
-                                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-sm transition-colors disabled:opacity-50"
-                                    >
-                                      Reject
-                                    </button>
-                                  </>
-                                ) : (
-                                  <span className="text-[11px] text-slate-400 dark:text-slate-500">Pending Manager</span>
-                                )}
-                              </div>
+                              isManagerOrAdmin ? (
+                                <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                                  <button
+                                    onClick={() => handleApprove(pr)}
+                                    disabled={actionLoading}
+                                    className="px-2.5 py-1 rounded text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleOpenReject(pr)}
+                                    disabled={actionLoading}
+                                    className="px-2.5 py-1 rounded text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              ) : isOwner ? (
+                                <span className="text-xs text-slate-400 italic">Awaiting Checker</span>
+                              ) : (
+                                <span className="text-xs text-slate-400">Pending Manager</span>
+                              )
                             )}
 
                             {pr.status === 'APPROVED' && (
-                              <div className="flex items-center justify-end gap-2 flex-wrap">
-                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                                  <CheckCircle2 size={11} /> Budget Cleared
-                                </span>
-                                {canDisburse ? (
-                                  <button
-                                    onClick={() => handleOpenDisburse(pr)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs shadow-sm transition-all"
-                                  >
-                                    <DollarSign className="w-3.5 h-3.5" />
-                                    Release Payout
-                                  </button>
-                                ) : (
-                                  <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">Ready for Release</span>
-                                )}
-                              </div>
+                              canDisburse ? (
+                                <button
+                                  onClick={() => handleOpenDisburse(pr)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs shadow-xs transition-all cursor-pointer"
+                                >
+                                  Release Payment
+                                </button>
+                              ) : (
+                                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">Ready to Pay</span>
+                              )
                             )}
 
                             {pr.status === 'DISBURSED' && (
-                              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 font-medium">
-                                <CheckCircle2 className="w-3.5 h-3.5" /> Discharged
+                              <span className="text-xs text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 font-medium">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Paid
                               </span>
                             )}
 
                             {pr.status === 'REJECTED' && (
-                              <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium">Rejected</span>
+                              <span className="text-xs text-rose-600 dark:text-rose-400 font-medium">Rejected</span>
                             )}
                           </td>
                         </tr>
@@ -656,28 +591,27 @@ export const DisbursementPage: React.FC = () => {
 
       {/* TAB 2: Cash Disbursement Register */}
       {activeTab === 'REGISTER' && (
-        <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/90 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  <th className="py-3.5 px-4">Disbursement # & Date</th>
-                  <th className="py-3.5 px-4">Payee & Purpose</th>
-                  <th className="py-3.5 px-4">Source Bank Account</th>
-                  <th className="py-3.5 px-4">Method & Ref / Check #</th>
-                  <th className="py-3.5 px-4 text-right">Amount Released</th>
-                  <th className="py-3.5 px-4">Disbursed By</th>
-                  <th className="py-3.5 px-4 text-center">General Ledger Entry</th>
-                  <th className="py-3.5 px-4 text-center">Supporting Doc</th>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <th className="py-2.5 px-3 whitespace-nowrap">Disbursement #</th>
+                  <th className="py-2.5 px-3">Payee & Purpose</th>
+                  <th className="py-2.5 px-3">Source Bank</th>
+                  <th className="py-2.5 px-3">Method & Ref</th>
+                  <th className="py-2.5 px-3 text-right whitespace-nowrap">Amount</th>
+                  <th className="py-2.5 px-3">Disbursed By</th>
+                  <th className="py-2.5 px-3 text-center">GL Entry</th>
+                  <th className="py-2.5 px-3 text-center">Document</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredDisbursements.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-slate-500">
-                      <DollarSign className="w-10 h-10 mx-auto text-slate-400 dark:text-slate-600 mb-2" />
-                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No disbursements recorded yet</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Approve and release payment request vouchers to disburse cash.</p>
+                    <td colSpan={8} className="py-10 text-center text-slate-500">
+                      <DollarSign className="w-8 h-8 mx-auto text-slate-400 dark:text-slate-600 mb-1.5" />
+                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400">No disbursements recorded yet</p>
                     </td>
                   </tr>
                 ) : (
@@ -686,50 +620,50 @@ export const DisbursementPage: React.FC = () => {
                     const firstDoc = hasDoc ? d.attachments[0] : null;
 
                     return (
-                      <tr key={d.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3.5 px-4">
-                          <span className="font-mono font-semibold text-slate-900 dark:text-slate-200 block">{d.disbursement_number}</span>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400">{d.disbursement_date}</span>
+                      <tr key={d.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          <span className="font-semibold text-slate-900 dark:text-slate-200 block">{d.disbursement_number}</span>
+                          <span className="text-[11px] text-slate-400">{d.disbursement_date}</span>
                         </td>
 
-                        <td className="py-3.5 px-4">
+                        <td className="py-2.5 px-3">
                           <span className="font-medium text-slate-900 dark:text-white block">{d.payee_name}</span>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs block">{d.purpose}</span>
+                          <span className="text-[11px] text-slate-400 truncate max-w-xs block">{d.purpose}</span>
                         </td>
 
-                        <td className="py-3.5 px-4">
-                          <span className="font-medium text-indigo-600 dark:text-indigo-300 block">{d.bank_name}</span>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400">{d.account_name}</span>
+                        <td className="py-2.5 px-3">
+                          <span className="font-medium text-slate-900 dark:text-white block">{d.bank_name}</span>
+                          <span className="text-[11px] text-slate-400">{d.account_name}</span>
                         </td>
 
-                        <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 block w-fit">
+                        <td className="py-2.5 px-3">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-750 text-slate-700 dark:text-slate-300 block w-fit">
                             {d.payment_method}
                           </span>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
-                            {d.reference_number || 'N/A'}
+                          <span className="text-[11px] text-slate-400 block mt-0.5">
+                            {d.reference_number || '—'}
                           </span>
                         </td>
 
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                          PHP {d.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        <td className="py-2.5 px-3 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums whitespace-nowrap">
+                          ₱{d.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </td>
 
-                        <td className="py-3.5 px-4">
-                          <span className="text-slate-800 dark:text-slate-300 block font-medium">{d.disbursed_by_name}</span>
+                        <td className="py-2.5 px-3">
+                          <span className="text-slate-700 dark:text-slate-300">{d.disbursed_by_name}</span>
                         </td>
 
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-2.5 px-3 text-center">
                           {d.journal_entry_num ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-750 text-slate-700 dark:text-slate-300">
                               {d.journal_entry_num}
                             </span>
                           ) : (
-                            <span className="text-[11px] text-slate-400 dark:text-slate-500">Auto-Posted</span>
+                            <span className="text-[11px] text-slate-400">Auto-Posted</span>
                           )}
                         </td>
 
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-2.5 px-3 text-center">
                           {hasDoc && firstDoc ? (
                             <button
                               onClick={() =>
@@ -741,13 +675,13 @@ export const DisbursementPage: React.FC = () => {
                                   type: 'DISBURSEMENT_VOUCHER',
                                 })
                               }
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30 transition-colors"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                             >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View Doc</span>
+                              <Eye className="w-3 h-3" />
+                              <span>View</span>
                             </button>
                           ) : (
-                            <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">None</span>
+                            <span className="text-[11px] text-slate-400 italic">—</span>
                           )}
                         </td>
                       </tr>
@@ -852,8 +786,8 @@ export const DisbursementPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
                   <span className="text-slate-500 dark:text-slate-400 font-medium">Voucher Amount:</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
-                    PHP {disburseModal.pr.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-sm tabular-nums">
+                    ₱{disburseModal.pr.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -884,97 +818,95 @@ export const DisbursementPage: React.FC = () => {
                 return (
                   <div className="space-y-3.5">
                     {/* Live Liquidity Simulator Box */}
-                    <div className="rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-gradient-to-br from-indigo-50/70 via-white to-slate-50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 p-3.5 space-y-3 shadow-xs">
-                      <div className="flex items-center justify-between pb-2 border-b border-indigo-100 dark:border-indigo-900/60">
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3.5 space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-md bg-indigo-600 text-white flex items-center justify-center">
-                            <Activity size={13} className="animate-pulse" />
-                          </div>
-                          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                            AI Treasury & Liquidity Impact Check
+                          <Activity size={14} className="text-indigo-600 dark:text-indigo-400" />
+                          <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                            Liquidity & Bank Balance Impact
                           </span>
                         </div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 font-semibold">
-                          Live Bank Balance Simulation
+                        <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 font-medium">
+                          Real-time Balance Simulation
                         </span>
                       </div>
 
                       {/* Bank Balance Progression */}
                       <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                        <div className="p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700">
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Bank Balance</span>
-                          <span className="font-mono font-bold text-slate-900 dark:text-white text-xs block mt-0.5 tabular-nums">
-                            PHP {selectedBankBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <div className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Current Bank Balance</span>
+                          <span className="tabular-nums font-semibold text-slate-900 dark:text-white text-xs block mt-0.5">
+                            ₱{selectedBankBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                         <div className="p-2 rounded-lg bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/60">
                           <span className="text-[10px] text-rose-600 dark:text-rose-400 block font-medium">Less: Voucher Payout</span>
-                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-xs block mt-0.5 tabular-nums">
-                            - PHP {voucherAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <span className="tabular-nums font-semibold text-rose-600 dark:text-rose-400 text-xs block mt-0.5">
+                            - ₱{voucherAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
-                        <div className={`p-2 rounded-lg border ${isOverdraft ? 'bg-rose-100 dark:bg-rose-950/70 border-rose-400 text-rose-700 dark:text-rose-300' : 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'}`}>
+                        <div className={`p-2 rounded-lg border ${isOverdraft ? 'bg-rose-100 dark:bg-rose-950/70 border-rose-400 text-rose-700 dark:text-rose-300' : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'}`}>
                           <span className="text-[10px] block font-medium">Projected Ending</span>
-                          <span className="font-mono font-bold text-xs block mt-0.5 tabular-nums">
-                            PHP {projectedEndingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <span className="tabular-nums font-semibold text-xs block mt-0.5">
+                            ₱{projectedEndingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>
 
                       {isOverdraft && (
-                        <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200 text-[11px] flex items-center gap-2 font-medium animate-pulse">
+                        <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200 text-[11px] flex items-center gap-2 font-medium">
                           <AlertTriangle size={14} className="shrink-0" />
-                          <span>CRITICAL OVERDRAFT WARNING: Selected bank account has insufficient balance to cover this voucher payout.</span>
+                          <span>Insufficient balance: Selected bank account cannot cover this payout.</span>
                         </div>
                       )}
 
                       {/* Cash Liquidity Ratio Shift */}
-                      <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between text-xs">
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
                         <div>
-                          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block">
+                          <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 block">
                             Company Cash Liquidity Ratio:
                           </span>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="font-mono font-bold text-slate-600 dark:text-slate-400">
+                            <span className="tabular-nums font-semibold text-slate-700 dark:text-slate-300">
                               {currentCoverage >= 99 ? '99.9x+' : `${currentCoverage.toFixed(2)}x`}
                             </span>
                             <ArrowRight size={11} className="text-slate-400" />
-                            <span className={`font-mono font-bold ${isSafetyFloorBreached ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            <span className={`tabular-nums font-semibold ${isSafetyFloorBreached ? 'text-amber-600' : 'text-emerald-600 dark:text-emerald-400'}`}>
                               {projectedCoverage >= 99 ? '99.9x+' : `${projectedCoverage.toFixed(2)}x`}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-medium">
-                              ({isSafetyFloorBreached ? '⚠️ Below 1.20x Safety Floor' : 'Above 1.20x Safety Floor'})
+                            <span className="text-[10px] text-slate-400">
+                              ({isSafetyFloorBreached ? 'Below 1.20x safety floor' : 'Above 1.20x safety floor'})
                             </span>
                           </div>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${isSafetyFloorBreached ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/70 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${isSafetyFloorBreached ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/70 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300'}`}>
                           {isSafetyFloorBreached ? 'Tight Liquidity' : 'Healthy Liquidity'}
                         </span>
                       </div>
                     </div>
 
                     {/* Corporate Tax & BIR EWT Withholding Box */}
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/50 p-3.5 space-y-2.5">
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 p-3.5 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <Percent size={13} className="text-indigo-600 dark:text-indigo-400" />
-                          <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                            Corporate Tax & EWT Breakdown
+                          <Percent size={14} className="text-indigo-600 dark:text-indigo-400" />
+                          <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                            Tax & EWT Breakdown
                           </span>
                         </div>
                         {/* EWT Selector */}
-                        <div className="flex items-center gap-1 text-[10px]">
+                        <div className="flex items-center gap-1 text-[11px]">
                           <button
                             type="button"
                             onClick={() => setEwtType('WC160')}
-                            className={`px-2 py-0.5 rounded font-medium transition-colors ${ewtType === 'WC160' ? 'bg-indigo-600 text-white font-bold' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'}`}
+                            className={`px-2 py-0.5 rounded font-medium transition-colors ${ewtType === 'WC160' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'}`}
                           >
                             2% WC160 (Services/Rent)
                           </button>
                           <button
                             type="button"
                             onClick={() => setEwtType('WC158')}
-                            className={`px-2 py-0.5 rounded font-medium transition-colors ${ewtType === 'WC158' ? 'bg-indigo-600 text-white font-bold' : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'}`}
+                            className={`px-2 py-0.5 rounded font-medium transition-colors ${ewtType === 'WC158' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'}`}
                           >
                             1% WC158 (Goods/Materials)
                           </button>
@@ -984,31 +916,31 @@ export const DisbursementPage: React.FC = () => {
                       <div className="space-y-1.5 text-xs">
                         <div className="flex justify-between text-slate-600 dark:text-slate-400">
                           <span>Gross Invoice Amount:</span>
-                          <span className="font-mono text-slate-900 dark:text-white font-semibold">
-                            PHP {grossInvoiceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <span className="tabular-nums font-semibold text-slate-900 dark:text-white">
+                            ₱{grossInvoiceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
-                        <div className="flex justify-between text-slate-500 dark:text-slate-400 text-[11px] pl-2 border-l-2 border-slate-300 dark:border-slate-600">
-                          <span>12% Input VAT (Tax Base: PHP {netOfVatBase.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}):</span>
-                          <span className="font-mono">
-                            PHP {inputVat12.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <div className="flex justify-between text-slate-500 dark:text-slate-400 text-[11px] pl-2 border-l-2 border-slate-200 dark:border-slate-600">
+                          <span>12% Input VAT (Tax Base: ₱{netOfVatBase.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}):</span>
+                          <span className="tabular-nums font-medium">
+                            ₱{inputVat12.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                         <div className="flex justify-between text-amber-700 dark:text-amber-400 font-medium">
                           <span>Less: Retained EWT ({ewtType === 'WC158' ? '1% WC158' : '2% WC160'} for BIR remittance):</span>
-                          <span className="font-mono">
-                            - PHP {retainedEwt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <span className="tabular-nums font-semibold">
+                            - ₱{retainedEwt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                         <div className="flex justify-between pt-1.5 border-t border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs">
                           <span>Final Net Cash Settlement:</span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400 text-sm">
-                            PHP {finalNetSettlement.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <span className="tabular-nums font-semibold text-emerald-600 dark:text-emerald-400 text-sm">
+                            ₱{finalNetSettlement.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 italic pt-1">
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-500 italic pt-1">
                         <Info size={11} className="shrink-0 text-slate-400" />
                         <span>Retained tax credited to 2020-Withholding Tax Payable for BIR 1601-EQ & BIR 2307 issuance.</span>
                       </div>
@@ -1029,7 +961,7 @@ export const DisbursementPage: React.FC = () => {
                 >
                   {bankAccounts.map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.bank_name} - {b.account_name} (Avail: PHP {Number(b.current_balance).toLocaleString('en-US', { minimumFractionDigits: 2 })})
+                      {b.bank_name} - {b.account_name} (Avail: ₱{Number(b.current_balance).toLocaleString('en-US', { minimumFractionDigits: 2 })})
                     </option>
                   ))}
                 </select>
@@ -1083,7 +1015,7 @@ export const DisbursementPage: React.FC = () => {
                   disabled={actionLoading}
                   className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm shadow-emerald-600/30 disabled:opacity-50 transition-all cursor-pointer"
                 >
-                  {actionLoading ? 'Processing...' : 'Discharge Cash & Post to GL'}
+                  {actionLoading ? 'Processing...' : 'Release Payment & Post to GL'}
                 </button>
               </div>
             </form>

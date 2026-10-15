@@ -40,7 +40,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-slate-100 text-sm">{title}</h3>
                 {documentType && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium tracking-wide bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-sans font-medium tracking-wide bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                     {documentType}
                   </span>
                 )}

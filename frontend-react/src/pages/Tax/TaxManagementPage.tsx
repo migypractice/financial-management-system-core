@@ -48,21 +48,16 @@ export const TaxManagementPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Tax Management</h1>
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-              BIR 2550M / 1601-EQ Active
-            </span>
-          </div>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Tax Management</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            100% Live VAT reconciliation, withholding schedules, and tax ledger powered by Transaction Core.
+            VAT reconciliation, withholding schedules, and tax ledger reports.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={fetchTaxData}
-            className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             <span>Sync Tax Data</span>
@@ -81,19 +76,19 @@ export const TaxManagementPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Total Output VAT (Sales)"
-          value={`PHP ${vat.output_vat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={`₱${vat.output_vat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           accentColor="bg-emerald-500"
-          subtitle={`12% VAT on PHP ${vat.output_vat_base.toLocaleString('en-US', { minimumFractionDigits: 2 })} AR Sales`}
+          subtitle={`12% VAT on ₱${vat.output_vat_base.toLocaleString('en-US', { minimumFractionDigits: 2 })} AR Sales`}
         />
         <StatCard
           title="Total Input VAT (Purchases)"
-          value={`PHP ${vat.input_vat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={`₱${vat.input_vat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           accentColor="bg-amber-500"
-          subtitle={`Claimable credits on PHP ${vat.input_vat_base.toLocaleString('en-US', { minimumFractionDigits: 2 })} AP Bills`}
+          subtitle={`Claimable credits on ₱${vat.input_vat_base.toLocaleString('en-US', { minimumFractionDigits: 2 })} AP Bills`}
         />
         <StatCard
           title={vat.excess_input_tax > 0 ? "Excess Input Tax (Credit)" : "Net VAT Payable"}
-          value={`PHP ${(vat.excess_input_tax > 0 ? vat.excess_input_tax : vat.net_vat_payable).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={`₱${(vat.excess_input_tax > 0 ? vat.excess_input_tax : vat.net_vat_payable).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           accentColor={vat.excess_input_tax > 0 ? "bg-blue-500" : "bg-rose-500"}
           subtitle={vat.excess_input_tax > 0 ? "Carried over to next quarter" : `Due on ${data?.period.label || 'current period'}`}
         />
@@ -103,7 +98,7 @@ export const TaxManagementPage: React.FC = () => {
       <div className="flex border-b border-slate-200 dark:border-slate-700 space-x-6 text-sm font-semibold">
         <button
           onClick={() => setActiveTab('summary')}
-          className={`pb-2.5 transition-colors ${
+          className={`pb-2.5 transition-colors cursor-pointer ${
             activeTab === 'summary'
               ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400'
               : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -113,7 +108,7 @@ export const TaxManagementPage: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('ledger')}
-          className={`pb-2.5 transition-colors flex items-center gap-2 ${
+          className={`pb-2.5 transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'ledger'
               ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400'
               : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -135,8 +130,8 @@ export const TaxManagementPage: React.FC = () => {
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Withholding Tax (WHT/EWT) Schedule</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Computed under BIR Revenue Regulation 2-98 as amended</p>
               </div>
-              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
-                Total EWT: PHP {totalEwt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="text-xs font-semibold tabular-nums text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
+                Total EWT: ₱{totalEwt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
             <table className="w-full text-left text-xs">
@@ -145,8 +140,8 @@ export const TaxManagementPage: React.FC = () => {
                   <th className="px-5 py-3">Tax Code (ATC)</th>
                   <th className="px-5 py-3">Description</th>
                   <th className="px-5 py-3 text-center">Rate</th>
-                  <th className="px-5 py-3 text-right">Tax Base (PHP)</th>
-                  <th className="px-5 py-3 text-right">Amount Withheld (PHP)</th>
+                  <th className="px-5 py-3 text-right">Tax Base (₱)</th>
+                  <th className="px-5 py-3 text-right">Amount Withheld (₱)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -159,22 +154,22 @@ export const TaxManagementPage: React.FC = () => {
                 ) : (
                   ewt.map((row) => (
                     <tr key={row.code} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="px-5 py-3.5 font-mono font-semibold text-indigo-600 dark:text-indigo-400">{row.code}</td>
+                      <td className="px-5 py-3.5 font-semibold text-indigo-600 dark:text-indigo-400">{row.code}</td>
                       <td className="px-5 py-3.5 text-slate-800 dark:text-slate-200 font-medium">{row.description}</td>
-                      <td className="px-5 py-3.5 text-center font-mono text-slate-700 dark:text-slate-300">{row.rate}%</td>
-                      <td className="px-5 py-3.5 text-right font-mono text-slate-600 dark:text-slate-400 tabular-nums">
+                      <td className="px-5 py-3.5 text-center text-slate-700 dark:text-slate-300 tabular-nums">{row.rate}%</td>
+                      <td className="px-5 py-3.5 text-right text-slate-600 dark:text-slate-400 tabular-nums">
                         {row.tax_base.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
-                      <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white tabular-nums">
+                      <td className="px-5 py-3.5 text-right font-semibold text-slate-900 dark:text-white tabular-nums">
                         {row.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                     </tr>
                   ))
                 )}
-                <tr className="bg-slate-50 dark:bg-slate-700/50 font-bold">
+                <tr className="bg-slate-50 dark:bg-slate-700/50 font-semibold">
                   <td colSpan={4} className="px-5 py-3 text-right text-slate-700 dark:text-slate-300">Total WHT Payable:</td>
-                  <td className="px-5 py-3 text-right font-mono text-slate-900 dark:text-white tabular-nums border-double border-b-4 border-slate-300 dark:border-slate-600">
-                    {totalEwt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <td className="px-5 py-3 text-right text-slate-900 dark:text-white tabular-nums border-double border-b-4 border-slate-300 dark:border-slate-600">
+                    ₱{totalEwt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               </tbody>
@@ -233,7 +228,7 @@ export const TaxManagementPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-700">
                   <span className="text-slate-600 dark:text-slate-400">TIN Validation Verification</span>
-                  <span className="font-mono text-slate-800 dark:text-slate-200">ACTIVE (BIR RDO 043 - Pasig)</span>
+                  <span className="text-slate-800 dark:text-slate-200">ACTIVE (BIR RDO 043 - Pasig)</span>
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-700">
                   <span className="text-slate-600 dark:text-slate-400">Subledger & GL Cross-Check</span>
@@ -281,8 +276,8 @@ export const TaxManagementPage: React.FC = () => {
                 ) : (
                   ledger.map((item) => (
                     <tr key={`${item.module}-${item.id}`} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="px-4 py-3 font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">{item.date}</td>
-                      <td className="px-4 py-3 font-mono font-semibold text-indigo-600 dark:text-indigo-400">{item.reference}</td>
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{item.date}</td>
+                      <td className="px-4 py-3 font-semibold text-indigo-600 dark:text-indigo-400">{item.reference}</td>
                       <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-medium truncate max-w-[150px]">{item.counterparty}</td>
                       <td className="px-4 py-3 text-center">
                         <span
@@ -296,16 +291,16 @@ export const TaxManagementPage: React.FC = () => {
                           {item.vat_type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-slate-700 dark:text-slate-300 tabular-nums">
+                      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-300 tabular-nums">
                         {item.gross_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-slate-600 dark:text-slate-400 tabular-nums">
+                      <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">
                         {item.vatable_base.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold text-slate-900 dark:text-white tabular-nums">
+                      <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white tabular-nums">
                         {item.vat_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-slate-700 dark:text-slate-300 tabular-nums">
+                      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-300 tabular-nums">
                         {item.ewt_amount > 0 ? (
                           <span className="text-amber-600 dark:text-amber-400">
                             {item.ewt_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} ({item.ewt_code})

@@ -280,73 +280,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           })}
         </nav>
 
-        {/* Collapse toggle + user */}
-        <div className="border-t border-white/10 p-3 space-y-2">
+        {/* Collapse toggle */}
+        <div className="border-t border-white/10 p-2.5">
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-blue-200/60 hover:bg-white/10 hover:text-white transition-all text-[13px] font-medium"
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-blue-200/60 hover:bg-white/10 hover:text-white transition-all text-xs font-medium cursor-pointer"
           >
             <ChevronLeft size={16} className={`shrink-0 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
             {!collapsed && <span>Collapse</span>}
           </button>
-
-          {/* User profile */}
-          <div className="relative">
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg hover:bg-white/10 transition-all"
-            >
-              <div className="w-8 h-8 rounded-full bg-blue-500 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                {initials}
-              </div>
-              {!collapsed && (
-                <>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="text-white text-xs font-semibold truncate">{activeUserName}</p>
-                    <p className="text-blue-300/60 text-[10px] truncate">{activeUserRole}</p>
-                  </div>
-                  <ChevronDown size={13} className="text-blue-300/60 shrink-0" />
-                </>
-              )}
-            </button>
-            {userMenuOpen && (
-              <div className={`absolute mb-1 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50 animate-fadeIn ${
-                collapsed ? 'left-full bottom-0 ml-2 w-48' : 'bottom-full left-0 w-full'
-              }`}>
-                <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700/60 bg-gray-50/50 dark:bg-slate-700/30">
-                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{activeUserName}</p>
-                  <p className="text-[10px] text-gray-500 dark:text-slate-400 capitalize truncate">{activeUserRole.replace('_', ' ')}</p>
-                </div>
-                <button 
-                  onClick={() => {
-                    handleNav('/secret-provision');
-                    setUserMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700/60 transition-colors font-medium cursor-pointer"
-                >
-                  <Sparkles size={14} className="text-indigo-500" /> Super Provisioning
-                </button>
-                <button 
-                  onClick={() => {
-                    handleNav('/settings');
-                    setUserMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                >
-                  <Settings size={14} className="text-slate-400" /> Settings
-                </button>
-                <button 
-                  onClick={() => {
-                    logout();
-                    setUserMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                >
-                  <LogOut size={14} /> Sign Out
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </aside>
 
@@ -489,14 +431,56 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="w-px h-6 bg-gray-200 dark:bg-slate-600" />
 
             {/* User */}
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
-                {initials}
-              </div>
-              <div className="hidden sm:block text-right">
-                <p className="text-xs font-semibold text-gray-800 dark:text-slate-100">{activeUserName}</p>
-                <p className="text-[10px] text-gray-400 dark:text-slate-400">{activeUserRole}</p>
-              </div>
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2.5 hover:opacity-85 transition-opacity cursor-pointer p-1 rounded-lg"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                  {initials}
+                </div>
+                <div className="hidden sm:block text-right">
+                  <p className="text-xs font-semibold text-gray-800 dark:text-slate-100">{activeUserName}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-slate-400 capitalize">{activeUserRole.replace('_', ' ')}</p>
+                </div>
+                <ChevronDown size={13} className="text-gray-400" />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-150 dark:border-slate-700 py-1 z-50 animate-fadeIn">
+                  <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{activeUserName}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-slate-400 capitalize">{activeUserRole.replace('_', ' ')}</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      handleNav('/secret-provision');
+                      setUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
+                  >
+                    <Sparkles size={14} /> Super Provisioning
+                  </button>
+                  <button 
+                    onClick={() => {
+                      handleNav('/settings');
+                      setUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <Settings size={14} className="text-slate-400" /> Settings
+                  </button>
+                  <button 
+                    onClick={() => {
+                      logout();
+                      setUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                  >
+                    <LogOut size={14} /> Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
