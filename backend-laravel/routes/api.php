@@ -15,10 +15,12 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// M2M Integration Routes (Simulator / External Modules) — Protected by ApiKeyMiddleware
+// M2M Integration Routes (External Department Modules) — Protected by ApiKeyMiddleware
 Route::prefix('v1/integration')->middleware('api.key')->group(function () {
     Route::post('/inbound-revenue', [IntegrationController::class, 'inboundRevenue']);
     Route::post('/request-disbursement', [IntegrationController::class, 'requestDisbursement']);
+    Route::get('/budget-status', [IntegrationController::class, 'budgetStatus']);
+    Route::get('/voucher-status/{reference}', [IntegrationController::class, 'voucherStatus']);
 });
 
 Route::prefix('v1/auth')->group(function () {

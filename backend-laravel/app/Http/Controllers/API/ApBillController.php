@@ -140,12 +140,14 @@ class ApBillController extends Controller
             } else {
                 $category = $validated['category_type'] ?? 'SUPPLIER_INVOICE';
                 $defaultCode = match ($category) {
-                    'UTILITIES_BILL'                      => '5200-EXP-UTIL',
-                    'FREIGHT_SHIPPING'                    => '5400-EXP-LOGISTICS',
-                    'OFFICE_SUPPLIES', 'EQUIPMENT_REPAIR' => '5500-EXP-SUPPLIES',
-                    default                               => '1200-INV',
+                    'PAYROLL_BENEFITS', 'PAYROLL_SALARY', 'EMPLOYEE_CLAIM' => '5100-EXP-SALARY',
+                    'UTILITIES_BILL', 'FACILITY_RENT'                      => '5200-EXP-UTIL',
+                    'FREIGHT_SHIPPING'                                     => '5400-EXP-LOGISTICS',
+                    'OFFICE_SUPPLIES', 'EQUIPMENT_REPAIR'                  => '5500-EXP-SUPPLIES',
+                    default                                                => '1200-INV',
                 };
                 $debitAccount = ChartOfAccount::where('code', $defaultCode)->first()
+                             ?? ChartOfAccount::where('code', '5100-EXP-SALARY')->first()
                              ?? ChartOfAccount::where('code', '1200-INV')->firstOrFail();
             }
 
@@ -269,6 +271,10 @@ class ApBillController extends Controller
 
                 $prCount = DB::table('payment_requests')->count() + 1;
                 $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
+                while (DB::table('payment_requests')->where('request_number', $prNumber)->exists()) {
+                    $prCount++;
+                    $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
+                }
 
                 // Run AI evaluation on the voucher
                 $aiResult = $this->aiService->evaluateTransaction([
@@ -364,13 +370,12 @@ class ApBillController extends Controller
     private function resolveOriginLabel(string $categoryType): string
     {
         return match ($categoryType) {
-            'INVENTORY_PURCHASE', 'SUPPLIER_INVOICE' => 'Procurement Subsystem',
-            'UTILITIES_BILL'                         => 'Facilities & Operations',
-            'FREIGHT_SHIPPING'                       => 'Fleet & Logistics',
-            'OFFICE_SUPPLIES', 'EQUIPMENT_REPAIR'    => 'Facilities & Operations',
-            'FACILITY_RENT'                          => 'Facilities & Operations',
-            'PAYROLL_SALARY', 'EMPLOYEE_CLAIM'       => 'HRMS Payroll',
-            default                                  => 'External Subsystem',
+            'INVENTORY_PURCHASE', 'SUPPLIER_INVOICE'               => 'Supply Chain & Inventory',
+            'PAYROLL_BENEFITS', 'PAYROLL_SALARY', 'EMPLOYEE_CLAIM' => 'HRMS / Payroll & Benefits',
+            'FREIGHT_SHIPPING'                                     => 'Fleet & Transportation',
+            'UTILITIES_BILL', 'FACILITY_RENT'                      => 'Facilities & Administrative',
+            'OFFICE_SUPPLIES', 'EQUIPMENT_REPAIR'                  => 'General Operations / E-Commerce',
+            default                                                => 'General Operations / E-Commerce',
         };
     }
 }

@@ -616,18 +616,18 @@ export const AccountsPayablePage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Category Type <span className="text-rose-500">*</span>
+                    Category / Originating Department <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={billForm.category_type}
                     onChange={(e) => setBillForm({ ...billForm, category_type: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="INVENTORY_PURCHASE">Inventory Purchase (Merchandise)</option>
-                    <option value="UTILITIES_BILL">Utilities & Electricity</option>
-                    <option value="FREIGHT_SHIPPING">Freight & Logistics</option>
-                    <option value="OFFICE_SUPPLIES">Office Supplies & Tools</option>
-                    <option value="EQUIPMENT_REPAIR">Equipment Maintenance</option>
+                    <option value="INVENTORY_PURCHASE">Supply Chain & Inventory — Supplier PO / Raw Materials (1200-INV)</option>
+                    <option value="PAYROLL_BENEFITS">HRMS / Payroll & Benefits — Payroll / Claims / HMO (5100-EXP-SALARY)</option>
+                    <option value="FREIGHT_SHIPPING">Fleet & Transportation — Fuel Mgmt / Vehicle Maintenance (5400-EXP-LOGISTICS)</option>
+                    <option value="UTILITIES_BILL">Facilities & Administrative — Electricity / Rent / Contracts (5200-EXP-UTIL)</option>
+                    <option value="OFFICE_SUPPLIES">General Operations / E-Commerce — Store & Office Supplies / Refunds (5500-EXP-SUPPLIES)</option>
                   </select>
                 </div>
 
@@ -691,8 +691,9 @@ export const AccountsPayablePage: React.FC = () => {
                 const vatable = gross > 0 ? Math.round((gross / 1.12) * 100) / 100 : 0;
                 const inputVat = gross > 0 ? Math.round((gross - vatable) * 100) / 100 : 0;
                 const isGoods = billForm.category_type === 'INVENTORY_PURCHASE';
-                const ewtRate = isGoods ? 1.0 : 2.0;
-                const ewtCode = isGoods ? 'WC158 (1% Goods)' : 'WC160 (2% Services)';
+                const isPayroll = billForm.category_type === 'PAYROLL_BENEFITS';
+                const ewtRate = isGoods ? 1.0 : isPayroll ? 0.0 : 2.0;
+                const ewtCode = isGoods ? 'WC158 (1% Goods)' : isPayroll ? 'Exempt / BIR 1601-C' : 'WC160 (2% Services)';
                 const ewtAmount = gross > 0 ? Math.round((vatable * (ewtRate / 100)) * 100) / 100 : 0;
                 const netPayable = gross > 0 ? Math.round((gross - ewtAmount) * 100) / 100 : 0;
 
@@ -702,6 +703,7 @@ export const AccountsPayablePage: React.FC = () => {
                   if (matched) glLabel = `[${matched.code}] ${matched.name}`;
                 } else {
                   switch (billForm.category_type) {
+                    case 'PAYROLL_BENEFITS': glLabel = '[5100-EXP-SALARY] Salaries & Employee Benefits'; break;
                     case 'UTILITIES_BILL': glLabel = '[5200-EXP-UTIL] Utilities & Electricity'; break;
                     case 'FREIGHT_SHIPPING': glLabel = '[5400-EXP-LOGISTICS] Freight & Shipping'; break;
                     case 'OFFICE_SUPPLIES': glLabel = '[5500-EXP-SUPPLIES] Office Supplies & Tools'; break;

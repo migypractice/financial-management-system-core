@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
-  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X, Sparkles,
-  Zap
+  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -36,9 +35,8 @@ const coreModules: NavItem[] = [
   { path: '/tax',           label: 'Tax Management',            icon: Receipt },
 ];
 
-// ── Internal Controls & Integration (secondary section) ──
+// ── Internal Controls & Audit ──
 const internalControls: NavItem[] = [
-  { path: '/simulator',     label: 'Subsystem Simulator',       icon: Zap },
   { path: '/audit-logs',    label: 'Audit Trail',               icon: ShieldCheck },
 ];
 
