@@ -175,10 +175,23 @@ class IntegrationController extends Controller
             ];
         });
 
+        $totalAllocated = $budgets->sum('allocated_amount');
+        $totalSpent = $budgets->sum('spent_amount');
+        $totalRemaining = $budgets->sum('remaining');
+        $overallUtilization = $totalAllocated > 0 ? round(($totalSpent / $totalAllocated) * 100, 1) : 0;
+
         return response()->json([
             'success'     => true,
             'fiscal_year' => $fiscalYear,
+            'as_of'       => now()->toIso8601String(),
             'count'       => $budgets->count(),
+            'summary'     => [
+                'total_allocated'          => (float) $totalAllocated,
+                'total_spent'              => (float) $totalSpent,
+                'total_remaining'          => (float) $totalRemaining,
+                'overall_utilization_rate' => (float) $overallUtilization,
+            ],
+            'departments' => $budgets,
             'data'        => $budgets,
         ], 200);
     }

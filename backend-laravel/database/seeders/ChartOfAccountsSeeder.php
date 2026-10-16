@@ -18,6 +18,7 @@ class ChartOfAccountsSeeder extends Seeder
             // LIABILITIES (Normal Balance: CREDIT)
             ['code' => '2010-AP', 'name' => 'Accounts Payable — Trade', 'type' => 'LIABILITY', 'normal_balance' => 'CREDIT', 'description' => 'Short-term obligations owed to suppliers.'],
             ['code' => '2020-TAX', 'name' => 'Value Added Tax Payable (VAT)', 'type' => 'LIABILITY', 'normal_balance' => 'CREDIT', 'description' => 'Output VAT collected less input VAT.'],
+            ['code' => '2030-PAYABLE-PAYROLL', 'name' => 'Accrued Payroll & Salaries Payable', 'type' => 'LIABILITY', 'normal_balance' => 'CREDIT', 'description' => 'Unremitted employee payroll liability pending batch disbursement.'],
 
             // EQUITY (Normal Balance: CREDIT)
             ['code' => '3010-EQUITY', 'name' => "Owner's Capital", 'type' => 'EQUITY', 'normal_balance' => 'CREDIT', 'description' => 'Initial capital and owner investments.'],

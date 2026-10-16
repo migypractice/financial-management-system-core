@@ -354,8 +354,8 @@ export const CashManagementPage: React.FC = () => {
           <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-xs">
             <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
               <div>
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Bank Balances Breakdown & Audit</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Live beginning balance + deposits - disbursements = actual balance.</p>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Bank Accounts & Ledger Balances</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">System-recorded book balance: Beginning balance + posted collections - disbursements = reconciled ledger balance.</p>
               </div>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
                 Audited: {new Date().toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}

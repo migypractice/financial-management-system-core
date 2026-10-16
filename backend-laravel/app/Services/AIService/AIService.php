@@ -169,6 +169,18 @@ class AIService
         }
 
         // AP Purchases → Input VAT + EWT
+        if (in_array($categoryType, ['PAYROLL_BENEFITS', 'PAYROLL_SALARY', 'EMPLOYEE_CLAIM'])) {
+            return [
+                'vat_type'     => 'EXEMPT',
+                'vat_rate'     => 0.0,
+                'ewt_code'     => 'EXEMPT-1601C',
+                'ewt_rate'     => 0.0,
+                'ewt_desc'     => 'Exempt from EWT (BIR Form 1601-C Compensation)',
+                'bir_form'     => 'BIR 1601-C',
+                'description'  => 'Compensation Income Exempt from VAT & EWT (BIR 1601-C)',
+            ];
+        }
+
         $ewtMap = match ($categoryType) {
             'INVENTORY_PURCHASE', 'SUPPLIER_INVOICE' => [
                 'ewt_code' => 'WC158',
@@ -210,9 +222,15 @@ class AIService
     {
         $tax = $this->classifyBIRTax($categoryType, $module);
 
-        $vatableBase = round($grossAmount / 1.12, 2);
-        $vatAmount   = round($grossAmount - $vatableBase, 2);
-        $ewtAmount   = round($vatableBase * ($tax['ewt_rate'] / 100), 2);
+        if ($tax['vat_rate'] <= 0) {
+            $vatableBase = $grossAmount;
+            $vatAmount   = 0.00;
+        } else {
+            $vatableBase = round($grossAmount / 1.12, 2);
+            $vatAmount   = round($grossAmount - $vatableBase, 2);
+        }
+
+        $ewtAmount   = ($tax['ewt_rate'] > 0) ? round($vatableBase * ($tax['ewt_rate'] / 100), 2) : 0.00;
         $netPayable  = round($grossAmount - $ewtAmount, 2);
 
         return [

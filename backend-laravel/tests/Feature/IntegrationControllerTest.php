@@ -206,4 +206,92 @@ class IntegrationControllerTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['payee_info.name']);
     }
+
+    public function test_budget_status_returns_live_balances_with_api_key(): void
+    {
+        $response = $this->getJson('/api/v1/integration/budget-status', [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'fiscal_year',
+                'as_of',
+                'summary' => [
+                    'total_allocated',
+                    'total_spent',
+                    'total_remaining',
+                    'overall_utilization_rate',
+                ],
+                'departments',
+            ]);
+    }
+
+    public function test_voucher_status_returns_live_payment_request_status(): void
+    {
+        // 1. Submit disbursement request to create bill & voucher
+        $postRes = $this->postJson('/api/v1/integration/request-disbursement', [
+            'external_module'       => 'SUPPLY_CHAIN',
+            'external_reference_id' => 'PO-STATUS-TEST-001',
+            'category_type'         => 'INVENTORY_PURCHASE',
+            'amount'                => 15000,
+            'description'           => 'Steel bars procurement',
+            'payee_info'            => ['name' => 'Holcim Philippines'],
+        ], ['X-API-KEY' => 'test-integration-api-key']);
+
+        $postRes->assertStatus(202);
+        $voucherNumber = $postRes->json('core_records.voucher_number');
+        $this->assertNotNull($voucherNumber);
+
+        // 2. Query live status via GET /voucher-status/{reference}
+        $statusRes = $this->getJson("/api/v1/integration/voucher-status/{$voucherNumber}", [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $statusRes->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('record_type', 'PAYMENT_REQUEST')
+            ->assertJsonPath('status', 'PENDING_APPROVAL')
+            ->assertJsonPath('request_number', $voucherNumber);
+    }
+
+    public function test_voucher_status_returns_live_invoice_status(): void
+    {
+        // 1. Submit revenue to create AR invoice
+        $postRes = $this->postJson('/api/v1/integration/inbound-revenue', [
+            'external_module'       => 'ECOMMERCE_CORE',
+            'external_reference_id' => 'ORD-INV-TEST-002',
+            'category_type'         => 'SALES_REVENUE',
+            'amount'                => 8500,
+            'description'           => 'Power tools order',
+            'metadata'              => ['payment_status' => 'PAID'],
+        ], ['X-API-KEY' => 'test-integration-api-key']);
+
+        $postRes->assertStatus(202);
+        $invoiceNumber = $postRes->json('core_records.invoice_number');
+        $this->assertNotNull($invoiceNumber);
+
+        // 2. Query live status via GET /voucher-status/{reference}
+        $statusRes = $this->getJson("/api/v1/integration/voucher-status/{$invoiceNumber}", [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $statusRes->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('record_type', 'AR_INVOICE')
+            ->assertJsonPath('status', 'PAID')
+            ->assertJsonPath('invoice_number', $invoiceNumber);
+    }
+
+    public function test_voucher_status_returns_404_when_reference_not_found(): void
+    {
+        $response = $this->getJson('/api/v1/integration/voucher-status/NON-EXISTENT-VOUCHER', [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $response->assertStatus(404)
+            ->assertJsonPath('success', false);
+    }
 }
