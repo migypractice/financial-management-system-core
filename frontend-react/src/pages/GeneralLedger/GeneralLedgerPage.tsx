@@ -356,16 +356,16 @@ export const GeneralLedgerPage: React.FC = () => {
           {/* Entries Table */}
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs min-w-[700px]">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                    <th className="py-2.5 px-3 w-10"></th>
-                    <th className="py-2.5 px-3">Entry # & Date</th>
-                    <th className="py-2.5 px-3">Particulars & Memo</th>
-                    <th className="py-2.5 px-3">Module / Reference</th>
-                    <th className="py-2.5 px-3 text-right">Debit (₱)</th>
-                    <th className="py-2.5 px-3 text-right">Credit (₱)</th>
-                    <th className="py-2.5 px-3 text-center">Audit Status</th>
+                    <th className="py-2.5 px-2 w-8"></th>
+                    <th className="py-2.5 px-2 sm:px-3 w-28 sm:w-36">Entry # & Date</th>
+                    <th className="py-2.5 px-2 sm:px-3">Particulars & Memo</th>
+                    <th className="py-2.5 px-2 sm:px-3 hidden lg:table-cell w-36">Module / Reference</th>
+                    <th className="py-2.5 px-2 sm:px-3 text-right w-20 sm:w-28">Debit (₱)</th>
+                    <th className="py-2.5 px-2 sm:px-3 text-right w-20 sm:w-28">Credit (₱)</th>
+                    <th className="py-2.5 px-2 sm:px-3 text-center w-24 sm:w-28">Audit Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
@@ -389,20 +389,23 @@ export const GeneralLedgerPage: React.FC = () => {
                               hasLines ? 'cursor-pointer' : ''
                             }`}
                           >
-                            <td className="py-2.5 px-3 text-slate-400">
+                            <td className="py-2.5 px-2 text-slate-400">
                               {hasLines ? (
                                 isExpanded ? <ChevronDown className="w-4 h-4 text-indigo-500" /> : <ChevronRight className="w-4 h-4 text-slate-400" />
                               ) : null}
                             </td>
 
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <span className="font-semibold text-slate-900 dark:text-white block">{entry.entry_number}</span>
-                              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                            <td className="py-2.5 px-2 sm:px-3 whitespace-nowrap">
+                              <span className="font-semibold text-slate-900 dark:text-white block text-xs">{entry.entry_number}</span>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 block">
                                 {new Date(entry.posted_at).toLocaleDateString()}
+                              </span>
+                              <span className="lg:hidden mt-0.5 inline-block px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                {entry.source_module}
                               </span>
                             </td>
 
-                            <td className="py-2.5 px-3 max-w-sm">
+                            <td className="py-2.5 px-2 sm:px-3 max-w-[160px] sm:max-w-xs md:max-w-md">
                               <p className="truncate text-slate-800 dark:text-slate-200 font-semibold" title={entry.description}>
                                 {entry.description}
                               </p>
@@ -411,25 +414,25 @@ export const GeneralLedgerPage: React.FC = () => {
                               </span>
                             </td>
 
-                            <td className="py-2.5 px-3">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                            <td className="py-2.5 px-2 sm:px-3 hidden lg:table-cell">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 truncate block max-w-[130px]" title={entry.source_module}>
                                 {entry.source_module}
                               </span>
-                              <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-1">
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5 truncate max-w-[130px]" title={entry.reference_number}>
                                 {entry.reference_number}
                               </span>
                             </td>
 
-                            <td className="py-2.5 px-3 text-right font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums whitespace-nowrap">
+                            <td className="py-2.5 px-2 sm:px-3 text-right font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums whitespace-nowrap">
                               {Number(entry.debit) > 0 ? Number(entry.debit).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
                             </td>
 
-                            <td className="py-2.5 px-3 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums whitespace-nowrap">
+                            <td className="py-2.5 px-2 sm:px-3 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums whitespace-nowrap">
                               {Number(entry.credit) > 0 ? Number(entry.credit).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
                             </td>
 
-                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                            <td className="py-2.5 px-2 sm:px-3 text-center whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Balanced
                               </span>
                             </td>
@@ -438,33 +441,34 @@ export const GeneralLedgerPage: React.FC = () => {
                           {/* Expanded Double-Entry Breakdown */}
                           {isExpanded && hasLines && (
                             <tr className="bg-slate-50/70 dark:bg-slate-900/60">
-                              <td colSpan={7} className="py-3 px-4 sm:px-8 border-y border-slate-200 dark:border-slate-700">
-                                <div className="space-y-2 pl-4 sm:pl-6 border-l-2 border-indigo-500">
-                                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                              <td colSpan={7} className="py-3 px-3 sm:px-6 border-y border-slate-200 dark:border-slate-700">
+                                <div className="space-y-2 pl-3 sm:pl-4 border-l-2 border-indigo-500">
+                                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                                     Double-Entry Breakdown for Voucher #{entry.entry_number}
                                   </p>
                                   <div className="overflow-x-auto">
                                     <table className="w-full text-xs">
                                       <thead>
                                         <tr className="text-[10px] font-semibold text-slate-400 uppercase border-b border-slate-200 dark:border-slate-700">
-                                          <th className="py-1.5 text-left">Account Code & Name</th>
-                                          <th className="py-1.5 text-left">Line Memo</th>
-                                          <th className="py-1.5 text-right">Debit (₱)</th>
-                                          <th className="py-1.5 text-right">Credit (₱)</th>
+                                          <th className="py-1.5 px-2 text-left">Account Code & Name</th>
+                                          <th className="py-1.5 px-2 text-left hidden sm:table-cell">Line Memo</th>
+                                          <th className="py-1.5 px-2 text-right w-24">Debit (₱)</th>
+                                          <th className="py-1.5 px-2 text-right w-24">Credit (₱)</th>
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800">
                                         {(Array.isArray(entry.lines) ? entry.lines : []).map((line) => (
                                           <tr key={line.id} className="text-slate-700 dark:text-slate-300">
-                                            <td className="py-2">
+                                            <td className="py-2 px-2">
                                               <span className="font-semibold text-indigo-600 dark:text-indigo-400">[{line.account_code}]</span>{' '}
                                               <span className="text-slate-900 dark:text-white font-medium">{line.account_name}</span>
+                                              <span className="sm:hidden block text-[10px] text-slate-400 mt-0.5">{line.description}</span>
                                             </td>
-                                            <td className="py-2 text-slate-500 dark:text-slate-400 text-[11px]">{line.description}</td>
-                                            <td className="py-2 text-right text-indigo-600 dark:text-indigo-400 font-semibold tabular-nums">
+                                            <td className="py-2 px-2 text-slate-500 dark:text-slate-400 text-[11px] hidden sm:table-cell max-w-xs truncate" title={line.description}>{line.description}</td>
+                                            <td className="py-2 px-2 text-right text-indigo-600 dark:text-indigo-400 font-semibold tabular-nums whitespace-nowrap">
                                               {line.debit > 0 ? line.debit.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
                                             </td>
-                                            <td className="py-2 text-right text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">
+                                            <td className="py-2 px-2 text-right text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums whitespace-nowrap">
                                               {line.credit > 0 ? line.credit.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '-'}
                                             </td>
                                           </tr>
@@ -508,14 +512,14 @@ export const GeneralLedgerPage: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs min-w-[650px]">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                    <th className="py-2.5 px-3">Account Code</th>
+                    <th className="py-2.5 px-3 w-28">Account Code</th>
                     <th className="py-2.5 px-3">Account Title</th>
-                    <th className="py-2.5 px-3">Type</th>
-                    <th className="py-2.5 px-3 text-right">Debit Balance (₱)</th>
-                    <th className="py-2.5 px-3 text-right">Credit Balance (₱)</th>
+                    <th className="py-2.5 px-3 hidden sm:table-cell w-28">Type</th>
+                    <th className="py-2.5 px-3 text-right w-28 sm:w-36">Debit Balance (₱)</th>
+                    <th className="py-2.5 px-3 text-right w-28 sm:w-36">Credit Balance (₱)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
@@ -581,15 +585,15 @@ export const GeneralLedgerPage: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs min-w-[650px]">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                    <th className="py-2.5 px-3">Customer Code</th>
+                    <th className="py-2.5 px-3 w-28">Customer Code</th>
                     <th className="py-2.5 px-3">Customer / Company Name</th>
-                    <th className="py-2.5 px-3 text-right">Total Invoiced (₱)</th>
-                    <th className="py-2.5 px-3 text-right">Total Collected (₱)</th>
-                    <th className="py-2.5 px-3 text-right">Balance Due (₱)</th>
-                    <th className="py-2.5 px-3 text-center">Unpaid Invoices</th>
+                    <th className="py-2.5 px-3 text-right hidden md:table-cell w-28 sm:w-36">Total Invoiced (₱)</th>
+                    <th className="py-2.5 px-3 text-right hidden sm:table-cell w-28 sm:w-36">Total Collected (₱)</th>
+                    <th className="py-2.5 px-3 text-right w-28 sm:w-36">Balance Due (₱)</th>
+                    <th className="py-2.5 px-3 text-center w-24">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
@@ -645,15 +649,15 @@ export const GeneralLedgerPage: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs min-w-[650px]">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                    <th className="py-2.5 px-3">Supplier Code</th>
+                    <th className="py-2.5 px-3 w-28">Supplier Code</th>
                     <th className="py-2.5 px-3">Supplier / Vendor Name</th>
-                    <th className="py-2.5 px-3 text-right">Total Billed (₱)</th>
-                    <th className="py-2.5 px-3 text-right">Total Paid (₱)</th>
-                    <th className="py-2.5 px-3 text-right">Balance Owed (₱)</th>
-                    <th className="py-2.5 px-3 text-center">Unpaid Bills</th>
+                    <th className="py-2.5 px-3 text-right hidden md:table-cell w-28 sm:w-36">Total Billed (₱)</th>
+                    <th className="py-2.5 px-3 text-right hidden sm:table-cell w-28 sm:w-36">Total Paid (₱)</th>
+                    <th className="py-2.5 px-3 text-right w-28 sm:w-36">Balance Owed (₱)</th>
+                    <th className="py-2.5 px-3 text-center w-24">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
@@ -709,14 +713,14 @@ export const GeneralLedgerPage: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-lg overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs min-w-[650px]">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-700/40 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                    <th className="py-2.5 px-3">Batch Reference & Date</th>
+                    <th className="py-2.5 px-3 w-32 sm:w-40">Batch Reference & Date</th>
                     <th className="py-2.5 px-3">Payroll Particulars</th>
-                    <th className="py-2.5 px-3">GL Expense Account</th>
-                    <th className="py-2.5 px-3 text-right">Disbursement Amount (₱)</th>
-                    <th className="py-2.5 px-3 text-center">Journal Entry</th>
+                    <th className="py-2.5 px-3 hidden md:table-cell">GL Expense Account</th>
+                    <th className="py-2.5 px-3 text-right w-28 sm:w-36">Disbursement (₱)</th>
+                    <th className="py-2.5 px-3 text-center w-24 sm:w-28">Journal Entry</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
