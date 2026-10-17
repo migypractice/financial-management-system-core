@@ -203,7 +203,12 @@ export const AccountsPayablePage: React.FC = () => {
       setTimeout(() => setSuccessToast(null), 4000);
       refreshBills();
     } catch (err: any) {
-      setPrError(err.response?.data?.message || 'Failed to submit payment request.');
+      const serverMsg =
+        err.response?.data?.message ||
+        (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(', ') : null) ||
+        err.message ||
+        'Failed to submit payment request.';
+      setPrError(serverMsg);
     } finally {
       setPrSubmitting(false);
     }

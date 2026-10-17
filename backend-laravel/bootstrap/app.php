@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role'    => \App\Http\Middleware\RoleMiddleware::class,
             'api.key' => \App\Http\Middleware\ApiKeyMiddleware::class,
         ]);
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
