@@ -20,6 +20,7 @@ class ArInvoice extends Model
         'paid_amount',
         'balance',
         'description',
+        'category_type',
         'status',
         'created_by',
         'journal_entry_id',

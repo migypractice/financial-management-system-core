@@ -294,4 +294,186 @@ class IntegrationControllerTest extends TestCase
         $response->assertStatus(404)
             ->assertJsonPath('success', false);
     }
+
+    public function test_api_key_accepted_via_query_parameter_and_bearer_token(): void
+    {
+        // 1. Query parameter fallback (?api_key=...)
+        $queryRes = $this->getJson('/api/v1/integration/financial-summary?api_key=test-integration-api-key');
+        $queryRes->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        // 2. Authorization: Bearer <key>
+        $bearerRes = $this->getJson('/api/v1/integration/financial-summary', [
+            'Authorization' => 'Bearer test-integration-api-key',
+        ]);
+        $bearerRes->assertStatus(200)
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_esfa_seller_subscription_inbound_revenue_with_flexible_aliases(): void
+    {
+        $payload = [
+            'order_id'            => 'SUB-ESFA-2026-001',
+            'seller_name'         => 'TopSteel Hardware Merchant',
+            'category_type'       => 'SELLER_SUBSCRIPTION',
+            'amount'              => 5000,
+            'subscription_amount' => 5000,
+            'gateway_fee'         => 150,
+            'status'              => 'PAID',
+            'notes'               => 'Annual Merchant Gold Tier Subscription',
+        ];
+
+        $response = $this->postJson('/api/v1/integration/inbound-revenue', $payload, [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $response->assertStatus(202)
+            ->assertJsonPath('core_records.category_type', 'SELLER_SUBSCRIPTION');
+
+        $invoiceId = $response->json('core_records.ar_invoice_id');
+        $collectionId = $response->json('core_records.collection_id');
+        $netDeposit = $response->json('core_records.net_bank_deposit');
+
+        $this->assertNotNull($invoiceId);
+        $this->assertNotNull($collectionId);
+        $this->assertEquals(4850, $netDeposit); // 5000 - 150 fee
+
+        $this->assertDatabaseHas('ar_invoices', [
+            'id'            => $invoiceId,
+            'category_type' => 'SELLER_SUBSCRIPTION',
+            'status'        => 'PAID',
+        ]);
+
+        $this->assertDatabaseHas('collections', [
+            'id'     => $collectionId,
+            'amount' => 5000,
+        ]);
+    }
+
+    public function test_esfa_seller_settlement_and_customer_refund_disbursements(): void
+    {
+        // 1. ESFA Seller Settlement Payout
+        $settleRes = $this->postJson('/api/v1/integration/request-disbursement', [
+            'settlement_id' => 'SETTLE-ESFA-888',
+            'seller_name'   => 'PowerTools MegaMerchant',
+            'category_type' => 'SELLER_SETTLEMENT',
+            'amount'        => 45000,
+            'notes'         => 'Bi-weekly marketplace net payout',
+        ], ['X-API-KEY' => 'test-integration-api-key']);
+
+        $settleRes->assertStatus(202);
+        $billId = $settleRes->json('core_records.ap_bill_id');
+        $prId = $settleRes->json('core_records.payment_request_id');
+
+        $this->assertDatabaseHas('ap_bills', [
+            'id'            => $billId,
+            'category_type' => 'SELLER_SETTLEMENT',
+            'status'        => 'UNPAID',
+        ]);
+
+        $this->assertDatabaseHas('payment_requests', [
+            'id'     => $prId,
+            'status' => 'PENDING_APPROVAL',
+        ]);
+
+        // 2. Customer Refund (Returns & Claims)
+        $refundRes = $this->postJson('/api/v1/integration/request-disbursement', [
+            'refund_id'     => 'REFUND-ORD-5544',
+            'customer_name' => 'Maria Santos',
+            'category_type' => 'CUSTOMER_REFUND',
+            'amount'        => 2400,
+            'notes'         => 'Damaged drill bit return and refund',
+        ], ['X-API-KEY' => 'test-integration-api-key']);
+
+        $refundRes->assertStatus(202);
+        $refundBillId = $refundRes->json('core_records.ap_bill_id');
+
+        $this->assertDatabaseHas('ap_bills', [
+            'id'            => $refundBillId,
+            'category_type' => 'CUSTOMER_REFUND',
+        ]);
+    }
+
+    public function test_esfa_analytics_summary_and_tax_summary_endpoints(): void
+    {
+        // Ingest revenue first to have non-zero metrics
+        $this->postJson('/api/v1/integration/inbound-revenue', [
+            'order_id'            => 'ORD-ANALYTICS-01',
+            'customer_name'       => 'Metro Construction Corp',
+            'category_type'       => 'PLATFORM_COMMISSION',
+            'amount'              => 12000,
+            'commission_amount'   => 12000,
+            'gateway_fee'         => 200,
+            'status'              => 'PAID',
+        ], ['X-API-KEY' => 'test-integration-api-key']);
+
+        // 1. Financial Summary for Group 3 ESFA Dashboard
+        $summaryRes = $this->getJson('/api/v1/integration/financial-summary', [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $summaryRes->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'as_of',
+                'gross_sales',
+                'net_revenue',
+                'commission_income',
+                'subscription_income',
+                'total_refunds',
+                'gateway_fees',
+                'total_collections',
+                'total_disbursements',
+                'liquid_cash_balance',
+            ]);
+
+        $this->assertGreaterThan(0, $summaryRes->json('gross_sales'));
+        $this->assertGreaterThan(0, $summaryRes->json('commission_income'));
+
+        // 2. Tax Summary for Group 3 ESFA Tax Sync
+        $taxRes = $this->getJson('/api/v1/integration/tax-summary', [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $taxRes->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'output_vat_12',
+                'input_vat_12',
+                'net_vat_payable',
+                'withholding_tax_ewt',
+                'commission_tax_base',
+                'subscription_tax_base',
+                'recent_taxable_records',
+            ]);
+
+        $this->assertGreaterThan(0, $taxRes->json('output_vat_12'));
+    }
+
+    public function test_group4_facilities_archiving_feed(): void
+    {
+        $response = $this->getJson('/api/v1/integration/archiving-records', [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'as_of',
+                'retention_policy',
+                'counts' => [
+                    'official_receipts',
+                    'supplier_bills',
+                    'sales_invoices',
+                    'audit_logs',
+                ],
+                'official_receipts',
+                'supplier_seller_bills',
+                'sales_subscription_invoices',
+                'audit_logs',
+            ]);
+    }
 }

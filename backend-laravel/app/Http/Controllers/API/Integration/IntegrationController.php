@@ -47,11 +47,98 @@ class IntegrationController extends Controller
     ) {}
 
     /**
-     * Inbound revenue ingestion (E-Commerce Online Sales, Customer Payments, Gateway Receipts).
-     * Automatically creates real ArInvoice, posts GL, and creates Collection if paid.
+     * Inbound revenue ingestion (E-Commerce Online Sales, Customer Payments, Gateway Receipts, ESFA Subscriptions).
+     * Automatically creates real ArInvoice in /ar, posts GL, and creates Collection in /collections & /cash if paid.
      */
     public function inboundRevenue(Request $request): JsonResponse
     {
+        // 1. Resolve Flexible Reference Aliases
+        $ref = $request->input('external_reference_id')
+            ?? $request->input('reference_id')
+            ?? $request->input('order_id')
+            ?? $request->input('transaction_id')
+            ?? $request->input('invoice_number')
+            ?? ('REV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6)));
+
+        // 2. Resolve Flexible Counterparty Aliases
+        $counterparty = $request->input('customer_name')
+            ?? $request->input('seller_name')
+            ?? $request->input('merchant_name')
+            ?? $request->input('payer_name')
+            ?? $request->input('payee_name')
+            ?? 'E-Commerce Customer / Seller';
+
+        // 3. Resolve Flexible Category / Type Aliases
+        $category = strtoupper(
+            $request->input('category_type')
+            ?? $request->input('transaction_type')
+            ?? $request->input('type')
+            ?? 'ORDER_PAYMENT'
+        );
+
+        // 4. Resolve External Module
+        $externalModule = $request->input('external_module')
+            ?? $request->input('source_module')
+            ?? (in_array($category, ['SELLER_SUBSCRIPTION', 'PLATFORM_COMMISSION', 'GATEWAY_SETTLEMENT']) ? 'ESFA_GROUP3' : 'ECOMMERCE_CORE');
+
+        // 5. Resolve Fees and Breakdown Fields
+        $feeAmount = (float) (
+            $request->input('fee_amount')
+            ?? $request->input('gateway_fee')
+            ?? 0
+        );
+
+        $description = $request->input('description')
+            ?? $request->input('purpose')
+            ?? $request->input('notes')
+            ?? "Inbound {$category} from {$counterparty}";
+
+        // 6. Resolve Payment Status (PAID default for online/captured payments, gateway settlements, and COD)
+        $paymentStatus = strtoupper(
+            $request->input('payment_status')
+            ?? $request->input('status')
+            ?? (in_array($category, ['ORDER_PAYMENT', 'CAPTURED_PAYMENT', 'COD_COLLECTION', 'GATEWAY_SETTLEMENT', 'SELLER_SUBSCRIPTION', 'PLATFORM_COMMISSION', 'SALES_REVENUE']) ? 'PAID' : 'PAID')
+        );
+        if (!in_array($paymentStatus, ['PAID', 'UNPAID'])) {
+            $paymentStatus = 'PAID';
+        }
+
+        $existingMeta = $request->input('metadata') ?? [];
+        if (!is_array($existingMeta)) {
+            $existingMeta = [];
+        }
+
+        $meta = array_merge([
+            'customer_name'       => $counterparty,
+            'payer_name'          => $counterparty,
+            'payment_status'      => $paymentStatus,
+            'gateway_fee'         => $feeAmount,
+            'commission_amount'   => (float) ($request->input('commission_amount') ?? 0),
+            'subscription_amount' => (float) ($request->input('subscription_amount') ?? 0),
+        ], $existingMeta);
+
+        $amount = $request->input('amount')
+            ?? $request->input('total_amount')
+            ?? $request->input('grand_total')
+            ?? $request->input('net_amount');
+
+        $taxAmount = $request->input('tax_amount');
+        if ($taxAmount === null && $amount !== null && is_numeric($amount)) {
+            // Compute 12% output VAT component standard in PH PFRS
+            $taxAmount = round((float)$amount - ((float)$amount / 1.12), 2);
+        }
+
+        $request->merge([
+            'external_module'       => $externalModule,
+            'external_reference_id' => $ref,
+            'category_type'         => $category,
+            'amount'                => $amount,
+            'tax_amount'            => $taxAmount,
+            'fee_amount'            => $feeAmount,
+            'description'           => $description,
+            'metadata'              => $meta,
+        ]);
+
         $validated = $request->validate([
             'external_module'       => 'required|string',
             'external_reference_id' => 'required|string|max:255',
@@ -71,11 +158,87 @@ class IntegrationController extends Controller
     }
 
     /**
-     * Outbound disbursement request (Payroll, Supplier POs, Fleet Fuel, Facilities Rent, Refunds).
-     * Automatically creates real ApBill, posts GL, and queues PaymentRequest voucher in /disbursements.
+     * Outbound disbursement request (Payroll, Supplier POs, Fleet Fuel, Facilities Rent, ESFA Seller Payouts, Refunds).
+     * Automatically creates real ApBill in /ap, posts GL, and queues PaymentRequest voucher in /disbursements.
      */
     public function requestDisbursement(Request $request): JsonResponse
     {
+        // 1. Resolve Flexible Reference Aliases
+        $ref = $request->input('external_reference_id')
+            ?? $request->input('reference_id')
+            ?? $request->input('voucher_id')
+            ?? $request->input('settlement_id')
+            ?? $request->input('refund_id')
+            ?? $request->input('po_number')
+            ?? ('DISB-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6)));
+
+        // 2. Resolve Flexible Category Aliases
+        $category = strtoupper(
+            $request->input('category_type')
+            ?? $request->input('transaction_type')
+            ?? $request->input('type')
+            ?? $request->input('category')
+            ?? 'SUPPLIER_INVOICE'
+        );
+
+        // 3. Resolve External Module
+        $externalModule = $request->input('external_module')
+            ?? $request->input('source_module');
+
+        if (!$externalModule) {
+            $externalModule = match ($category) {
+                'SELLER_PAYOUT', 'SELLER_SETTLEMENT', 'CUSTOMER_REFUND' => 'ESFA_GROUP3',
+                'INVENTORY_PURCHASE'                                    => 'SUPPLY_CHAIN',
+                'FREIGHT_SHIPPING', 'FUEL_MANAGEMENT', 'FLEET_FUEL', 'FLEET_MAINTENANCE' => 'FLEET',
+                'UTILITIES_BILL', 'CONTRACT_LEASE', 'FACILITY_RENT', 'LEGAL_BILLING'     => 'FACILITIES_LEGAL',
+                'PAYROLL_BENEFITS', 'EMPLOYEE_REIMBURSEMENT', 'PAYROLL_SALARY', 'EMPLOYEE_CLAIM' => 'HRMS',
+                default                                                 => 'ENTERPRISE_INTEGRATION',
+            };
+        }
+
+        // 4. Resolve Payee Info Aliases
+        $payeeAlias = $request->input('payee_name')
+            ?? $request->input('seller_name')
+            ?? $request->input('supplier_name')
+            ?? $request->input('vendor_name')
+            ?? $request->input('employee_name')
+            ?? $request->input('customer_name');
+
+        $payeeInfo = $request->input('payee_info');
+
+        if (is_string($payeeInfo)) {
+            $payeeInfo = ['name' => $payeeInfo];
+        } elseif (is_array($payeeInfo)) {
+            if (empty($payeeInfo['name']) && $payeeAlias) {
+                $payeeInfo['name'] = $payeeAlias;
+            }
+        } elseif ($payeeAlias) {
+            $payeeInfo = ['name' => $payeeAlias];
+        }
+
+        $description = $request->input('description')
+            ?? $request->input('purpose')
+            ?? $request->input('notes');
+
+        if (!$description) {
+            $pName = is_array($payeeInfo) ? ($payeeInfo['name'] ?? 'Payee') : 'Payee';
+            $description = "Disbursement request ({$category}) for {$pName}";
+        }
+
+        $amount = $request->input('amount')
+            ?? $request->input('total_amount')
+            ?? $request->input('disbursement_amount')
+            ?? $request->input('net_amount');
+
+        $request->merge([
+            'external_module'       => $externalModule,
+            'external_reference_id' => $ref,
+            'category_type'         => $category,
+            'amount'                => $amount,
+            'payee_info'            => $payeeInfo,
+            'description'           => $description,
+        ]);
+
         $validated = $request->validate([
             'external_module'       => 'required|string',
             'external_reference_id' => 'required|string|max:255',
@@ -404,14 +567,18 @@ class IntegrationController extends Controller
 
                 if ($validated['type'] === 'INCOME') {
                     // =========================================================================
-                    // INBOUND REVENUE: E-Commerce Marketplace -> AR Invoices & Collections
+                    // INBOUND REVENUE: E-Commerce / ESFA Group 3 -> AR Invoices & Collections
                     // =========================================================================
-                    $custName = $validated['metadata']['customer_name'] ?? 'E-Commerce Online Customers';
+                    $custName = $validated['metadata']['customer_name']
+                        ?? $validated['metadata']['payer_name']
+                        ?? $validated['metadata']['seller_name']
+                        ?? 'E-Commerce Online Customers';
+
                     $customer = Customer::firstOrCreate(
-                        ['customer_code' => 'CUST-ECOM'],
+                        ['name' => $custName],
                         [
-                            'name'               => $custName,
-                            'company_name'       => 'Online Store Retail Clients',
+                            'customer_code'      => 'CUST-' . strtoupper(Str::random(5)),
+                            'company_name'       => $custName,
                             'email'              => 'ecommerce@hardware.ph',
                             'phone'              => '+63 917 888 2000',
                             'address'            => 'Metro Manila, Philippines',
@@ -420,13 +587,25 @@ class IntegrationController extends Controller
                         ]
                     );
 
+                    $category = $validated['category_type'] ?? 'ORDER_PAYMENT';
+
+                    // Revenue Account: 4100-REV-SERVICE for Subscriptions / Commissions, 4000-REV for Sales
+                    if (in_array($category, ['SELLER_SUBSCRIPTION', 'PLATFORM_COMMISSION', 'SERVICE_FEE'])) {
+                        $revAccount = ChartOfAccount::where('code', '4100-REV-SERVICE')->first()
+                                   ?? ChartOfAccount::where('code', '4000-REV')->first()
+                                   ?? ChartOfAccount::create(['code' => '4100-REV-SERVICE', 'name' => 'Delivery & Platform Service Revenue', 'type' => 'REVENUE', 'normal_balance' => 'CREDIT']);
+                    } else {
+                        $revAccount = ChartOfAccount::where('code', '4000-REV')->first()
+                                   ?? ChartOfAccount::create(['code' => '4000-REV', 'name' => 'Sales Revenue', 'type' => 'REVENUE', 'normal_balance' => 'CREDIT']);
+                    }
+
                     $arAccount = ChartOfAccount::where('code', '1020-AR')->first()
                               ?? ChartOfAccount::create(['code' => '1020-AR', 'name' => 'Accounts Receivable', 'type' => 'ASSET', 'normal_balance' => 'DEBIT']);
-                    $revAccount = ChartOfAccount::where('code', '4000-REV')->first()
-                               ?? ChartOfAccount::create(['code' => '4000-REV', 'name' => 'Sales Revenue', 'type' => 'REVENUE', 'normal_balance' => 'CREDIT']);
                     $cashAccount = ChartOfAccount::where('code', '1010-CASH')->first()
                                 ?? ChartOfAccount::create(['code' => '1010-CASH', 'name' => 'Cash and Cash Equivalents', 'type' => 'ASSET', 'normal_balance' => 'DEBIT']);
                     $taxAccount = ChartOfAccount::where('code', '2020-TAX')->first();
+                    $feeExpenseAccount = ChartOfAccount::where('code', '5500-EXP-SUPPLIES')->first()
+                                      ?? ChartOfAccount::create(['code' => '5500-EXP-SUPPLIES', 'name' => 'Store & Office Supplies Expense', 'type' => 'EXPENSE', 'normal_balance' => 'DEBIT']);
 
                     $invNumber = 'INV-' . now()->format('Ym') . '-' . strtoupper(Str::random(5));
                     while (ArInvoice::where('invoice_number', $invNumber)->exists()) {
@@ -445,6 +624,7 @@ class IntegrationController extends Controller
                         'total_amount'        => $amount,
                         'paid_amount'         => $isPaid ? $amount : 0.00,
                         'balance'             => $isPaid ? 0.00 : $amount,
+                        'category_type'       => $category,
                         'description'         => $validated['description'],
                         'status'              => $isPaid ? 'PAID' : 'UNPAID',
                         'created_by'          => $systemUser->id,
@@ -466,11 +646,11 @@ class IntegrationController extends Controller
                         'chart_of_account_id' => $arAccount->id,
                         'debit'               => $amount,
                         'credit'              => 0.00,
-                        'description'         => "Invoice #{$invNumber} - {$customer->name}",
+                        'description'         => "Invoice #{$invNumber} [{$category}] - {$customer->name}",
                     ]);
 
                     $netRev = max(0, $amount - $taxAmount);
-                    // Credit 4000-REV ($netRev)
+                    // Credit 4000-REV or 4100-REV-SERVICE ($netRev)
                     JournalEntryLine::create([
                         'journal_entry_id'    => $jeInv->id,
                         'chart_of_account_id' => $revAccount->id,
@@ -489,16 +669,25 @@ class IntegrationController extends Controller
                         ]);
                     }
 
-                    $coreRecords['ar_invoice_id'] = $invoice->id;
+                    $coreRecords['ar_invoice_id']  = $invoice->id;
                     $coreRecords['invoice_number'] = $invNumber;
+                    $coreRecords['category_type']  = $category;
 
-                    // If paid at checkout, create Collection and credit bank balance
+                    // If paid at checkout, create Collection and credit bank balance (net of gateway fees)
                     if ($isPaid) {
                         $bank = BankAccount::where('bank_name', 'like', '%BDO%')
                              ->orWhere('account_name', 'like', '%Receivable%')
                              ->orWhere('account_name', 'like', '%Main%')
                              ->first()
-                             ?? BankAccount::first();
+                             ?? BankAccount::first()
+                             ?? BankAccount::create([
+                                 'account_number'  => '1001-BDO-MAIN',
+                                 'account_name'    => 'BDO Main Operating Cash',
+                                 'bank_name'       => 'Banco de Oro (BDO)',
+                                 'account_type'    => 'Operating',
+                                 'currency'        => 'PHP',
+                                 'current_balance' => 0.00,
+                             ]);
 
                         if ($bank) {
                             $colCount = DB::table('collections')->count() + 1;
@@ -516,25 +705,43 @@ class IntegrationController extends Controller
                                 'status'         => 'POSTED',
                             ]);
 
+                            $payMethod = ($category === 'COD_COLLECTION') ? 'COD' : 'ONLINE';
+
                             $collection = Collection::create([
                                 'collection_number' => $colNumber,
                                 'ar_invoice_id'     => $invoice->id,
                                 'bank_account_id'   => $bank->id,
                                 'amount'            => $amount,
                                 'collection_date'   => now()->toDateString(),
-                                'payment_method'    => 'ONLINE',
+                                'payment_method'    => $payMethod,
                                 'reference_number'  => $validated['external_reference_id'],
                                 'collected_by'      => $systemUser->id,
                                 'journal_entry_id'  => $jeCol->id,
                             ]);
 
+                            $netCash = max(0, $amount - $feeAmount);
+
+                            // Debit 1010-CASH (Net Cash in Bank)
                             JournalEntryLine::create([
                                 'journal_entry_id'    => $jeCol->id,
                                 'chart_of_account_id' => $cashAccount->id,
-                                'debit'               => $amount,
+                                'debit'               => $netCash,
                                 'credit'              => 0.00,
                                 'description'         => "Online Collection #{$colNumber} - {$bank->account_name}",
                             ]);
+
+                            // Debit 5500-EXP-SUPPLIES if gateway fee > 0
+                            if ($feeAmount > 0) {
+                                JournalEntryLine::create([
+                                    'journal_entry_id'    => $jeCol->id,
+                                    'chart_of_account_id' => $feeExpenseAccount->id,
+                                    'debit'               => $feeAmount,
+                                    'credit'              => 0.00,
+                                    'description'         => "Gateway processing fee on #{$colNumber}",
+                                ]);
+                            }
+
+                            // Credit 1020-AR ($amount)
                             JournalEntryLine::create([
                                 'journal_entry_id'    => $jeCol->id,
                                 'chart_of_account_id' => $arAccount->id,
@@ -543,25 +750,32 @@ class IntegrationController extends Controller
                                 'description'         => "Settlement of Invoice #{$invNumber}",
                             ]);
 
-                            $bank->increment('current_balance', $amount);
+                            $bank->increment('current_balance', $netCash);
 
-                            $coreRecords['collection_id'] = $collection->id;
+                            $coreRecords['collection_id']     = $collection->id;
                             $coreRecords['collection_number'] = $colNumber;
+                            $coreRecords['net_bank_deposit']  = $netCash;
                         }
                     }
 
                 } else {
                     // =========================================================================
-                    // OUTBOUND EXPENSE: HRMS, Fleet, Facilities, Supply Chain -> AP Bills & PRs
+                    // OUTBOUND EXPENSE: HRMS, Fleet, Facilities, Supply Chain, ESFA -> AP & PRs
                     // =========================================================================
-                    $payeeName = $validated['metadata']['payee_info']['name'] ?? null;
+                    $payeeName = $validated['metadata']['payee_info']['name'] 
+                        ?? $validated['metadata']['seller_name']
+                        ?? $validated['metadata']['supplier_name']
+                        ?? $validated['metadata']['vendor_name']
+                        ?? null;
+
                     if (!$payeeName) {
                         $payeeName = match ($validated['external_module']) {
-                            'HRMS'             => 'Corporate Staff Payroll',
-                            'FLEET'            => 'Shell Fleet & Logistics',
-                            'FACILITIES_LEGAL' => 'Meralco Commercial Power',
-                            'SUPPLY_CHAIN'     => 'Holcim Philippines Inc.',
-                            default            => 'Corporate Commercial Payee',
+                            'HRMS'                                      => 'Corporate Staff Payroll',
+                            'FLEET'                                     => 'Shell Fleet & Logistics',
+                            'FACILITIES_LEGAL'                          => 'Meralco Commercial Power',
+                            'SUPPLY_CHAIN'                              => 'Holcim Philippines Inc.',
+                            'ESFA_GROUP3', 'ECOMMERCE_CORE'             => 'Marketplace Verified Seller',
+                            default                                     => 'Corporate Commercial Payee',
                         };
                     }
 
@@ -580,12 +794,14 @@ class IntegrationController extends Controller
 
                     $category = $validated['category_type'] ?? 'SUPPLIER_INVOICE';
                     $defaultCoaCode = match ($category) {
-                        'PAYROLL_BENEFITS', 'PAYROLL_SALARY', 'EMPLOYEE_CLAIM' => '5100-EXP-SALARY',
-                        'FLEET_FUEL', 'FLEET_MAINTENANCE', 'FREIGHT_SHIPPING'  => '5400-EXP-LOGISTICS',
-                        'FACILITY_RENT', 'UTILITIES_BILL', 'LEGAL_BILLING'     => '5200-EXP-UTIL',
-                        'OFFICE_SUPPLIES', 'EQUIPMENT_REPAIR', 'CUSTOMER_REFUND'=> '5500-EXP-SUPPLIES',
-                        'INVENTORY_PURCHASE', 'SUPPLIER_INVOICE'               => '1200-INV',
-                        default                                                => '5500-EXP-SUPPLIES',
+                        'SELLER_PAYOUT', 'SELLER_SETTLEMENT'                                     => '5000-COGS',
+                        'PAYROLL_BENEFITS', 'PAYROLL_SALARY', 'EMPLOYEE_CLAIM', 'EMPLOYEE_REIMBURSEMENT' => '5100-EXP-SALARY',
+                        'FLEET_FUEL', 'FLEET_MAINTENANCE', 'FREIGHT_SHIPPING', 'FUEL_MANAGEMENT' => '5400-EXP-LOGISTICS',
+                        'FACILITY_RENT', 'CONTRACT_LEASE'                                        => '5300-EXP-RENT',
+                        'UTILITIES_BILL', 'LEGAL_BILLING'                                        => '5200-EXP-UTIL',
+                        'CUSTOMER_REFUND', 'SALES_RETURN', 'OFFICE_SUPPLIES', 'EQUIPMENT_REPAIR' => '5500-EXP-SUPPLIES',
+                        'INVENTORY_PURCHASE', 'SUPPLIER_INVOICE'                                 => '1200-INV',
+                        default                                                                  => '5500-EXP-SUPPLIES',
                     };
 
                     $expenseCoa = ChartOfAccount::where('code', $defaultCoaCode)->first()
@@ -763,19 +979,284 @@ class IntegrationController extends Controller
     }
 
     /**
+     * Live Financial & Analytics Summary for Group 3 (ESFA Analytics & Admin Dashboard).
+     */
+    public function financialSummary(Request $request): JsonResponse
+    {
+        $grossSales = (float) ArInvoice::sum('total_amount');
+
+        $revCoaIds = ChartOfAccount::where('type', 'REVENUE')->pluck('id');
+        $revCredits = (float) JournalEntryLine::whereIn('chart_of_account_id', $revCoaIds)->sum('credit');
+        $revDebits = (float) JournalEntryLine::whereIn('chart_of_account_id', $revCoaIds)->sum('debit');
+        $netRevenue = max(0, $revCredits - $revDebits);
+        if ($netRevenue == 0 && $grossSales > 0) {
+            $netRevenue = round($grossSales / 1.12, 2);
+        }
+
+        $commissionIncome = (float) ArInvoice::where('category_type', 'PLATFORM_COMMISSION')->sum('total_amount');
+        if ($commissionIncome == 0) {
+            $commissionIncome = (float) Transaction::where('category_type', 'PLATFORM_COMMISSION')->sum('amount');
+        }
+
+        $subscriptionIncome = (float) ArInvoice::where('category_type', 'SELLER_SUBSCRIPTION')->sum('total_amount');
+        if ($subscriptionIncome == 0) {
+            $subscriptionIncome = (float) Transaction::where('category_type', 'SELLER_SUBSCRIPTION')->sum('amount');
+        }
+
+        $totalRefunds = (float) ApBill::where('category_type', 'CUSTOMER_REFUND')->sum('total_amount');
+        if ($totalRefunds == 0) {
+            $totalRefunds = (float) Transaction::where('category_type', 'CUSTOMER_REFUND')->sum('amount');
+        }
+
+        $gatewayFees = (float) Transaction::where('type', 'INCOME')->sum('fee_amount');
+        $totalCollections = (float) Collection::sum('amount');
+
+        $totalDisbursements = (float) PaymentRequest::where('status', 'DISBURSED')->sum('amount');
+        if ($totalDisbursements == 0) {
+            $totalDisbursements = (float) ApBill::sum('paid_amount');
+        }
+
+        $liquidCashBalance = (float) BankAccount::sum('current_balance');
+
+        $payload = [
+            'gross_sales'         => round($grossSales, 2),
+            'net_revenue'         => round($netRevenue, 2),
+            'commission_income'   => round($commissionIncome, 2),
+            'subscription_income' => round($subscriptionIncome, 2),
+            'total_refunds'       => round($totalRefunds, 2),
+            'gateway_fees'        => round($gatewayFees, 2),
+            'total_collections'   => round($totalCollections, 2),
+            'total_disbursements' => round($totalDisbursements, 2),
+            'liquid_cash_balance' => round($liquidCashBalance, 2),
+        ];
+
+        return response()->json(array_merge([
+            'success'  => true,
+            'as_of'    => now()->toIso8601String(),
+            'currency' => 'PHP',
+            'data'     => $payload,
+        ], $payload), 200);
+    }
+
+    /**
+     * Live Tax Summary for Group 3 (ESFA Payment & Subscription Tax Sync).
+     */
+    public function taxSummary(Request $request): JsonResponse
+    {
+        $arInvoices = ArInvoice::with('customer')->orderByDesc('invoice_date')->get();
+        $outputVat12 = 0.0;
+        $commissionTaxBase = 0.0;
+        $subscriptionTaxBase = 0.0;
+        $recentRecords = [];
+
+        foreach ($arInvoices as $inv) {
+            $gross = (float) $inv->total_amount;
+            $vatableBase = round($gross / 1.12, 2);
+            $vat = round($gross - $vatableBase, 2);
+            $outputVat12 += $vat;
+
+            $cat = $inv->category_type ?? 'SALES_REVENUE';
+            if ($cat === 'PLATFORM_COMMISSION') {
+                $commissionTaxBase += $vatableBase;
+            } elseif ($cat === 'SELLER_SUBSCRIPTION') {
+                $subscriptionTaxBase += $vatableBase;
+            }
+
+            if (count($recentRecords) < 15) {
+                $recentRecords[] = [
+                    'type'         => 'OUTPUT_VAT',
+                    'reference'    => $inv->invoice_number,
+                    'counterparty' => $inv->customer?->name ?? 'Online Client',
+                    'category'     => $cat,
+                    'gross_amount' => $gross,
+                    'tax_base'     => $vatableBase,
+                    'vat_amount'   => $vat,
+                    'rate'         => 0.12,
+                    'date'         => $inv->invoice_date?->toDateString() ?? now()->toDateString(),
+                ];
+            }
+        }
+
+        $apBills = ApBill::with('supplier')->orderByDesc('bill_date')->get();
+        $inputVat12 = 0.0;
+        $withholdingTaxEwt = 0.0;
+
+        foreach ($apBills as $bill) {
+            $gross = (float) $bill->total_amount;
+            $cat = $bill->category_type ?? 'SUPPLIER_INVOICE';
+            $tax = $this->aiService->computeTaxBreakdown($gross, $cat, 'ACCOUNTS_PAYABLE');
+
+            $inputVat12 += $tax['vat_amount'];
+            $withholdingTaxEwt += $tax['ewt_amount'];
+
+            if (count($recentRecords) < 30) {
+                $recentRecords[] = [
+                    'type'         => 'INPUT_VAT',
+                    'reference'    => $bill->bill_number,
+                    'counterparty' => $bill->supplier?->name ?? 'External Vendor',
+                    'category'     => $cat,
+                    'gross_amount' => $gross,
+                    'tax_base'     => $tax['vatable_base'],
+                    'vat_amount'   => $tax['vat_amount'],
+                    'ewt_code'     => $tax['ewt_code'],
+                    'ewt_rate'     => $tax['ewt_rate'],
+                    'ewt_amount'   => $tax['ewt_amount'],
+                    'rate'         => $tax['vat_rate'],
+                    'date'         => $bill->bill_date?->toDateString() ?? now()->toDateString(),
+                ];
+            }
+        }
+
+        $netVatPayable = max(0, round($outputVat12 - $inputVat12, 2));
+
+        $payload = [
+            'output_vat_12'          => round($outputVat12, 2),
+            'input_vat_12'           => round($inputVat12, 2),
+            'net_vat_payable'        => $netVatPayable,
+            'withholding_tax_ewt'    => round($withholdingTaxEwt, 2),
+            'commission_tax_base'    => round($commissionTaxBase, 2),
+            'subscription_tax_base'  => round($subscriptionTaxBase, 2),
+            'recent_taxable_records' => $recentRecords,
+        ];
+
+        return response()->json(array_merge([
+            'success' => true,
+            'as_of'   => now()->toIso8601String(),
+            'data'    => $payload,
+        ], $payload), 200);
+    }
+
+    /**
+     * Clean JSON feed for Group 4 (Facilities & Admin: Document Management Archiving & Records Retention).
+     */
+    public function archivingRecords(Request $request): JsonResponse
+    {
+        $limit = min(200, (int) $request->query('limit', 50));
+
+        // 1. Official Receipts (Collections)
+        $receipts = Collection::with(['arInvoice.customer', 'bankAccount'])
+            ->orderByDesc('collection_date')
+            ->limit($limit)
+            ->get()
+            ->map(fn($c) => [
+                'id'                => $c->id,
+                'collection_number' => $c->collection_number,
+                'invoice_number'    => $c->arInvoice?->invoice_number,
+                'customer_name'     => $c->arInvoice?->customer?->name ?? 'Walk-in / Online Client',
+                'amount'            => (float) $c->amount,
+                'collection_date'   => $c->collection_date ? (is_string($c->collection_date) ? $c->collection_date : $c->collection_date->toDateString()) : null,
+                'payment_method'    => $c->payment_method,
+                'reference_number'  => $c->reference_number,
+                'bank_account'      => $c->bankAccount?->account_name,
+                'created_at'        => $c->created_at->toIso8601String(),
+            ]);
+
+        // 2. Supplier / Seller Bills (AP Bills)
+        $bills = ApBill::with(['supplier'])
+            ->orderByDesc('bill_date')
+            ->limit($limit)
+            ->get()
+            ->map(fn($b) => [
+                'id'            => $b->id,
+                'bill_number'   => $b->bill_number,
+                'supplier_name' => $b->supplier?->name ?? 'External Vendor',
+                'category_type' => $b->category_type,
+                'total_amount'  => (float) $b->total_amount,
+                'paid_amount'   => (float) $b->paid_amount,
+                'balance'       => (float) $b->balance,
+                'status'        => $b->status,
+                'bill_date'     => $b->bill_date ? (is_string($b->bill_date) ? $b->bill_date : $b->bill_date->toDateString()) : null,
+                'due_date'      => $b->due_date ? (is_string($b->due_date) ? $b->due_date : $b->due_date->toDateString()) : null,
+                'description'   => $b->description,
+                'created_at'    => $b->created_at->toIso8601String(),
+            ]);
+
+        // 3. Sales / Subscription Invoices (AR Invoices)
+        $invoices = ArInvoice::with(['customer'])
+            ->orderByDesc('invoice_date')
+            ->limit($limit)
+            ->get()
+            ->map(fn($i) => [
+                'id'             => $i->id,
+                'invoice_number' => $i->invoice_number,
+                'customer_name'  => $i->customer?->name ?? 'Online Client',
+                'category_type'  => $i->category_type ?? 'SALES_REVENUE',
+                'total_amount'   => (float) $i->total_amount,
+                'paid_amount'    => (float) $i->paid_amount,
+                'balance'        => (float) $i->balance,
+                'status'         => $i->status,
+                'invoice_date'   => $i->invoice_date ? (is_string($i->invoice_date) ? $i->invoice_date : $i->invoice_date->toDateString()) : null,
+                'due_date'       => $i->due_date ? (is_string($i->due_date) ? $i->due_date : $i->due_date->toDateString()) : null,
+                'description'    => $i->description,
+                'created_at'     => $i->created_at->toIso8601String(),
+            ]);
+
+        // 4. Audit Logs (Transactions & AI decision trail)
+        $auditLogs = DB::table('ai_logs')
+            ->join('transactions', 'transactions.id', '=', 'ai_logs.transaction_id')
+            ->leftJoin('users', 'users.id', '=', 'transactions.created_by')
+            ->select([
+                'ai_logs.id',
+                'transactions.transaction_code',
+                'transactions.external_reference_id',
+                'transactions.source_module',
+                'transactions.category_type',
+                'transactions.type',
+                'transactions.amount',
+                'ai_logs.ai_decision',
+                'ai_logs.flag_reason',
+                'ai_logs.anomaly_score',
+                'users.name as created_by_user',
+                'ai_logs.created_at',
+            ])
+            ->orderByDesc('ai_logs.created_at')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'success'                     => true,
+            'as_of'                       => now()->toIso8601String(),
+            'retention_policy'            => 'PFRS / BIR 10-Year Archiving Compliance',
+            'counts'                      => [
+                'official_receipts'           => $receipts->count(),
+                'supplier_bills'              => $bills->count(),
+                'supplier_seller_bills'       => $bills->count(),
+                'sales_invoices'              => $invoices->count(),
+                'sales_subscription_invoices' => $invoices->count(),
+                'audit_logs'                  => $auditLogs->count(),
+            ],
+            'official_receipts'           => $receipts,
+            'supplier_seller_bills'       => $bills,
+            'sales_subscription_invoices' => $invoices,
+            'audit_logs'                  => $auditLogs,
+            'data'                        => [
+                'official_receipts'           => $receipts,
+                'supplier_seller_bills'       => $bills,
+                'sales_subscription_invoices' => $invoices,
+                'audit_logs'                  => $auditLogs,
+            ],
+        ], 200);
+    }
+
+    /**
      * Map category_type to the appropriate internal subsystem slug.
      */
     private function resolveSubsystemSlug(string $categoryType): string
     {
         return match ($categoryType) {
-            'SALES_REVENUE', 'CUSTOMER_REFUND', 'SALES_RETURN'          => 'accounts-receivable',
-            'SUPPLIER_INVOICE', 'PURCHASE_RETURN'                       => 'accounts-payable',
-            'PAYROLL_BENEFITS', 'PAYROLL_SALARY', 'EMPLOYEE_CLAIM'      => 'disbursement-management',
-            'FLEET_FUEL', 'FLEET_MAINTENANCE'                           => 'disbursement-management',
-            'FACILITY_RENT', 'LEGAL_BILLING'                            => 'disbursement-management',
+            'SALES_REVENUE', 'CUSTOMER_REFUND', 'SALES_RETURN',
+            'ORDER_PAYMENT', 'CAPTURED_PAYMENT', 'COD_COLLECTION',
+            'SELLER_SUBSCRIPTION', 'PLATFORM_COMMISSION', 'GATEWAY_SETTLEMENT' => 'accounts-receivable',
+
+            'SUPPLIER_INVOICE', 'PURCHASE_RETURN', 'SELLER_PAYOUT', 'SELLER_SETTLEMENT' => 'accounts-payable',
+
+            'PAYROLL_BENEFITS', 'PAYROLL_SALARY', 'EMPLOYEE_CLAIM', 'EMPLOYEE_REIMBURSEMENT',
+            'FLEET_FUEL', 'FLEET_MAINTENANCE', 'FREIGHT_SHIPPING', 'FUEL_MANAGEMENT',
+            'FACILITY_RENT', 'CONTRACT_LEASE', 'LEGAL_BILLING', 'UTILITIES_BILL' => 'disbursement-management',
+
             'INVENTORY_PURCHASE', 'INVENTORY_ADJUSTMENT',
-            'INVENTORY_SHRINKAGE', 'COST_OF_GOODS_SOLD'                 => 'general-ledger',
-            default                                                     => 'general-ledger',
+            'INVENTORY_SHRINKAGE', 'COST_OF_GOODS_SOLD' => 'general-ledger',
+            default => 'general-ledger',
         };
     }
 }

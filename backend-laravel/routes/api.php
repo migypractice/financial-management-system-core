@@ -21,6 +21,9 @@ Route::prefix('v1/integration')->middleware('api.key')->group(function () {
     Route::post('/request-disbursement', [IntegrationController::class, 'requestDisbursement']);
     Route::get('/budget-status', [IntegrationController::class, 'budgetStatus']);
     Route::get('/voucher-status/{reference}', [IntegrationController::class, 'voucherStatus']);
+    Route::get('/financial-summary', [IntegrationController::class, 'financialSummary']);
+    Route::get('/tax-summary', [IntegrationController::class, 'taxSummary']);
+    Route::get('/archiving-records', [IntegrationController::class, 'archivingRecords']);
 });
 
 Route::prefix('v1/auth')->group(function () {
