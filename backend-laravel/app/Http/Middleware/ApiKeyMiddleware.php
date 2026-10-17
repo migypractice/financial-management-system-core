@@ -23,9 +23,13 @@ class ApiKeyMiddleware
             }
         }
 
-        // 3. Accept from query parameter fallback (?api_key= or ?key=)
+        // 3. Accept from query parameter fallback (?api_key=, ?X-API-KEY=, ?x-api-key=, ?key=, ?apiKey=)
         if (!$providedKey) {
-            $providedKey = $request->query('api_key') ?? $request->query('key');
+            $providedKey = $request->query('api_key')
+                ?? $request->query('X-API-KEY')
+                ?? $request->query('x-api-key')
+                ?? $request->query('key')
+                ?? $request->query('apiKey');
         }
 
         if (!$providedKey || $providedKey !== $expectedKey) {
