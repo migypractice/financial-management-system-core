@@ -15,6 +15,7 @@ import SimulatorPage from './pages/Simulator/SimulatorPage';
 import AuditLogPage from './pages/AuditLog/AuditLogPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import SecretProvisionPage from './pages/Auth/SecretProvisionPage';
+import IntegrationInboxPage from './pages/Inbox/IntegrationInboxPage';
 
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/Auth/LoginPage';
@@ -23,6 +24,7 @@ import { ShieldAlert } from 'lucide-react';
 
 type AppRoute = 
   | '/dashboard' 
+  | '/inbox'
   | '/approvals' 
   | '/gl' 
   | '/ap' 
@@ -162,6 +164,8 @@ export const App: React.FC = () => {
     switch (activePath) {
       case '/dashboard':
         return <DashboardPage onNavigate={(path) => setActivePath(path as AppRoute)} />;
+      case '/inbox':
+        return <IntegrationInboxPage onNavigate={(path) => setActivePath(path as AppRoute)} />;
       case '/approvals':
         return <ApprovalsPage />;
       case '/gl':

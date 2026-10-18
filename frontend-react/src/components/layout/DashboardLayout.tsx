@@ -37,6 +37,7 @@ const coreModules: NavItem[] = [
 
 // ── Internal Controls & Audit ──
 const internalControls: NavItem[] = [
+  { path: '/inbox',         label: 'Integration Inbox',         icon: Mail, badge: 'Live' },
   { path: '/audit-logs',    label: 'Audit Trail',               icon: ShieldCheck },
 ];
 
@@ -47,8 +48,9 @@ const representativeNotifications = [
 ];
 
 const representativeMessages = [
-  { id: 1, sender: 'Supply Chain Team', subject: 'M2M Integration Sync', preview: 'We updated the API keys for the outbound simulator. Please check the documentation when you have a moment.', time: '10:30 AM' },
-  { id: 2, sender: 'System Admin', subject: 'Scheduled Maintenance', preview: 'The analytics DB will be paused tonight for indexing. Core transactions will not be affected.', time: 'Yesterday' },
+  { id: 1, sender: 'HR4 (Group 9 Payroll)', subject: 'Batch Payroll Transmission #PAY-2026-10A', preview: '2 employees submitted. Total: ₱47,200.00. Ready for Maker-Checker review.', time: '5m ago', path: '/inbox' },
+  { id: 2, sender: 'ESFA (Group 3 E-Commerce)', subject: 'Online Store Settlement #ORD-2026-9921', preview: 'Order gross: ₱84,500.00. AR invoice and collection receipt generated.', time: '25m ago', path: '/inbox' },
+  { id: 3, sender: 'Supply Chain (Group 2)', subject: 'Supplier Procurement PO #5541', preview: 'Makita Philippines PO ₱142,000.00 queued in Accounts Payable.', time: '1h ago', path: '/inbox' },
 ];
 
 
@@ -379,33 +381,46 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               )}
             </div>
 
-            {/* Mail */}
+            {/* Mail / Integration Inbox */}
             <div className="relative">
               <button 
                 onClick={toggleMail}
-                aria-label="Messages"
+                aria-label="Integration Inbox"
                 aria-expanded={mailOpen}
+                title="Integration Inbox & M2M Transmissions"
                 className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
               >
                 <Mail size={15} />
-                <span className="absolute -top-1 -right-1 min-w-[15px] h-3.5 sm:h-4 flex items-center justify-center px-1 bg-blue-600 text-white text-[8px] sm:text-[9px] rounded-full font-bold">2</span>
+                <span className="absolute -top-1 -right-1 min-w-[15px] h-3.5 sm:h-4 flex items-center justify-center px-1 bg-indigo-600 text-white text-[8px] sm:text-[9px] rounded-full font-bold">
+                  {representativeMessages.length}
+                </span>
               </button>
 
               {mailOpen && (
-                <div className="absolute top-full mt-2 right-0 w-[calc(100vw-2rem)] max-w-xs sm:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50 animate-fadeIn">
+                <div className="absolute top-full mt-2 right-0 w-[calc(100vw-2rem)] max-w-xs sm:w-84 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50 animate-fadeIn">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
-                    <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Messages</h3>
-                    <span className="text-[10px] text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-full border border-gray-200 dark:border-slate-600">2 Unread</span>
+                    <div className="flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-indigo-500" />
+                      <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Integration Inbox</h3>
+                    </div>
+                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full font-bold border border-indigo-200 dark:border-indigo-800">
+                      M2M Live Feed
+                    </span>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-700/50">
                     {representativeMessages.map(m => (
                       <button 
                         key={m.id} 
-                        className="w-full text-left p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" 
-                        onClick={() => setMailOpen(false)}
+                        className="w-full text-left p-3 sm:p-4 hover:bg-indigo-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group" 
+                        onClick={() => {
+                          handleNav(m.path || '/inbox');
+                          setMailOpen(false);
+                        }}
                       >
                         <div className="flex items-start justify-between mb-1">
-                          <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{m.sender}</p>
+                          <p className="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            {m.sender}
+                          </p>
                           <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 shrink-0 ml-2">{m.time}</span>
                         </div>
                         <p className="text-xs font-semibold text-gray-800 dark:text-slate-200 truncate">{m.subject}</p>
@@ -415,10 +430,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   </div>
                   <div className="p-2 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
                     <button 
-                      onClick={() => setMailOpen(false)}
-                      className="w-full py-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      onClick={() => {
+                        handleNav('/inbox');
+                        setMailOpen(false);
+                      }}
+                      className="w-full py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors flex items-center justify-center gap-1.5"
                     >
-                      View all messages
+                      <span>Open Full Integration Inbox</span>
+                      <span aria-hidden="true">&rarr;</span>
                     </button>
                   </div>
                 </div>
