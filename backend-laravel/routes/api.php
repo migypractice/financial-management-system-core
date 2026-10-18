@@ -99,6 +99,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // AP Bills (Money Out - Supplier Invoices)
     Route::get('/ap-bills', [\App\Http\Controllers\API\ApBillController::class, 'index']);
     Route::post('/ap-bills', [\App\Http\Controllers\API\ApBillController::class, 'store']);
+    Route::post('/ap-bills/{id}/request-payment', [\App\Http\Controllers\API\ApBillController::class, 'requestPayment']);
 
     // Payment Requests (Strict Mandatory Supporting Attachment & Maker-Checker)
     Route::get('/payment-requests', [\App\Http\Controllers\API\PaymentRequestController::class, 'index']);

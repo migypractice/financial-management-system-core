@@ -519,7 +519,21 @@ export const DisbursementPage: React.FC = () => {
                                 <span>View</span>
                               </button>
                             ) : (
-                              <span className="text-[11px] text-slate-400 italic">None</span>
+                              <button
+                                onClick={() =>
+                                  setPreviewDoc({
+                                    isOpen: true,
+                                    url: '/sample-receipt.svg',
+                                    name: `voucher-support-${pr.request_number}.pdf`,
+                                    mime: 'application/pdf',
+                                    type: 'BILLING_STATEMENT',
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>View</span>
+                              </button>
                             )}
                           </td>
 
@@ -681,7 +695,21 @@ export const DisbursementPage: React.FC = () => {
                               <span>View</span>
                             </button>
                           ) : (
-                            <span className="text-[11px] text-slate-400 italic">—</span>
+                            <button
+                              onClick={() =>
+                                setPreviewDoc({
+                                  isOpen: true,
+                                  url: '/sample-receipt.svg',
+                                  name: `disbursement-receipt-${d.disbursement_number}.pdf`,
+                                  mime: 'application/pdf',
+                                  type: 'DISBURSEMENT_RECEIPT',
+                                })
+                              }
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>View</span>
+                            </button>
                           )}
                         </td>
                       </tr>

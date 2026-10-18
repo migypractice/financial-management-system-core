@@ -44,7 +44,7 @@ const internalControls: NavItem[] = [
 const representativeNotifications = [
   { id: 1, title: 'Voucher Flagged', desc: 'AI flagged PR-2026-8801. Awaiting manager review.', time: '2 min ago', type: 'alert', action: 'View Vouchers', path: '/disbursements' },
   { id: 2, title: 'GL Aggregation', desc: 'Daily SQL aggregation completed successfully.', time: '1 hr ago', type: 'info' },
-  { id: 3, title: 'System Update', desc: 'M2M Simulator v1.0 deployed to staging environment.', time: '3 hrs ago', type: 'info' },
+  { id: 3, title: 'System Update', desc: 'Enterprise M2M Integration protocol active across all modules.', time: '3 hrs ago', type: 'info' },
 ];
 
 const representativeMessages = [

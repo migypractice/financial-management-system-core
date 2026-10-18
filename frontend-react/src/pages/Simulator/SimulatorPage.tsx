@@ -270,8 +270,15 @@ export const SimulatorPage: React.FC = () => {
     };
 
     if (!isRevenue) {
+      let enterprisePayee = 'Corporate Commercial Payee';
+      if (module === 'HRMS') enterprisePayee = 'BDO Corporate Payroll (HR4 Bi-Monthly Batch)';
+      else if (module === 'SUPPLY_CHAIN') enterprisePayee = 'Puyat Steel Corporation (Supply Chain PO)';
+      else if (module === 'ESFA_GROUP3') enterprisePayee = 'ESFA Marketplace Partner';
+      else if (module === 'FLEET') enterprisePayee = 'Shell Fleet & Logistics';
+      else if (module === 'FACILITIES_LEGAL') enterprisePayee = 'Meralco Commercial Power';
+
       body.payee_info = {
-        name: 'Simulator Payee',
+        name: enterprisePayee,
         account: customBank,
         bank: customBank.split('-')[0],
       };

@@ -216,12 +216,24 @@ class IntegrationController extends Controller
             $payeeInfo = ['name' => $payeeAlias];
         }
 
+        // If payee_info is provided and contains "Simulator", sanitize with realistic enterprise name
+        if (is_array($payeeInfo) && !empty($payeeInfo['name']) && stripos($payeeInfo['name'], 'simulator') !== false) {
+            $payeeInfo['name'] = match ($externalModule) {
+                'HRMS'                          => 'HRMS Payroll Batch',
+                'SUPPLY_CHAIN'                  => 'Supply Chain Vendor',
+                'ESFA_GROUP3', 'ECOMMERCE_CORE' => 'ESFA Marketplace Partner',
+                'FLEET'                         => 'Fleet Logistics Vendor',
+                'FACILITIES_LEGAL'              => 'Corporate Facilities Partner',
+                default                         => 'Corporate Commercial Payee',
+            };
+        }
+
         $description = $request->input('description')
             ?? $request->input('purpose')
             ?? $request->input('notes');
 
         if (!$description) {
-            $pName = is_array($payeeInfo) ? ($payeeInfo['name'] ?? 'Payee') : 'Payee';
+            $pName = $payeeInfo['name'] ?? 'Payee';
             $description = "Disbursement request ({$category}) for {$pName}";
         }
 
@@ -768,14 +780,14 @@ class IntegrationController extends Controller
                         ?? $validated['metadata']['vendor_name']
                         ?? null;
 
-                    if (!$payeeName) {
+                    if (!$payeeName || stripos($payeeName, 'simulator') !== false) {
                         $payeeName = match ($validated['external_module']) {
-                            'HRMS'                                      => 'Corporate Staff Payroll',
-                            'FLEET'                                     => 'Shell Fleet & Logistics',
-                            'FACILITIES_LEGAL'                          => 'Meralco Commercial Power',
-                            'SUPPLY_CHAIN'                              => 'Holcim Philippines Inc.',
-                            'ESFA_GROUP3', 'ECOMMERCE_CORE'             => 'Marketplace Verified Seller',
-                            default                                     => 'Corporate Commercial Payee',
+                            'HRMS'                          => 'BDO Corporate Payroll (HR4 Bi-Monthly Batch)',
+                            'FLEET'                         => 'Shell Fleet & Logistics',
+                            'FACILITIES_LEGAL'              => 'Meralco Commercial Power',
+                            'SUPPLY_CHAIN'                  => 'Puyat Steel Corporation (Supply Chain PO)',
+                            'ESFA_GROUP3', 'ECOMMERCE_CORE' => 'ESFA Marketplace Partner',
+                            default                         => 'Corporate Commercial Payee',
                         };
                     }
 

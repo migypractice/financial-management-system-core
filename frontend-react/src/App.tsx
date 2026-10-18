@@ -171,7 +171,7 @@ export const App: React.FC = () => {
       case '/gl':
         return <GeneralLedgerPage />;
       case '/ap':
-        return <AccountsPayablePage />;
+        return <AccountsPayablePage onNavigate={(path) => setActivePath(path as AppRoute)} />;
       case '/ar':
         return <AccountsReceivablePage />;
       case '/disbursements':

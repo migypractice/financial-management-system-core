@@ -101,6 +101,20 @@ class PaymentRequestController extends Controller
                     'ap_bill_id' => ["AP Bill #{$bill->bill_number} has already been fully paid."],
                 ]);
             }
+
+            // Deduplication Guard: Check if an active voucher already exists for this bill
+            $existingPr = PaymentRequest::where('ap_bill_id', $bill->id)
+                ->whereIn('status', ['PENDING_APPROVAL', 'APPROVED'])
+                ->first();
+
+            if ($existingPr) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "An active disbursement voucher (#{$existingPr->request_number}) is already queued for AP Bill #{$bill->bill_number}.",
+                    'data'    => $existingPr->load(['attachments', 'requester', 'bill']),
+                ], 200);
+            }
+
             if ($validated['amount'] > $bill->balance) {
                 throw ValidationException::withMessages([
                     'amount' => ["Payment request amount (PHP " . number_format($validated['amount'], 2) . ") exceeds outstanding bill balance (PHP " . number_format($bill->balance, 2) . ")."],

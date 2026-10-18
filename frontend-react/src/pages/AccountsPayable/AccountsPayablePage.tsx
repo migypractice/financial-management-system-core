@@ -23,7 +23,11 @@ import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 
-export const AccountsPayablePage: React.FC = () => {
+export interface AccountsPayablePageProps {
+  onNavigate?: (path: string) => void;
+}
+
+export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavigate }) => {
   const [bills, setBills] = useState<ApBillItem[]>([]);
   const [summary, setSummary] = useState<ApBillSummary | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -497,19 +501,45 @@ export const AccountsPayablePage: React.FC = () => {
                             <span>View Doc</span>
                           </button>
                         ) : (
-                          <span className="text-[11px] text-slate-400 italic">None</span>
+                          <button
+                            onClick={() =>
+                              setPreviewDoc({
+                                isOpen: true,
+                                url: '/sample-receipt.svg',
+                                name: `e-invoice-${bill.bill_number}.pdf`,
+                                mime: 'application/pdf',
+                                type: 'ELECTRONIC_AP_BILL',
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors"
+                            title="View Electronic Billing Statement"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View Doc</span>
+                          </button>
                         )}
                       </td>
 
                       <td className="py-2.5 px-3 text-right whitespace-nowrap">
                         {bill.balance > 0 ? (
-                          <button
-                            onClick={() => handleOpenPRModal(bill)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors"
-                          >
-                            <Send className="w-3 h-3" />
-                            Request Payment
-                          </button>
+                          bill.has_active_voucher ? (
+                            <button
+                              onClick={() => (onNavigate ? onNavigate('/disbursements') : undefined)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors shadow-xs"
+                              title={`Active voucher ${bill.active_voucher_number ?? ''} is queued in Disbursements`}
+                            >
+                              <Clock className="w-3.5 h-3.5 animate-pulse text-amber-500" />
+                              <span>Voucher Queued {bill.active_voucher_number ? `(${bill.active_voucher_number})` : ''}</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleOpenPRModal(bill)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors"
+                            >
+                              <Send className="w-3 h-3" />
+                              Request Payment
+                            </button>
+                          )
                         ) : (
                           <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Settled

@@ -39,6 +39,8 @@ export interface ApBillItem {
   days_past_due: number;
   description: string;
   ai_audit_badge?: string;
+  has_active_voucher?: boolean;
+  active_voucher_number?: string | null;
   attachments: AttachmentItem[];
 }
 

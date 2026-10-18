@@ -54,25 +54,30 @@ class ApBillController extends Controller
             // Determine origin subsystem label
             $originLabel = $this->resolveOriginLabel($b->category_type);
 
+            // Active voucher check (prevent duplicate vouchers)
+            $activePr = $b->paymentRequests->firstWhere(fn ($pr) => in_array($pr->status, ['PENDING_APPROVAL', 'APPROVED']));
+
             return [
-                'id'            => $b->id,
-                'bill_number'   => $b->bill_number,
-                'supplier_id'   => $b->supplier_id,
-                'supplier_name' => $b->supplier->name ?? 'Unknown',
-                'company_name'  => $b->supplier->company_name ?? '',
-                'category_type' => $b->category_type,
-                'account_name'  => $b->chartOfAccount->name ?? 'Merchandise Inventory',
-                'bill_date'     => $b->bill_date->toDateString(),
-                'due_date'      => $b->due_date->toDateString(),
-                'total_amount'  => (float) $b->total_amount,
-                'paid_amount'   => (float) $b->paid_amount,
-                'balance'       => (float) $b->balance,
-                'status'        => $b->status,
-                'days_past_due' => $daysPastDue,
-                'description'   => $b->description,
-                'origin_label'  => $originLabel,
-                'ai_audit_badge' => $b->ai_audit_badge ?? null,
-                'attachments'   => $b->attachments->map(fn ($a) => [
+                'id'                   => $b->id,
+                'bill_number'          => $b->bill_number,
+                'supplier_id'          => $b->supplier_id,
+                'supplier_name'        => $b->supplier->name ?? 'Unknown',
+                'company_name'         => $b->supplier->company_name ?? '',
+                'category_type'        => $b->category_type,
+                'account_name'         => $b->chartOfAccount->name ?? 'Merchandise Inventory',
+                'bill_date'            => $b->bill_date->toDateString(),
+                'due_date'             => $b->due_date->toDateString(),
+                'total_amount'         => (float) $b->total_amount,
+                'paid_amount'          => (float) $b->paid_amount,
+                'balance'              => (float) $b->balance,
+                'status'               => $b->status,
+                'days_past_due'        => $daysPastDue,
+                'description'          => $b->description,
+                'origin_label'         => $originLabel,
+                'ai_audit_badge'       => $b->ai_audit_badge ?? null,
+                'has_active_voucher'   => !is_null($activePr),
+                'active_voucher_number'=> $activePr?->request_number ?? null,
+                'attachments'          => $b->attachments->map(fn ($a) => [
                     'id'            => $a->id,
                     'file_name'     => $a->file_name,
                     'file_url'      => asset('storage/' . $a->file_path),
@@ -267,62 +272,71 @@ class ApBillController extends Controller
             $generatedPR = null;
 
             if ($autoVoucher) {
-                $makerId = $this->resolveMakerForVoucher($user);
+                // Deduplication Guard: Check if an active voucher already exists for this bill
+                $existingPR = PaymentRequest::where('ap_bill_id', $bill->id)
+                    ->whereIn('status', ['PENDING_APPROVAL', 'APPROVED'])
+                    ->first();
 
-                $prCount = DB::table('payment_requests')->count() + 1;
-                $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
-                while (DB::table('payment_requests')->where('request_number', $prNumber)->exists()) {
-                    $prCount++;
-                    $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
-                }
-
-                // Run AI evaluation on the voucher
-                $aiResult = $this->aiService->evaluateTransaction([
-                    'description'     => $validated['description'],
-                    'amount'          => $totalAmount,
-                    'external_module' => 'ACCOUNTS_PAYABLE',
-                    'category_type'   => $validated['category_type'] ?? 'SUPPLIER_INVOICE',
-                ]);
-
-                $generatedPR = PaymentRequest::create([
-                    'request_number'      => $prNumber,
-                    'ap_bill_id'          => $bill->id,
-                    'payee_name'          => $supplier->name,
-                    'amount'              => $totalAmount,
-                    'purpose'             => "Payment for Supplier Bill #{$bill->bill_number} ({$supplier->name})",
-                    'requested_by'        => $makerId,
-                    'status'              => 'PENDING_APPROVAL',
-                    'ai_confidence_score' => $aiResult['ai_confidence_score'],
-                    'ai_anomaly_flag'     => $aiResult['ai_anomaly_flag'],
-                    'ai_anomaly_reason'   => $aiResult['ai_anomaly_reason'],
-                ]);
-
-                // Copy the bill attachment to the payment request
-                if ($attachmentPath) {
-                    $generatedPR->attachments()->create([
-                        'file_name'     => $request->file('attachment')->getClientOriginalName(),
-                        'file_path'     => $attachmentPath,
-                        'mime_type'     => $request->file('attachment')->getClientMimeType(),
-                        'file_size'     => $request->file('attachment')->getSize(),
-                        'document_type' => 'BILLING_STATEMENT',
-                        'uploaded_by'   => $user?->id,
-                    ]);
+                if ($existingPR) {
+                    $generatedPR = $existingPR;
                 } else {
-                    // Auto-generate verified electronic invoice record so internal control is satisfied
-                    $generatedPR->attachments()->create([
-                        'file_name'     => "e-invoice-{$bill->bill_number}.pdf",
-                        'file_path'     => 'attachments/electronic_bill_verified.pdf',
-                        'mime_type'     => 'application/pdf',
-                        'file_size'     => 14200,
-                        'document_type' => 'ELECTRONIC_AP_BILL',
-                        'uploaded_by'   => $makerId,
+                    $makerId = $this->resolveMakerForVoucher($user);
+
+                    $prCount = DB::table('payment_requests')->count() + 1;
+                    $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
+                    while (DB::table('payment_requests')->where('request_number', $prNumber)->exists()) {
+                        $prCount++;
+                        $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
+                    }
+
+                    // Run AI evaluation on the voucher
+                    $aiResult = $this->aiService->evaluateTransaction([
+                        'description'     => $validated['description'],
+                        'amount'          => $totalAmount,
+                        'external_module' => 'ACCOUNTS_PAYABLE',
+                        'category_type'   => $validated['category_type'] ?? 'SUPPLIER_INVOICE',
                     ]);
+
+                    $generatedPR = PaymentRequest::create([
+                        'request_number'      => $prNumber,
+                        'ap_bill_id'          => $bill->id,
+                        'payee_name'          => $supplier->name,
+                        'amount'              => $totalAmount,
+                        'purpose'             => "Payment for Supplier Bill #{$bill->bill_number} ({$supplier->name})",
+                        'requested_by'        => $makerId,
+                        'status'              => 'PENDING_APPROVAL',
+                        'ai_confidence_score' => $aiResult['ai_confidence_score'],
+                        'ai_anomaly_flag'     => $aiResult['ai_anomaly_flag'],
+                        'ai_anomaly_reason'   => $aiResult['ai_anomaly_reason'],
+                    ]);
+
+                    // Copy the bill attachment to the payment request
+                    if ($attachmentPath) {
+                        $generatedPR->attachments()->create([
+                            'file_name'     => $request->file('attachment')->getClientOriginalName(),
+                            'file_path'     => $attachmentPath,
+                            'mime_type'     => $request->file('attachment')->getClientMimeType(),
+                            'file_size'     => $request->file('attachment')->getSize(),
+                            'document_type' => 'BILLING_STATEMENT',
+                            'uploaded_by'   => $user?->id,
+                        ]);
+                    } else {
+                        // Auto-generate verified electronic invoice record so internal control is satisfied
+                        $generatedPR->attachments()->create([
+                            'file_name'     => "e-invoice-{$bill->bill_number}.pdf",
+                            'file_path'     => 'attachments/electronic_bill_verified.pdf',
+                            'mime_type'     => 'application/pdf',
+                            'file_size'     => 14200,
+                            'document_type' => 'ELECTRONIC_AP_BILL',
+                            'uploaded_by'   => $makerId,
+                        ]);
+                    }
                 }
             }
 
             $responseMessage = "AP Bill #{$bill->bill_number} recorded and posted to General Ledger.";
             if ($generatedPR) {
-                $responseMessage .= " Disbursement voucher #{$generatedPR->request_number} auto-generated and ready for approval.";
+                $responseMessage .= " Disbursement voucher #{$generatedPR->request_number} ready for approval.";
             }
 
             return response()->json([
@@ -333,6 +347,97 @@ class ApBillController extends Controller
                 'payment_request'=> $generatedPR ? $generatedPR->load(['attachments', 'requester']) : null,
             ], 201);
         });
+    }
+
+    /**
+     * Explicit endpoint to request payment for an AP Bill.
+     * Prevents duplicate vouchers if an active voucher already exists.
+     */
+    public function requestPayment(Request $request, string $id): JsonResponse
+    {
+        $bill = ApBill::where('id', $id)
+            ->orWhere('bill_number', $id)
+            ->firstOrFail();
+
+        if ($bill->balance <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "AP Bill #{$bill->bill_number} has already been settled.",
+            ], 422);
+        }
+
+        // Guard against duplicate active vouchers
+        $existingPr = PaymentRequest::where('ap_bill_id', $bill->id)
+            ->whereIn('status', ['PENDING_APPROVAL', 'APPROVED'])
+            ->first();
+
+        if ($existingPr) {
+            return response()->json([
+                'success' => true,
+                'message' => "An active disbursement voucher (#{$existingPr->request_number}) is already queued for this bill.",
+                'data'    => $existingPr->load(['attachments', 'requester', 'bill']),
+            ], 200);
+        }
+
+        $user = $request->user();
+        $makerId = $this->resolveMakerForVoucher($user);
+
+        $prCount = DB::table('payment_requests')->count() + 1;
+        $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
+        while (DB::table('payment_requests')->where('request_number', $prNumber)->exists()) {
+            $prCount++;
+            $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
+        }
+
+        $amount = (float) ($request->input('amount') ?? $bill->balance);
+        $purpose = $request->input('purpose') ?? "Payment for Supplier Bill #{$bill->bill_number} ({$bill->supplier->name})";
+
+        $aiResult = $this->aiService->evaluateTransaction([
+            'description'     => $purpose,
+            'amount'          => $amount,
+            'external_module' => 'ACCOUNTS_PAYABLE',
+            'category_type'   => $bill->category_type ?? 'SUPPLIER_INVOICE',
+        ]);
+
+        $pr = PaymentRequest::create([
+            'request_number'      => $prNumber,
+            'ap_bill_id'          => $bill->id,
+            'payee_name'          => $bill->supplier->name ?? 'Supplier',
+            'amount'              => $amount,
+            'purpose'             => $purpose,
+            'requested_by'        => $makerId,
+            'status'              => 'PENDING_APPROVAL',
+            'ai_confidence_score' => $aiResult['ai_confidence_score'],
+            'ai_anomaly_flag'     => $aiResult['ai_anomaly_flag'],
+            'ai_anomaly_reason'   => $aiResult['ai_anomaly_reason'],
+        ]);
+
+        $billAttachment = $bill->attachments()->first();
+        if ($billAttachment) {
+            $pr->attachments()->create([
+                'file_name'     => $billAttachment->file_name,
+                'file_path'     => $billAttachment->file_path,
+                'mime_type'     => $billAttachment->mime_type,
+                'file_size'     => $billAttachment->file_size,
+                'document_type' => 'BILLING_STATEMENT',
+                'uploaded_by'   => $user?->id ?? $makerId,
+            ]);
+        } else {
+            $pr->attachments()->create([
+                'file_name'     => "e-invoice-{$bill->bill_number}.pdf",
+                'file_path'     => 'attachments/electronic_bill_verified.pdf',
+                'mime_type'     => 'application/pdf',
+                'file_size'     => 14200,
+                'document_type' => 'ELECTRONIC_AP_BILL',
+                'uploaded_by'   => $makerId,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Disbursement voucher #{$pr->request_number} generated and queued for approval.",
+            'data'    => $pr->load(['attachments', 'requester', 'bill']),
+        ], 201);
     }
 
     /**
