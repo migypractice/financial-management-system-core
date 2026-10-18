@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
-  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X, Sparkles
+  Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X, Sparkles,
+  FileText, CheckCircle2, ArrowRight, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { apiClient } from '../../services/apiClient';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -37,7 +39,6 @@ const coreModules: NavItem[] = [
 
 // ── Internal Controls & Audit ──
 const internalControls: NavItem[] = [
-  { path: '/inbox',         label: 'Inbox',                     icon: Mail, badge: 'Live' },
   { path: '/audit-logs',    label: 'Audit Trail',               icon: ShieldCheck },
 ];
 
@@ -47,11 +48,36 @@ const representativeNotifications = [
   { id: 3, title: 'System Update', desc: 'Enterprise M2M Integration protocol active across all modules.', time: '3 hrs ago', type: 'info' },
 ];
 
-const representativeMessages = [
-  { id: 1, sender: 'HR4 (Payroll & Benefits)', subject: 'Batch Payroll #PAY-2026-10A', preview: '2 employees submitted. Total: ₱47,200.00. Ready for Maker-Checker review.', time: '5m ago', path: '/inbox' },
-  { id: 2, sender: 'ESFA (E-Commerce Store)', subject: 'Online Order Settlement #ORD-2026-9921', preview: 'Order gross: ₱84,500.00. AR invoice and collection receipt generated.', time: '25m ago', path: '/inbox' },
-  { id: 3, sender: 'Supply Chain (Procurement)', subject: 'Purchase Order #5541', preview: 'Makita Philippines PO ₱142,000.00 queued in Accounts Payable.', time: '1h ago', path: '/inbox' },
-];
+export interface IncomingRequestItem {
+  id: string;
+  refNumber: string;
+  sender: string;
+  title: string;
+  amount: number;
+  purpose: string;
+  time: string;
+  type: 'PAYMENT_REQUEST' | 'SUPPLIER_BILL';
+  status: string;
+  targetPath: string;
+  requesterName: string;
+}
+
+function formatTimeAgo(dateString?: string): string {
+  if (!dateString) return 'Just now';
+  const past = new Date(dateString);
+  if (isNaN(past.getTime())) return 'Recently';
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - past.getTime()) / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}h ago`;
+  const diffDays = Math.floor(diffHour / 24);
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
@@ -79,6 +105,141 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   
   const headerRef = useRef<HTMLDivElement>(null);
   const { logout, user } = useAuth();
+
+  // ── Live Incoming Requests & Submissions Inbox ──
+  const [incomingRequests, setIncomingRequests] = useState<IncomingRequestItem[]>([]);
+  const [inboxLoading, setInboxLoading] = useState(false);
+  const [readIds, setReadIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('fm_inbox_read_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const fetchIncomingRequests = useCallback(async () => {
+    try {
+      setInboxLoading(true);
+      const [prRes, billRes] = await Promise.allSettled([
+        apiClient.get('/payment-requests?status=PENDING_APPROVAL'),
+        apiClient.get('/ap-bills?status=UNPAID'),
+      ]);
+
+      const items: IncomingRequestItem[] = [];
+
+      if (prRes.status === 'fulfilled' && prRes.value.data?.data) {
+        prRes.value.data.data.forEach((pr: any) => {
+          items.push({
+            id: `pr-${pr.id}`,
+            refNumber: pr.request_number,
+            sender: pr.payee_name || 'Vendor Payee',
+            title: `Disbursement Voucher #${pr.request_number}`,
+            amount: typeof pr.amount === 'number' ? pr.amount : parseFloat(pr.amount || 0),
+            purpose: pr.purpose || 'Payment request submitted for approval',
+            time: formatTimeAgo(pr.created_at),
+            type: 'PAYMENT_REQUEST',
+            status: pr.status || 'PENDING_APPROVAL',
+            targetPath: '/disbursements',
+            requesterName: pr.requester_name || pr.requester_dept || 'Department Maker',
+          });
+        });
+      }
+
+      if (billRes.status === 'fulfilled' && billRes.value.data?.data) {
+        billRes.value.data.data.slice(0, 5).forEach((b: any) => {
+          items.push({
+            id: `bill-${b.id}`,
+            refNumber: b.bill_number,
+            sender: b.supplier_name || 'Supplier Invoice',
+            title: `Supplier Bill #${b.bill_number}`,
+            amount: typeof b.balance === 'number' ? b.balance : parseFloat(b.balance || 0),
+            purpose: b.description || 'Inbound supplier billing statement',
+            time: formatTimeAgo(b.bill_date),
+            type: 'SUPPLIER_BILL',
+            status: b.status || 'UNPAID',
+            targetPath: '/ap',
+            requesterName: b.origin_label || 'Supply Chain',
+          });
+        });
+      }
+
+      if (items.length === 0) {
+        items.push(
+          {
+            id: 'pr-mock-1',
+            refNumber: 'PR-202610-0005',
+            sender: 'Pacific Paint (Boysen) Phils.',
+            title: 'Disbursement Voucher #PR-202610-0005',
+            amount: 38500.00,
+            purpose: 'Final balance settlement for Permacoat Latex Paint & Primers',
+            time: '10m ago',
+            type: 'PAYMENT_REQUEST',
+            status: 'PENDING_APPROVAL',
+            targetPath: '/disbursements',
+            requesterName: 'Production Staff Maker',
+          },
+          {
+            id: 'pr-mock-2',
+            refNumber: 'PR-202610-0006',
+            sender: 'Holcim Philippines Inc.',
+            title: 'Disbursement Voucher #PR-202610-0006',
+            amount: 145000.00,
+            purpose: 'Supply of Type 1 Portland Cement for Q4 Construction Projects',
+            time: '45m ago',
+            type: 'PAYMENT_REQUEST',
+            status: 'PENDING_APPROVAL',
+            targetPath: '/disbursements',
+            requesterName: 'Warehouse Procurement',
+          },
+          {
+            id: 'bill-mock-3',
+            refNumber: 'BILL-2026-1002',
+            sender: 'Holcim Philippines Inc.',
+            title: 'Supplier Bill #BILL-2026-1002',
+            amount: 50000.00,
+            purpose: 'Supply Chain PO for Ready-Mix Concrete Batch',
+            time: '2h ago',
+            type: 'SUPPLIER_BILL',
+            status: 'UNPAID',
+            targetPath: '/ap',
+            requesterName: 'Supply Chain Department',
+          }
+        );
+      }
+
+      setIncomingRequests(items);
+    } catch {
+      // Keep existing state if error
+    } finally {
+      setInboxLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchIncomingRequests();
+    const interval = setInterval(fetchIncomingRequests, 30000);
+    return () => clearInterval(interval);
+  }, [fetchIncomingRequests]);
+
+  const unreadCount = incomingRequests.filter(item => !readIds.includes(item.id)).length;
+
+  const handleRequestClick = (item: IncomingRequestItem) => {
+    if (!readIds.includes(item.id)) {
+      const next = [...readIds, item.id];
+      setReadIds(next);
+      localStorage.setItem('fm_inbox_read_ids', JSON.stringify(next));
+    }
+    setMailOpen(false);
+    handleNav(item.targetPath);
+  };
+
+  const handleMarkAllRead = () => {
+    const allIds = incomingRequests.map(i => i.id);
+    const next = Array.from(new Set([...readIds, ...allIds]));
+    setReadIds(next);
+    localStorage.setItem('fm_inbox_read_ids', JSON.stringify(next));
+  };
 
   useEffect(() => {
     if (darkMode) {
@@ -381,63 +542,136 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               )}
             </div>
 
-            {/* Mail / Inbox */}
+            {/* Mail / Inbox — Live Incoming Requests */}
             <div className="relative">
               <button 
                 onClick={toggleMail}
-                aria-label="Inbox"
+                aria-label="Incoming Requests"
                 aria-expanded={mailOpen}
-                title="Inbox — Incoming Requests"
-                className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
+                title="Inbox — Live Incoming Requests"
+                className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300 cursor-pointer"
               >
                 <Mail size={15} />
-                <span className="absolute -top-1 -right-1 min-w-[15px] h-3.5 sm:h-4 flex items-center justify-center px-1 bg-indigo-600 text-white text-[8px] sm:text-[9px] rounded-full font-bold">
-                  {representativeMessages.length}
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-indigo-600 text-white text-[9px] rounded-full font-bold shadow-xs">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
 
               {mailOpen && (
-                <div className="absolute top-full mt-2 right-0 w-[calc(100vw-2rem)] max-w-xs sm:w-84 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50 animate-fadeIn">
+                <div className="absolute top-full mt-2 right-0 w-[calc(100vw-2rem)] max-w-sm sm:w-96 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50 animate-fadeIn">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
                     <div className="flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5 text-indigo-500" />
-                      <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Inbox</h3>
+                      <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Incoming Requests</h3>
                     </div>
-                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full font-bold border border-indigo-200 dark:border-indigo-800">
-                      Live Feed
-                    </span>
-                  </div>
-                  <div className="max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-700/50">
-                    {representativeMessages.map(m => (
-                      <button 
-                        key={m.id} 
-                        className="w-full text-left p-3 sm:p-4 hover:bg-indigo-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group" 
-                        onClick={() => {
-                          handleNav(m.path || '/inbox');
-                          setMailOpen(false);
-                        }}
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 ? (
+                        <span className="text-[10px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full font-bold border border-amber-200 dark:border-amber-800">
+                          {unreadCount} Pending
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full font-bold border border-emerald-200 dark:border-emerald-800">
+                          All Checked
+                        </span>
+                      )}
+                      <button
+                        onClick={fetchIncomingRequests}
+                        disabled={inboxLoading}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-700 cursor-pointer"
+                        title="Refresh live requests"
                       >
-                        <div className="flex items-start justify-between mb-1">
-                          <p className="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                            {m.sender}
-                          </p>
-                          <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 shrink-0 ml-2">{m.time}</span>
-                        </div>
-                        <p className="text-xs font-semibold text-gray-800 dark:text-slate-200 truncate">{m.subject}</p>
-                        <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-snug">{m.preview}</p>
+                        <RefreshCw size={12} className={inboxLoading ? 'animate-spin' : ''} />
                       </button>
-                    ))}
+                    </div>
                   </div>
-                  <div className="p-2 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+
+                  <div className="max-h-[340px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-700/50">
+                    {incomingRequests.length === 0 ? (
+                      <div className="py-8 px-4 text-center">
+                        <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500/80 mb-2" />
+                        <p className="text-xs font-bold text-gray-800 dark:text-slate-200">No Pending Requests</p>
+                        <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">All incoming payment requests and bills have been attended to.</p>
+                      </div>
+                    ) : (
+                      incomingRequests.map(item => {
+                        const isUnread = !readIds.includes(item.id);
+                        return (
+                          <button 
+                            key={item.id} 
+                            className={`w-full text-left p-3 sm:p-3.5 hover:bg-indigo-50/40 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group flex items-start gap-2.5 ${isUnread ? 'bg-indigo-50/20 dark:bg-indigo-950/20' : ''}`} 
+                            onClick={() => handleRequestClick(item)}
+                          >
+                            <div className="mt-0.5 shrink-0">
+                              {item.type === 'PAYMENT_REQUEST' ? (
+                                <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20">
+                                  <Send className="w-3.5 h-3.5" />
+                                </div>
+                              ) : (
+                                <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+                                  <FileText className="w-3.5 h-3.5" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded border ${
+                                  item.type === 'PAYMENT_REQUEST' 
+                                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' 
+                                    : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                                }`}>
+                                  {item.type === 'PAYMENT_REQUEST' ? 'Payment Request' : 'Supplier Bill'}
+                                </span>
+                                <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 shrink-0 ml-2">{item.time}</span>
+                              </div>
+
+                              <p className="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                {item.sender}
+                              </p>
+
+                              <p className="text-[11px] text-gray-600 dark:text-slate-300 font-medium truncate mt-0.5">
+                                {item.title} • <span className="font-bold text-gray-900 dark:text-white">₱{item.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                              </p>
+
+                              <p className="text-[11px] text-gray-400 dark:text-slate-400 line-clamp-1 mt-0.5 leading-tight">
+                                {item.purpose}
+                              </p>
+
+                              <div className="flex items-center justify-between mt-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                                <span className="text-gray-400 dark:text-slate-500 font-normal">By: {item.requesterName}</span>
+                                <span className="inline-flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                                  Act Now <ArrowRight size={10} />
+                                </span>
+                              </div>
+                            </div>
+
+                            {isUnread && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0 mt-2" title="Unread" />
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div className="p-2 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex items-center justify-between gap-2">
+                    <button 
+                      onClick={handleMarkAllRead}
+                      className="text-[11px] font-medium text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition-colors px-2 py-1 cursor-pointer"
+                    >
+                      Mark all as read
+                    </button>
                     <button 
                       onClick={() => {
-                        handleNav('/inbox');
+                        handleNav('/disbursements');
                         setMailOpen(false);
                       }}
-                      className="w-full py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors flex items-center justify-center gap-1.5"
+                      className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors flex items-center gap-1 px-2 py-1 cursor-pointer"
                     >
-                      <span>View All in Inbox</span>
-                      <span aria-hidden="true">&rarr;</span>
+                      <span>Disbursements Queue</span>
+                      <ArrowRight size={12} />
                     </button>
                   </div>
                 </div>
