@@ -1238,9 +1238,6 @@ class IntegrationController extends Controller
         ], 200);
     }
 
-    /**
-     * Map category_type to the appropriate internal subsystem slug.
-     */
     private function resolveSubsystemSlug(string $categoryType): string
     {
         return match ($categoryType) {
@@ -1259,4 +1256,343 @@ class IntegrationController extends Controller
             default => 'general-ledger',
         };
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HRMS CLUSTER PROTOCOL — BATCH / SINGLE DUAL-MODE ADAPTER METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Wildcard adapter: POST /api/integrations/{sender}/{resource}
+     * Dynamically routes to batchRevenue or batchDisbursement based on resource slug.
+     */
+    public function wildcardAdapter(Request $request, string $sender, string $resource): JsonResponse
+    {
+        $revenueResources = ['revenue', 'sales', 'collections', 'subscriptions', 'commissions'];
+        $expenseResources = ['payroll', 'disbursements', 'claims', 'bills', 'vouchers', 'payouts', 'refunds'];
+
+        $normalizedResource = strtolower($resource);
+
+        // Inject sender as source_module hint if not provided
+        if (!$request->has('external_module') && !$request->has('source_module')) {
+            $senderMap = [
+                'hr4'          => 'HRMS',
+                'hr3'          => 'HRMS',
+                'hr2'          => 'HRMS',
+                'hr1'          => 'HRMS',
+                'esfa'         => 'ESFA_GROUP3',
+                'ecommerce'    => 'ECOMMERCE_CORE',
+                'supply-chain' => 'SUPPLY_CHAIN',
+                'fleet'        => 'FLEET',
+                'facilities'   => 'FACILITIES_LEGAL',
+            ];
+            $request->merge(['source_module' => $senderMap[strtolower($sender)] ?? 'ENTERPRISE_INTEGRATION']);
+        }
+
+        if (in_array($normalizedResource, $revenueResources)) {
+            return $this->batchRevenue($request);
+        }
+
+        if (in_array($normalizedResource, $expenseResources)) {
+            return $this->batchDisbursement($request);
+        }
+
+        return response()->json([
+            'status'   => 'error',
+            'message'  => "Unknown resource '{$resource}'. Use one of: " . implode(', ', array_merge($revenueResources, $expenseResources)),
+            'accepted' => 0,
+            'rejected' => [],
+        ], 400);
+    }
+
+    /**
+     * Batch-capable inbound revenue: supports { "records": [...] } (max 500) or single object.
+     * Returns HRMS-compatible { accepted, rejected } alongside standard fields.
+     */
+    public function batchRevenue(Request $request): JsonResponse
+    {
+        return $this->processBatch($request, 'revenue');
+    }
+
+    /**
+     * Batch-capable disbursement request: supports { "records": [...] } (max 500) or single object.
+     * Returns HRMS-compatible { accepted, rejected } alongside standard fields.
+     */
+    public function batchDisbursement(Request $request): JsonResponse
+    {
+        return $this->processBatch($request, 'disbursement');
+    }
+
+    /**
+     * Core batch/single processing engine.
+     * - Detects batch (records array, max 500) vs single-object payload
+     * - Resolves centavos fields (amount_centavos, net_pay_centavos, gross_pay_centavos)
+     * - Builds deterministic idempotency keys from HR fields (period + employee_code)
+     * - Processes each row independently (one row's failure doesn't fail the batch)
+     * - Returns HRMS-compatible { accepted, rejected } response
+     */
+    private function processBatch(Request $request, string $mode): JsonResponse
+    {
+        $records = $request->input('records');
+        $isBatch = is_array($records) && count($records) > 0;
+
+        if ($isBatch && count($records) > 500) {
+            return response()->json([
+                'status'   => 'error',
+                'message'  => 'Batch size exceeds maximum of 500 records.',
+                'accepted' => 0,
+                'rejected' => [['row' => 0, 'reason' => 'Batch contains ' . count($records) . ' records, max is 500.']],
+            ], 422);
+        }
+
+        // Single-object → wrap in array of 1
+        if (!$isBatch) {
+            $records = [$request->all()];
+        }
+
+        $accepted = 0;
+        $rejected = [];
+        $results  = [];
+
+        foreach ($records as $index => $row) {
+            if (!is_array($row)) {
+                $rejected[] = ['row' => $index, 'reason' => 'Record must be a JSON object.'];
+                continue;
+            }
+
+            try {
+                // Resolve centavos → decimal amount
+                $row = $this->resolveCentavos($row);
+
+                // Resolve HR-specific deterministic idempotency key
+                $row = $this->resolveHrIdempotencyKey($row);
+
+                // Resolve HR-specific field aliases
+                $row = $this->resolveHrFieldAliases($row);
+
+                // Build a synthetic Request for the underlying single-record method
+                $syntheticRequest = Request::create(
+                    $request->url(),
+                    'POST',
+                    $row,
+                    [], [], [],
+                    json_encode($row)
+                );
+                $syntheticRequest->headers->set('Content-Type', 'application/json');
+                $syntheticRequest->headers->set('Accept', 'application/json');
+
+                // Copy idempotency key header if present in original or row
+                $idemKey = $row['idempotency_key']
+                    ?? $row['Idempotency-Key']
+                    ?? null;
+                if ($idemKey) {
+                    $syntheticRequest->headers->set('Idempotency-Key', $idemKey);
+                }
+
+                /** @var JsonResponse $response */
+                if ($mode === 'revenue') {
+                    $response = $this->inboundRevenue($syntheticRequest);
+                } else {
+                    $response = $this->requestDisbursement($syntheticRequest);
+                }
+
+                $statusCode = $response->getStatusCode();
+                $body = json_decode($response->getContent(), true);
+
+                if ($statusCode >= 200 && $statusCode < 300) {
+                    $accepted++;
+                    $results[] = $body;
+                } elseif ($statusCode === 200 && ($body['message'] ?? '') === 'Duplicate request detected. Returning existing transaction.') {
+                    // Idempotent duplicate — still counts as accepted
+                    $accepted++;
+                    $results[] = $body;
+                } else {
+                    $reason = $body['message'] ?? 'Validation or processing error.';
+                    if (isset($body['errors'])) {
+                        $reason = collect($body['errors'])->flatten()->implode('; ');
+                    }
+                    $rejected[] = ['row' => $index, 'reason' => $reason];
+                }
+
+                // Log to audit_logs for compliance
+                $this->logBatchAudit($row, $mode, $statusCode, $body);
+
+            } catch (\Illuminate\Validation\ValidationException $ve) {
+                $reason = collect($ve->errors())->flatten()->implode('; ');
+                $rejected[] = ['row' => $index, 'reason' => $reason];
+                $this->logBatchAudit($row, $mode, 422, ['error' => $reason]);
+            } catch (\Throwable $e) {
+                $rejected[] = ['row' => $index, 'reason' => $e->getMessage()];
+                $this->logBatchAudit($row, $mode, 500, ['error' => $e->getMessage()]);
+            }
+        }
+
+        $httpStatus = ($accepted > 0) ? ($isBatch ? 200 : 202) : 422;
+        // If single-object and accepted, use 202 to match existing convention
+        if (!$isBatch && $accepted === 1 && count($results) === 1) {
+            return response()->json(array_merge($results[0], [
+                'accepted' => 1,
+                'rejected' => [],
+            ]), 202);
+        }
+
+        return response()->json([
+            'status'   => $accepted > 0 ? 'accepted' : 'error',
+            'message'  => $accepted > 0
+                ? "Batch processed: {$accepted} accepted, " . count($rejected) . " rejected."
+                : 'All records were rejected.',
+            'accepted' => $accepted,
+            'rejected' => $rejected,
+            'data'     => $results,
+        ], $httpStatus);
+    }
+
+    /**
+     * Resolve centavos fields to decimal amounts (HRMS spec: integer centavos / 100).
+     */
+    private function resolveCentavos(array $row): array
+    {
+        if (isset($row['amount']) && is_numeric($row['amount'])) {
+            return $row;
+        }
+
+        $centavoFields = ['amount_centavos', 'net_pay_centavos', 'gross_pay_centavos'];
+        foreach ($centavoFields as $field) {
+            if (isset($row[$field]) && is_numeric($row[$field])) {
+                $row['amount'] = round((int) $row[$field] / 100, 2);
+                return $row;
+            }
+        }
+
+        // Fallback to other amount aliases
+        $amountAliases = ['net_pay', 'gross_pay', 'total_amount', 'disbursement_amount', 'net_amount'];
+        foreach ($amountAliases as $alias) {
+            if (isset($row[$alias]) && is_numeric($row[$alias])) {
+                $row['amount'] = (float) $row[$alias];
+                return $row;
+            }
+        }
+
+        return $row;
+    }
+
+    /**
+     * Build deterministic idempotency key from HR4 payroll fields so resending
+     * the same batch never creates duplicate bills/vouchers.
+     * Key pattern: HR4-{period}-{employee_code} or HR4-{payroll_run_id}
+     */
+    private function resolveHrIdempotencyKey(array $row): array
+    {
+        // If idempotency_key or Idempotency-Key already set, use it
+        if (!empty($row['idempotency_key']) || !empty($row['Idempotency-Key'])) {
+            return $row;
+        }
+
+        // Build from reference_id if present
+        if (!empty($row['reference_id']) || !empty($row['external_reference_id'])) {
+            $ref = $row['reference_id'] ?? $row['external_reference_id'];
+            $row['idempotency_key'] = 'HREF-' . md5($ref);
+            return $row;
+        }
+
+        // Build from payroll_run_id + employee_code
+        if (!empty($row['payroll_run_id'])) {
+            $empCode = $row['employee_code'] ?? 'ALL';
+            $row['idempotency_key'] = 'HR4-' . $row['payroll_run_id'] . '-' . $empCode;
+            return $row;
+        }
+
+        // Build from period + employee_code
+        if (!empty($row['period']) && !empty($row['employee_code'])) {
+            $row['idempotency_key'] = 'HR4-' . $row['period'] . '-' . $row['employee_code'];
+            return $row;
+        }
+
+        return $row;
+    }
+
+    /**
+     * Map HR-specific field names to our standard integration fields.
+     */
+    private function resolveHrFieldAliases(array $row): array
+    {
+        // employee_name → payee_name
+        if (!isset($row['payee_name']) && isset($row['employee_name'])) {
+            $row['payee_name'] = $row['employee_name'];
+        }
+
+        // department / department_code → metadata
+        if (isset($row['department']) || isset($row['department_code'])) {
+            $row['metadata'] = array_merge($row['metadata'] ?? [], [
+                'department'      => $row['department'] ?? null,
+                'department_code' => $row['department_code'] ?? null,
+                'employee_code'   => $row['employee_code'] ?? null,
+                'period'          => $row['period'] ?? null,
+                'payroll_run_id'  => $row['payroll_run_id'] ?? null,
+                'claim_type'      => $row['claim_type'] ?? null,
+            ]);
+        }
+
+        // Default category_type for payroll if not specified
+        if (!isset($row['category_type']) && !isset($row['transaction_type']) && !isset($row['type'])) {
+            if (isset($row['payroll_run_id']) || isset($row['period'])) {
+                $row['category_type'] = 'PAYROLL_SALARY';
+            } elseif (isset($row['claim_type'])) {
+                $row['category_type'] = 'EMPLOYEE_CLAIM';
+            }
+        }
+
+        // Default external_reference_id from HR identifiers if missing
+        if (!isset($row['external_reference_id']) && !isset($row['reference_id'])) {
+            if (!empty($row['payroll_run_id'])) {
+                $empCode = $row['employee_code'] ?? 'EMP';
+                $row['external_reference_id'] = $row['payroll_run_id'] . '-' . $empCode;
+            } elseif (!empty($row['period']) && !empty($row['employee_code'])) {
+                $row['external_reference_id'] = 'HR4-' . $row['period'] . '-' . $row['employee_code'];
+            }
+        }
+
+        // Default external_module for HR
+        if (!isset($row['external_module']) && !isset($row['source_module'])) {
+            $row['source_module'] = 'HRMS';
+            $row['external_module'] = 'HRMS';
+        }
+
+        // Default description from HR fields
+        if (!isset($row['description']) && !isset($row['purpose']) && !isset($row['notes'])) {
+            $empName = $row['employee_name'] ?? $row['payee_name'] ?? 'Employee';
+            $period  = $row['period'] ?? now()->format('Y-m');
+            $cat     = $row['category_type'] ?? $row['claim_type'] ?? 'PAYROLL';
+            $row['description'] = "{$cat} for {$empName} ({$period})";
+        }
+
+        return $row;
+    }
+
+    /**
+     * Log batch audit entry for compliance traceability.
+     */
+    private function logBatchAudit(array $row, string $mode, int $statusCode, array $response): void
+    {
+        try {
+            DB::table('ai_logs')->insert([
+                'id'             => (string) Str::uuid(),
+                'transaction_id' => $response['transaction_id'] ?? null,
+                'anomaly_score'  => 0,
+                'ai_decision'    => $statusCode < 300 ? 'BATCH_ACCEPTED' : 'BATCH_REJECTED',
+                'flag_reason'    => json_encode([
+                    'mode'         => $mode,
+                    'sender'       => $row['source_module'] ?? $row['external_module'] ?? 'UNKNOWN',
+                    'reference'    => $row['external_reference_id'] ?? $row['reference_id'] ?? null,
+                    'status_code'  => $statusCode,
+                    'employee_code'=> $row['employee_code'] ?? null,
+                    'period'       => $row['period'] ?? null,
+                ]),
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // Non-critical: don't let audit logging failure break the batch
+        }
+    }
 }
+

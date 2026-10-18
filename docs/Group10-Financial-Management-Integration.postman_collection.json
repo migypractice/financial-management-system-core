@@ -1,0 +1,501 @@
+{
+	"info": {
+		"_postman_id": "f8a02c91-4df2-4ce8-b593-finance-group10",
+		"name": "Group 10: Financial Management System — Enterprise & HRMS Integration API",
+		"description": "Comprehensive M2M integration collection for Group 10 (Financial Management System - Transaction Core) supporting the HRMS Cluster Protocol (HR1–HR4), ESFA Group 3 (E-Commerce), Supply Chain, Fleet, and Facilities.\n\n### Authentication\nAll requests use either the `X-API-KEY` header or `Authorization: Bearer <key>`. Pre-configured via collection variable `{{api_key}}`.\n\n### Environments\n- Local: `http://127.0.0.1:8000`\n- Production: Set `{{base_url}}` to your live deployed domain.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "key",
+				"value": "X-API-KEY",
+				"type": "string"
+			},
+			{
+				"key": "value",
+				"value": "{{api_key}}",
+				"type": "string"
+			},
+			{
+				"key": "in",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		},
+		{
+			"key": "api_key",
+			"value": "hw-integration-secret-2026",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. HRMS Cluster (HR1–HR4)",
+			"description": "Integration endpoints conforming to Section 3 and Section 4 of the official HRMS Cluster Outline (Flow #15 & #18). Supports batch { records: [] } payloads up to 500 rows, centavos auto-conversion, and idempotent upserts.",
+			"item": [
+				{
+					"name": "HR4 - Batch Payroll Ingestion (Money Out)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{api_key}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"records\": [\n    {\n      \"payroll_run_id\": \"PAY-2026-10A\",\n      \"employee_code\": \"EMP-0101\",\n      \"employee_name\": \"Juan Dela Cruz\",\n      \"department\": \"Engineering\",\n      \"period\": \"2026-10-15\",\n      \"gross_pay_centavos\": 3000000,\n      \"net_pay_centavos\": 2540000,\n      \"tax_amount\": 3200.00,\n      \"fee_amount\": 1400.00,\n      \"bank_name\": \"BDO Unibank\",\n      \"account_number\": \"001234567890\"\n    },\n    {\n      \"payroll_run_id\": \"PAY-2026-10A\",\n      \"employee_code\": \"EMP-0102\",\n      \"employee_name\": \"Maria Santos\",\n      \"department\": \"Customer Support\",\n      \"period\": \"2026-10-15\",\n      \"net_pay_centavos\": 2180000,\n      \"bank_name\": \"Bank of the Philippine Islands (BPI)\",\n      \"account_number\": \"3089123456\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/integrations/hr4/payroll",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"hr4",
+								"payroll"
+							]
+						},
+						"description": "HR4 batch payroll disbursement ingestion. Accepts up to 500 rows. Auto-converts centavos to PHP decimal. Deduplicates via payroll_run_id + employee_code."
+					}
+				},
+				{
+					"name": "HR4 - Benefit & Reimbursement Claims",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"records\": [\n    {\n      \"reference_id\": \"HR4-MED-2026-089\",\n      \"employee_name\": \"Roberto Garcia\",\n      \"employee_code\": \"EMP-0450\",\n      \"claim_type\": \"MEDICAL_REIMBURSEMENT\",\n      \"amount\": 4500.00,\n      \"notes\": \"HMO deductible outpatient consultation reimbursement\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/integrations/hr4/claims",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"hr4",
+								"claims"
+							]
+						},
+						"description": "HR4 employee medical and reimbursement claims. Creates ApBill and queues PaymentRequest."
+					}
+				},
+				{
+					"name": "HR3 (PDMS) - Training & Certification Claims",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"records\": [\n    {\n      \"reference_id\": \"PDMS-CERT-991\",\n      \"employee_name\": \"Engr. David Cruz\",\n      \"employee_code\": \"EMP-0210\",\n      \"amount\": 12500.00,\n      \"claim_type\": \"TRAINING_SPONSORSHIP\",\n      \"purpose\": \"AWS Solutions Architect Certification fee sponsorship\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/integrations/hr3/claims",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"hr3",
+								"claims"
+							]
+						},
+						"description": "HR3 (Group 1: PDMS) training cost reimbursement and monetary recognition awards."
+					}
+				},
+				{
+					"name": "HR1–HR4 - Live Department Budget Query",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/integrations/budget-status?department=Human Resources&fiscal_year=2026",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"budget-status"
+							],
+							"query": [
+								{
+									"key": "department",
+									"value": "Human Resources"
+								},
+								{
+									"key": "fiscal_year",
+									"value": "2026"
+								}
+							]
+						},
+						"description": "Returns allocated budget, total spent, remaining balance, and utilization rate for department."
+					}
+				},
+				{
+					"name": "HR1–HR4 - Voucher Status Tracking",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/integrations/voucher-status/PAY-2026-10A-EMP-0101",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"voucher-status",
+								"PAY-2026-10A-EMP-0101"
+							]
+						},
+						"description": "Track payment request approval and check release status for an external reference."
+					}
+				}
+			]
+		},
+		{
+			"name": "2. ESFA (Group 3 E-Commerce)",
+			"description": "Revenue, collections, seller disbursements, commissions, and analytic sync with Group 3 ESFA.",
+			"item": [
+				{
+					"name": "Inbound Customer Order Settlement (Money In)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"external_reference_id\": \"ORD-2026-9921\",\n  \"customer_name\": \"Metro Builders Hardware Co.\",\n  \"category_type\": \"SALES_REVENUE\",\n  \"amount\": 84500.00,\n  \"gateway_fee\": 169.00,\n  \"description\": \"Payment settlement for heavy-duty drill press online order\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/integrations/esfa/revenue",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"esfa",
+								"revenue"
+							]
+						},
+						"description": "Inbound sales revenue from online store checkout. Creates AR Invoice, Collection receipt, and posts double-entry GL journal."
+					}
+				},
+				{
+					"name": "Seller Subscription Ingestion (Money In)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"external_reference_id\": \"SUB-2026-GOLD-01\",\n  \"customer_name\": \"Bosch Official Hardware Store\",\n  \"category_type\": \"SELLER_SUBSCRIPTION\",\n  \"amount\": 4999.00,\n  \"subscription_amount\": 4999.00,\n  \"description\": \"Monthly Gold Merchant subscription fee for October 2026\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/integration/inbound-revenue",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"integration",
+								"inbound-revenue"
+							]
+						},
+						"description": "Ingest merchant platform subscription fee. Auto-classified to 4100-REV-SERVICE account."
+					}
+				},
+				{
+					"name": "Platform Commission Ingestion (Money In)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"external_reference_id\": \"COMM-ORD-8812\",\n  \"customer_name\": \"Stanley Hardware Store\",\n  \"category_type\": \"PLATFORM_COMMISSION\",\n  \"amount\": 3500.00,\n  \"commission_amount\": 3500.00,\n  \"description\": \"5% platform commission on Order #ORD-8812\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/integration/inbound-revenue",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"integration",
+								"inbound-revenue"
+							]
+						},
+						"description": "Ingest marketplace take-rate commission fee from merchant order."
+					}
+				},
+				{
+					"name": "Seller Payout Disbursement (Money Out)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"external_reference_id\": \"PAYOUT-MERCHANT-044\",\n  \"payee_name\": \"DeWalt Authorized Dealer\",\n  \"category_type\": \"SELLER_PAYOUT\",\n  \"amount\": 65200.00,\n  \"description\": \"Bi-weekly escrow release for completed merchant orders\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/integrations/esfa/disbursements",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"esfa",
+								"disbursements"
+							]
+						},
+						"description": "Escrow release payout to third-party merchant. Enters Accounts Payable for maker-checker release."
+					}
+				},
+				{
+					"name": "Customer Order Refund (Money Out)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"external_reference_id\": \"REFUND-ORD-3312\",\n  \"customer_name\": \"Elena Bautista\",\n  \"category_type\": \"CUSTOMER_REFUND\",\n  \"amount\": 1850.00,\n  \"description\": \"Return and refund for defective circular saw blade\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/integration/request-disbursement",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"integration",
+								"request-disbursement"
+							]
+						},
+						"description": "Customer return refund request. Enters AP as customer refund credit note."
+					}
+				},
+				{
+					"name": "Executive Financial Summary Feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/integrations/financial-summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"financial-summary"
+							]
+						},
+						"description": "Returns gross sales, net revenue, commission income, subscription income, refunds, total collections, total disbursements, and liquid cash balance."
+					}
+				},
+				{
+					"name": "BIR Tax & VAT Compliance Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/integrations/tax-summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"tax-summary"
+							]
+						},
+						"description": "Returns 12% Output VAT, 12% Input VAT, Net VAT payable, EWT withholding tax, and recent taxable transactions."
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Supply Chain (Group 2)",
+			"description": "Supplier PO and inventory procurement billing.",
+			"item": [
+				{
+					"name": "Supplier PO Procurement Inbound (Money Out)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"external_reference_id\": \"PO-2026-5541\",\n  \"supplier_name\": \"Makita Philippines Corp.\",\n  \"category_type\": \"INVENTORY_PURCHASE\",\n  \"amount\": 142000.00,\n  \"description\": \"Procurement of 50 units Cordless Rotary Hammers PO #5541\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/integration/request-disbursement",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"integration",
+								"request-disbursement"
+							]
+						},
+						"description": "Converts approved Supply Chain PO into Accounts Payable bill for scheduled vendor payment."
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Fleet & Logistics (Group 7)",
+			"description": "Fuel and vehicle maintenance reimbursement.",
+			"item": [
+				{
+					"name": "Fuel & Fleet Maintenance Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"external_reference_id\": \"FLEET-FUEL-2026-104\",\n  \"payee_name\": \"Shell Gas Station North EDSA\",\n  \"category_type\": \"FUEL_MANAGEMENT\",\n  \"amount\": 8400.00,\n  \"description\": \"Delivery truck fleet diesel replenishment batch\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/integration/request-disbursement",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"integration",
+								"request-disbursement"
+							]
+						},
+						"description": "Queues fuel disbursement against Fleet logistics operating budget."
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Facilities & Legal (Group 4)",
+			"description": "Office rent, utility bills, and regulatory archiving records.",
+			"item": [
+				{
+					"name": "Facility Rent Disbursement",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"external_reference_id\": \"RENT-WH-NORTH-OCT\",\n  \"payee_name\": \"Ayala Land Logistics Hub Inc.\",\n  \"category_type\": \"FACILITY_RENT\",\n  \"amount\": 75000.00,\n  \"description\": \"Monthly warehouse lease rental for North Distribution Center\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/integration/request-disbursement",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"integration",
+								"request-disbursement"
+							]
+						},
+						"description": "Schedules monthly facility rent disbursement."
+					}
+				},
+				{
+					"name": "Regulatory Archiving & Audit Records Feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/integrations/archiving-records",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"integrations",
+								"archiving-records"
+							]
+						},
+						"description": "Feed for Group 4 Facilities & Legal digital archiving compliance. Returns receipts, bills, invoices, and audit logs."
+					}
+				}
+			]
+		}
+	]
+}

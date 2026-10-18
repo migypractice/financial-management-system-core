@@ -476,4 +476,170 @@ class IntegrationControllerTest extends TestCase
                 'audit_logs',
             ]);
     }
+
+    public function test_hrms_batch_payroll_disbursement_with_centavos_and_bearer_token(): void
+    {
+        $payload = [
+            'records' => [
+                [
+                    'employee_name'    => 'Juan Dela Cruz',
+                    'employee_code'    => 'EMP-001',
+                    'payroll_run_id'   => 'PR-2026-10A',
+                    'period'           => '2026-10-15',
+                    'net_pay_centavos' => 2500000, // 25,000.00 PHP
+                    'department'       => 'Engineering',
+                ],
+                [
+                    'employee_name'    => 'Maria Santos',
+                    'employee_code'    => 'EMP-002',
+                    'payroll_run_id'   => 'PR-2026-10A',
+                    'period'           => '2026-10-15',
+                    'net_pay_centavos' => 3500000, // 35,000.00 PHP
+                    'department'       => 'Marketing',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/integrations/hr4/payroll', $payload, [
+            'Authorization' => 'Bearer test-integration-api-key',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'accepted')
+            ->assertJsonPath('accepted', 2)
+            ->assertJsonCount(0, 'rejected');
+
+        $this->assertDatabaseHas('ap_bills', [
+            'category_type' => 'PAYROLL_SALARY',
+            'total_amount'  => 25000,
+        ]);
+
+        $this->assertDatabaseHas('ap_bills', [
+            'category_type' => 'PAYROLL_SALARY',
+            'total_amount'  => 35000,
+        ]);
+    }
+
+    public function test_hrms_batch_partial_rejection_reports_row_index_and_reason(): void
+    {
+        $payload = [
+            'records' => [
+                [
+                    'employee_name'    => 'Valid Employee',
+                    'employee_code'    => 'EMP-101',
+                    'payroll_run_id'   => 'PR-2026-10B',
+                    'net_pay_centavos' => 1500000,
+                ],
+                [
+                    'employee_name'    => '', // invalid payee name
+                    'employee_code'    => 'EMP-102',
+                    'payroll_run_id'   => 'PR-2026-10B',
+                    'amount'           => -500, // invalid negative amount
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/integrations/hr4/payroll', $payload, [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('accepted', 1)
+            ->assertJsonCount(1, 'rejected')
+            ->assertJsonPath('rejected.0.row', 1);
+    }
+
+    public function test_hrms_batch_idempotent_deduplication(): void
+    {
+        $payload = [
+            'records' => [
+                [
+                    'employee_name'    => 'Pedro Penduko',
+                    'employee_code'    => 'EMP-303',
+                    'payroll_run_id'   => 'PR-IDEM-01',
+                    'period'           => '2026-10-15',
+                    'net_pay_centavos' => 4000000,
+                ],
+            ],
+        ];
+
+        $headers = ['X-API-KEY' => 'test-integration-api-key'];
+
+        $first = $this->postJson('/api/integrations/hr4/payroll', $payload, $headers);
+        $first->assertStatus(200)->assertJsonPath('accepted', 1);
+
+        $second = $this->postJson('/api/integrations/hr4/payroll', $payload, $headers);
+        $second->assertStatus(200)->assertJsonPath('accepted', 1);
+
+        // Only one transaction created, not duplicated
+        $this->assertDatabaseCount('transactions', 1);
+    }
+
+    public function test_wildcard_integrations_adapter_revenue_and_disbursements(): void
+    {
+        $headers = ['X-API-KEY' => 'test-integration-api-key'];
+
+        // 1. Wildcard revenue: POST /api/integrations/esfa/sales
+        $revRes = $this->postJson('/api/integrations/esfa/sales', [
+            'reference_id'  => 'ESFA-SALE-991',
+            'customer_name' => 'Acme Corporation',
+            'total_amount'  => 8500,
+            'notes'         => 'Wholesale power tool order',
+        ], $headers);
+
+        $revRes->assertStatus(202)
+            ->assertJsonPath('status', 'accepted');
+        $this->assertContains($revRes->json('workflow_status'), ['pending_approval', 'ai_flagged']);
+
+        // 2. Wildcard disbursement: POST /api/integrations/hr3/claims
+        $claimRes = $this->postJson('/api/integrations/hr3/claims', [
+            'reference_id'  => 'HR3-CLAIM-101',
+            'employee_name' => 'Dr. Anna Gomez',
+            'amount'        => 4500,
+            'purpose'       => 'Technical training certification sponsorship',
+            'claim_type'    => 'TRAINING_SPONSORSHIP',
+        ], $headers);
+
+        $claimRes->assertStatus(202);
+    }
+
+    public function test_batch_exceeding_max_limit_is_rejected(): void
+    {
+        $records = [];
+        for ($i = 0; $i < 501; $i++) {
+            $records[] = [
+                'employee_name' => "Emp {$i}",
+                'amount'        => 100,
+            ];
+        }
+
+        $response = $this->postJson('/api/integrations/hr4/payroll', ['records' => $records], [
+            'X-API-KEY' => 'test-integration-api-key',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('status', 'error')
+            ->assertJsonPath('accepted', 0);
+    }
+
+    public function test_read_only_aliases_on_integrations_prefix(): void
+    {
+        $headers = ['X-API-KEY' => 'test-integration-api-key'];
+
+        $this->getJson('/api/integrations/financial-summary', $headers)
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->getJson('/api/integrations/tax-summary', $headers)
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->getJson('/api/integrations/budget-status', $headers)
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->getJson('/api/integrations/archiving-records', $headers)
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+    }
 }

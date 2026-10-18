@@ -30,7 +30,8 @@ RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 RUN a2enmod rewrite
 
 # Expose port and start Apache.
-# Migrations only — safe to re-run on every boot (only applies pending ones).
-# Seeding is a one-time manual step (see deployment docs), not run automatically.
+# Binds Apache to Railway's dynamic $PORT (fallback to 80).
+# Automatically runs migrations and seeders safely on every boot.
 EXPOSE 80
-CMD php artisan config:cache && php artisan migrate --force && php artisan db:seed --force && apache2-foreground
+CMD sed -i "s/80/${PORT:-80}/g" /etc/apache2/ports.conf /etc/apache2/sites-available/*.conf && php artisan config:cache && php artisan route:cache && php artisan migrate --force && php artisan db:seed --force && apache2-foreground
+

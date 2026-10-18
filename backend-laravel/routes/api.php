@@ -141,3 +141,37 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 });
 
 
+// ─── HRMS Cluster Protocol (HR1–HR4) & Universal Batch/Single M2M Adapter ───
+// Route aliases at /api/integrations/<sender>/<resource> that support BOTH the
+// single-object REST pattern AND the HRMS batch { "records": [] } protocol.
+// Rate-limited to 120 requests per minute per the HRMS Integration Specification.
+Route::prefix('integrations')->middleware(['api.key', 'throttle:120,1'])->group(function () {
+
+    // ── Named Sender / Resource Routes ──────────────────────────────────────
+
+    // HR4 (Group 9: Payroll & Benefits)
+    Route::post('/hr4/payroll',       [IntegrationController::class, 'batchDisbursement']);
+    Route::post('/hr4/disbursements', [IntegrationController::class, 'batchDisbursement']);
+    Route::post('/hr4/claims',        [IntegrationController::class, 'batchDisbursement']);
+
+    // HR3 (Group 1: PDMS — Training costs & monetary recognition awards)
+    Route::post('/hr3/claims',        [IntegrationController::class, 'batchDisbursement']);
+
+    // ESFA (Group 3: E-Commerce Support, Finance & Administration)
+    Route::post('/esfa/revenue',       [IntegrationController::class, 'batchRevenue']);
+    Route::post('/esfa/disbursements', [IntegrationController::class, 'batchDisbursement']);
+
+    // ── Read-Only Lookup Aliases ────────────────────────────────────────────
+
+    Route::get('/financial-summary',              [IntegrationController::class, 'financialSummary']);
+    Route::get('/analytics/summary',              [IntegrationController::class, 'financialSummary']);
+    Route::get('/tax-summary',                    [IntegrationController::class, 'taxSummary']);
+    Route::get('/budget-status',                  [IntegrationController::class, 'budgetStatus']);
+    Route::get('/voucher-status/{reference}',     [IntegrationController::class, 'voucherStatus']);
+    Route::get('/archiving-records',              [IntegrationController::class, 'archivingRecords']);
+
+    // ── Wildcard Sender/Resource Adapter ────────────────────────────────────
+    // POST /api/integrations/{sender}/{resource} dynamically routes to
+    // batchRevenue or batchDisbursement based on the resource slug.
+    Route::post('/{sender}/{resource}', [IntegrationController::class, 'wildcardAdapter']);
+});

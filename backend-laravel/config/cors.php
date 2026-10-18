@@ -7,14 +7,14 @@ return [
     | Cross-Origin Resource Sharing (CORS) Configuration
     |--------------------------------------------------------------------------
     |
-    | Only the API and Sanctum's CSRF cookie route accept cross-origin
-    | requests. Allowed origins are explicit (no wildcard) since the API
-    | issues Bearer tokens read by the frontend's JS. Add production
-    | frontend URLs to FRONTEND_URL (comma-separated) in .env.
+    | Group 10 Financial Core accepts cross-origin API calls from all partner
+    | subsystems (HRMS Groups 1/5/8/9, ESFA Group 3, Supply Chain Group 2,
+    | Fleet Group 7, Facilities Group 4) deployed across Vercel, Render,
+    | Railway, and localhost, as well as our own Vercel frontend.
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'integrations/*', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
@@ -24,9 +24,9 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => [],
+    'exposed_headers' => ['X-API-KEY', 'Idempotency-Key', 'Authorization', 'Content-Disposition'],
 
-    'max_age' => 0,
+    'max_age' => 86400,
 
     'supports_credentials' => false,
 
