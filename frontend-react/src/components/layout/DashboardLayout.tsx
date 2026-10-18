@@ -37,7 +37,7 @@ const coreModules: NavItem[] = [
 
 // ── Internal Controls & Audit ──
 const internalControls: NavItem[] = [
-  { path: '/inbox',         label: 'Integration Inbox',         icon: Mail, badge: 'Live' },
+  { path: '/inbox',         label: 'Inbox',                     icon: Mail, badge: 'Live' },
   { path: '/audit-logs',    label: 'Audit Trail',               icon: ShieldCheck },
 ];
 
@@ -48,9 +48,9 @@ const representativeNotifications = [
 ];
 
 const representativeMessages = [
-  { id: 1, sender: 'HR4 (Group 9 Payroll)', subject: 'Batch Payroll Transmission #PAY-2026-10A', preview: '2 employees submitted. Total: ₱47,200.00. Ready for Maker-Checker review.', time: '5m ago', path: '/inbox' },
-  { id: 2, sender: 'ESFA (Group 3 E-Commerce)', subject: 'Online Store Settlement #ORD-2026-9921', preview: 'Order gross: ₱84,500.00. AR invoice and collection receipt generated.', time: '25m ago', path: '/inbox' },
-  { id: 3, sender: 'Supply Chain (Group 2)', subject: 'Supplier Procurement PO #5541', preview: 'Makita Philippines PO ₱142,000.00 queued in Accounts Payable.', time: '1h ago', path: '/inbox' },
+  { id: 1, sender: 'HR4 (Payroll & Benefits)', subject: 'Batch Payroll #PAY-2026-10A', preview: '2 employees submitted. Total: ₱47,200.00. Ready for Maker-Checker review.', time: '5m ago', path: '/inbox' },
+  { id: 2, sender: 'ESFA (E-Commerce Store)', subject: 'Online Order Settlement #ORD-2026-9921', preview: 'Order gross: ₱84,500.00. AR invoice and collection receipt generated.', time: '25m ago', path: '/inbox' },
+  { id: 3, sender: 'Supply Chain (Procurement)', subject: 'Purchase Order #5541', preview: 'Makita Philippines PO ₱142,000.00 queued in Accounts Payable.', time: '1h ago', path: '/inbox' },
 ];
 
 
@@ -381,13 +381,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               )}
             </div>
 
-            {/* Mail / Integration Inbox */}
+            {/* Mail / Inbox */}
             <div className="relative">
               <button 
                 onClick={toggleMail}
-                aria-label="Integration Inbox"
+                aria-label="Inbox"
                 aria-expanded={mailOpen}
-                title="Integration Inbox & M2M Transmissions"
+                title="Inbox — Incoming Requests"
                 className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors text-gray-500 dark:text-slate-300"
               >
                 <Mail size={15} />
@@ -401,10 +401,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
                     <div className="flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5 text-indigo-500" />
-                      <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Integration Inbox</h3>
+                      <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Inbox</h3>
                     </div>
                     <span className="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full font-bold border border-indigo-200 dark:border-indigo-800">
-                      M2M Live Feed
+                      Live Feed
                     </span>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-700/50">
@@ -436,7 +436,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       }}
                       className="w-full py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors flex items-center justify-center gap-1.5"
                     >
-                      <span>Open Full Integration Inbox</span>
+                      <span>View All in Inbox</span>
                       <span aria-hidden="true">&rarr;</span>
                     </button>
                   </div>

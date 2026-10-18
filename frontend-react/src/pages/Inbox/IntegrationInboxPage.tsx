@@ -329,13 +329,13 @@ export const IntegrationInboxPage: React.FC<{ onNavigate?: (path: string) => voi
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-                Integration Inbox & M2M Transmissions
+                Inbox
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  Live Active
+                  Live Feed
                 </span>
               </h1>
               <p className="text-xs text-indigo-200/70">
-                Inbound request queue from HRMS (HR1–HR4), ESFA (Group 3), Supply Chain (Group 2), Fleet, and Facilities.
+                Subaybayan ang lahat ng pumapasok na requests, transactions, at pasahod mula sa iba't ibang grupo.
               </p>
             </div>
           </div>
@@ -357,38 +357,38 @@ export const IntegrationInboxPage: React.FC<{ onNavigate?: (path: string) => voi
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Received</span>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pumapasok na Requests</span>
             <Server className="w-4 h-4 text-indigo-500" />
           </div>
           <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">{stats.total}</p>
-          <span className="text-[11px] text-slate-400">M2M Inbound Requests</span>
+          <span className="text-[11px] text-slate-400">Total Inbound Records</span>
         </div>
 
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">HRMS Cluster</span>
+            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">HR Payroll & Claims</span>
             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
           </div>
           <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">{stats.hrms}</p>
-          <span className="text-[11px] text-slate-400">HR1–HR4 Payroll & Claims</span>
+          <span className="text-[11px] text-slate-400">HR1–HR4 Submissions</span>
         </div>
 
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">ESFA Group 3</span>
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">E-Commerce Orders</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
           </div>
           <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">{stats.esfa}</p>
-          <span className="text-[11px] text-slate-400">Orders, Payouts & Revenue</span>
+          <span className="text-[11px] text-slate-400">ESFA Group 3 Sales</span>
         </div>
 
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Awaiting Approval</span>
+            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Pending Review</span>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
           <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">{stats.pending}</p>
-          <span className="text-[11px] text-slate-400">In Maker-Checker Queue</span>
+          <span className="text-[11px] text-slate-400">Awaiting Manager Check</span>
         </div>
       </div>
 
@@ -404,7 +404,7 @@ export const IntegrationInboxPage: React.FC<{ onNavigate?: (path: string) => voi
             }`}
           >
             <Inbox className="w-4 h-4" />
-            Inbound Transmissions ({transmissions.length})
+            Incoming Requests ({transmissions.length})
           </button>
           <button
             onClick={() => setActiveTab('MEMOS')}
@@ -415,7 +415,7 @@ export const IntegrationInboxPage: React.FC<{ onNavigate?: (path: string) => voi
             }`}
           >
             <Mail className="w-4 h-4" />
-            Cluster Memos ({DEFAULT_MEMOS.length})
+            Messages ({DEFAULT_MEMOS.length})
           </button>
         </div>
       </div>
