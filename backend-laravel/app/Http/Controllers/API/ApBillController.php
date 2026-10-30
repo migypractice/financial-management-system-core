@@ -31,6 +31,12 @@ class ApBillController extends Controller
         $supplierId = $request->query('supplier_id');
 
         $query = ApBill::with(['supplier', 'chartOfAccount', 'attachments', 'paymentRequests'])
+            ->orderByRaw("CASE 
+                WHEN status = 'OVERDUE' THEN 1 
+                WHEN status = 'UNPAID' THEN 2 
+                WHEN status = 'PARTIAL' THEN 3 
+                WHEN status = 'PAID' THEN 4 
+                ELSE 5 END")
             ->orderByDesc('bill_date')
             ->orderByDesc('created_at');
 
@@ -74,6 +80,7 @@ class ApBillController extends Controller
                 'days_past_due'        => $daysPastDue,
                 'description'          => $b->description,
                 'origin_label'         => $originLabel,
+                'payment_method'       => $b->payment_method ?? 'BANK_TRANSFER',
                 'ai_audit_badge'       => $b->ai_audit_badge ?? null,
                 'has_active_voucher'   => !is_null($activePr),
                 'active_voucher_number'=> $activePr?->request_number ?? null,
@@ -130,6 +137,7 @@ class ApBillController extends Controller
             'due_date'            => 'required|date|after_or_equal:bill_date',
             'total_amount'        => 'required|numeric|min:0.01',
             'category_type'       => 'nullable|string|max:100',
+            'payment_method'      => 'nullable|string|max:50',
             'chart_of_account_id' => 'nullable|exists:chart_of_accounts,id',
             'description'         => 'required|string|max:1000',
             'attachment'          => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // max 5MB
@@ -179,6 +187,7 @@ class ApBillController extends Controller
                 'paid_amount'         => 0,
                 'balance'             => $totalAmount,
                 'category_type'       => $validated['category_type'] ?? 'SUPPLIER_INVOICE',
+                'payment_method'      => $validated['payment_method'] ?? 'BANK_TRANSFER',
                 'description'         => $validated['description'],
                 'status'              => 'UNPAID',
                 'created_by'          => $user?->id,

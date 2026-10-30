@@ -22,6 +22,7 @@ import { FileUploadZone } from '../../components/ui/FileUploadZone';
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { WorkflowGuideBar } from '../../components/navigation/WorkflowGuideBar';
 
 export interface AccountsPayablePageProps {
   onNavigate?: (path: string) => void;
@@ -62,6 +63,7 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     chart_of_account_id: '',
     category_type: 'INVENTORY_PURCHASE',
+    payment_method: 'BANK_TRANSFER',
     total_amount: '',
     description: '',
   });
@@ -149,6 +151,7 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
       fd.append('due_date', billForm.due_date);
       fd.append('total_amount', billForm.total_amount);
       fd.append('category_type', billForm.category_type);
+      fd.append('payment_method', billForm.payment_method);
       if (billForm.chart_of_account_id) {
         fd.append('chart_of_account_id', billForm.chart_of_account_id);
       }
@@ -166,6 +169,7 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         chart_of_account_id: '',
         category_type: 'INVENTORY_PURCHASE',
+        payment_method: 'BANK_TRANSFER',
         total_amount: '',
         description: '',
       });
@@ -219,12 +223,26 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
   };
 
   const filteredBills = useMemo(() => {
-    return bills.filter((b) => {
+    const list = bills.filter((b) => {
       const matchesSearch =
         b.bill_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
         b.supplier_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         b.description.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSearch;
+    });
+
+    const statusPriority: Record<string, number> = {
+      OVERDUE: 1,
+      UNPAID: 2,
+      PARTIAL: 3,
+      PAID: 4,
+    };
+
+    return [...list].sort((a, b) => {
+      const pA = statusPriority[a.status] || 99;
+      const pB = statusPriority[b.status] || 99;
+      if (pA !== pB) return pA - pB;
+      return (b.balance || 0) - (a.balance || 0);
     });
   }, [bills, searchQuery]);
 
@@ -270,6 +288,9 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
           </button>
         </div>
       </div>
+
+      {/* Interactive Workflow Guide */}
+      <WorkflowGuideBar flow="PAYABLES" currentStep={1} onNavigate={onNavigate} />
 
       {/* Real AP Aging Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
@@ -381,8 +402,8 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
         </div>
       </div>
 
-      {/* AP Bills Table */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl overflow-hidden shadow-xs">
+      {/* AP Bills Table (Desktop >= 640px) */}
+      <div className="hidden sm:block bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs min-w-[760px]">
             <thead>
@@ -390,6 +411,7 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
                 <th className="py-2.5 px-3">Bill # & Date</th>
                 <th className="py-2.5 px-3">Supplier</th>
                 <th className="py-2.5 px-3">Category & GL</th>
+                <th className="py-2.5 px-3">Payment Mode</th>
                 <th className="py-2.5 px-3">Due Date</th>
                 <th className="py-2.5 px-3 text-right">Total Amount</th>
                 <th className="py-2.5 px-3 text-right">Balance Due</th>
@@ -401,7 +423,7 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
               {filteredBills.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
+                  <td colSpan={10} className="py-10 text-center text-slate-400">
                     <FileText className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-1.5" />
                     <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">No accounts payable bills found</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Click "Receive Supplier Bill" to enter a new invoice.</p>
@@ -453,6 +475,12 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
                         </span>
                         <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5 truncate max-w-[160px]">
                           {bill.account_name}
+                        </span>
+                      </td>
+
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 inline-flex items-center gap-1">
+                          {(bill.payment_method || 'BANK_TRANSFER').replace(/_/g, ' ')}
                         </span>
                       </td>
 
@@ -525,11 +553,11 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
                           bill.has_active_voucher ? (
                             <button
                               onClick={() => (onNavigate ? onNavigate('/disbursements') : undefined)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors shadow-xs"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors shadow-xs"
                               title={`Active voucher ${bill.active_voucher_number ?? ''} is queued in Disbursements`}
                             >
-                              <Clock className="w-3.5 h-3.5 animate-pulse text-amber-500" />
-                              <span>Voucher Queued {bill.active_voucher_number ? `(${bill.active_voucher_number})` : ''}</span>
+                              <Clock className="w-3.5 h-3.5 animate-pulse text-blue-500" />
+                              <span>Review Voucher →</span>
                             </button>
                           ) : (
                             <button
@@ -554,6 +582,117 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
           </table>
         </div>
       </div>
+
+      {/* AP Bills Mobile Card View (< 640px) */}
+      <div className="block sm:hidden space-y-3">
+        {filteredBills.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <FileText className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-1.5" />
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">No accounts payable bills found</p>
+          </div>
+        ) : (
+          filteredBills.map((bill) => {
+            return (
+              <div key={`mob-bill-${bill.id}`} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+                {/* Header: Bill # + Clean Badge + Status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
+                      {bill.bill_number}
+                    </span>
+                    {bill.ai_audit_badge && (
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                        bill.ai_audit_badge === 'AI_VERIFIED'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                      }`}>
+                        {bill.ai_audit_badge === 'AI_VERIFIED' ? '✓ Clean' : 'Audit Check'}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                    bill.status === 'PAID'
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                      : bill.status === 'PARTIAL'
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                      : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                  }`}>
+                    {bill.status}
+                  </span>
+                </div>
+
+                {/* Supplier & Description */}
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                    {bill.supplier_name}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                    {bill.description || 'Commercial supplier bill statement'}
+                  </p>
+                </div>
+
+                {/* Details Grid */}
+                <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Bill Date</span>
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">{bill.bill_date}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Due Date</span>
+                    <span className="text-rose-600 dark:text-rose-400 font-medium">{bill.due_date}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Payment Mode</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                      {(bill.payment_method || 'BANK_TRANSFER').replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Total Amount</span>
+                    <span className="text-slate-700 dark:text-slate-300 font-medium tabular-nums">
+                      ₱{bill.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Balance Due</span>
+                    <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums tracking-tight">
+                      ₱{bill.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action with 44px min-height (Fix 4) */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                  {bill.balance > 0 ? (
+                    bill.has_active_voucher ? (
+                      <button
+                        onClick={() => (onNavigate ? onNavigate('/disbursements') : undefined)}
+                        className="w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-bold transition-colors touch-target"
+                      >
+                        <Clock className="w-4 h-4 animate-pulse text-amber-500" />
+                        <span>Voucher Queued in Disbursements</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenPRModal(bill)}
+                        className="w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors touch-target"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>Request Payment</span>
+                      </button>
+                    )
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-semibold flex items-center justify-center gap-1.5">
+                      <CheckCircle2 size={16} /> Fully Settled
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
 
       {/* MODAL 1: Record Supplier Bill */}
       {isBillModalOpen && (
@@ -663,6 +802,23 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
                     <option value="FREIGHT_SHIPPING">Fleet & Transportation — Fuel Mgmt / Vehicle Maintenance (5400-EXP-LOGISTICS)</option>
                     <option value="UTILITIES_BILL">Facilities & Administrative — Electricity / Rent / Contracts (5200-EXP-UTIL)</option>
                     <option value="OFFICE_SUPPLIES">General Operations / E-Commerce — Store & Office Supplies / Refunds (5500-EXP-SUPPLIES)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Mode of Payment (Disbursement Channel) <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={billForm.payment_method}
+                    onChange={(e) => setBillForm({ ...billForm, payment_method: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="BANK_TRANSFER">Bank Transfer (Electronic / Instapay / PESONet)</option>
+                    <option value="CHECK">Company Check / PDC</option>
+                    <option value="CASH">Cash / Petty Cash</option>
+                    <option value="GCASH">GCash / Maya Corporate</option>
+                    <option value="PDC">Post-Dated Check (30/60 Days Term)</option>
                   </select>
                 </div>
 

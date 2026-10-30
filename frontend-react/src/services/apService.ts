@@ -38,6 +38,7 @@ export interface ApBillItem {
   status: 'UNPAID' | 'PARTIAL' | 'PAID' | 'OVERDUE';
   days_past_due: number;
   description: string;
+  payment_method?: string;
   ai_audit_badge?: string;
   has_active_voucher?: boolean;
   active_voucher_number?: string | null;

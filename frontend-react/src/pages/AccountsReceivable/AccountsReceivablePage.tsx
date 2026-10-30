@@ -25,8 +25,13 @@ import { FileUploadZone } from '../../components/ui/FileUploadZone';
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { WorkflowGuideBar } from '../../components/navigation/WorkflowGuideBar';
 
-export const AccountsReceivablePage: React.FC = () => {
+export interface AccountsReceivablePageProps {
+  onNavigate?: (path: string) => void;
+}
+
+export const AccountsReceivablePage: React.FC<AccountsReceivablePageProps> = ({ onNavigate }) => {
   const [invoices, setInvoices] = useState<ArInvoiceItem[]>([]);
   const [summary, setSummary] = useState<ArInvoiceSummary | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -61,6 +66,7 @@ export const AccountsReceivablePage: React.FC = () => {
     invoice_date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     chart_of_account_id: '',
+    payment_method: 'BANK_TRANSFER',
     total_amount: '',
     description: '',
   });
@@ -158,6 +164,7 @@ export const AccountsReceivablePage: React.FC = () => {
       fd.append('invoice_date', invoiceForm.invoice_date);
       fd.append('due_date', invoiceForm.due_date);
       fd.append('total_amount', invoiceForm.total_amount);
+      fd.append('payment_method', invoiceForm.payment_method);
       if (invoiceForm.chart_of_account_id) {
         fd.append('chart_of_account_id', invoiceForm.chart_of_account_id);
       }
@@ -174,6 +181,7 @@ export const AccountsReceivablePage: React.FC = () => {
         invoice_date: new Date().toISOString().split('T')[0],
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         chart_of_account_id: '',
+        payment_method: 'BANK_TRANSFER',
         total_amount: '',
         description: '',
       });
@@ -220,12 +228,26 @@ export const AccountsReceivablePage: React.FC = () => {
   };
 
   const filteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => {
+    const list = invoices.filter((inv) => {
       const matchesSearch =
         inv.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
         inv.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         inv.description.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSearch;
+    });
+
+    const statusPriority: Record<string, number> = {
+      OVERDUE: 1,
+      UNPAID: 2,
+      PARTIAL: 3,
+      PAID: 4,
+    };
+
+    return [...list].sort((a, b) => {
+      const pA = statusPriority[a.status] || 99;
+      const pB = statusPriority[b.status] || 99;
+      if (pA !== pB) return pA - pB;
+      return (b.balance || 0) - (a.balance || 0);
     });
   }, [invoices, searchQuery]);
 
@@ -276,6 +298,9 @@ export const AccountsReceivablePage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Interactive Workflow Guide */}
+      <WorkflowGuideBar flow="RECEIVABLES" currentStep={1} onNavigate={onNavigate} />
 
       {/* Real AR Aging Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
@@ -387,8 +412,8 @@ export const AccountsReceivablePage: React.FC = () => {
         </div>
       </div>
 
-      {/* AR Invoices Table */}
-      <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-xs">
+      {/* AR Invoices Table (Desktop >= 640px) */}
+      <div className="hidden sm:block bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
@@ -396,6 +421,7 @@ export const AccountsReceivablePage: React.FC = () => {
                 <th className="py-2.5 px-3">Invoice # & Date</th>
                 <th className="py-2.5 px-3">Customer</th>
                 <th className="py-2.5 px-3">Particulars</th>
+                <th className="py-2.5 px-3">Payment Mode</th>
                 <th className="py-2.5 px-3">Due Date</th>
                 <th className="py-2.5 px-3 text-right">Total Amount</th>
                 <th className="py-2.5 px-3 text-right">Balance Due</th>
@@ -407,7 +433,7 @@ export const AccountsReceivablePage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-500">
+                  <td colSpan={10} className="py-10 text-center text-slate-500">
                     <FileText className="w-8 h-8 mx-auto text-slate-400 dark:text-slate-600 mb-1.5" />
                     <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">No accounts receivable invoices found</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Click "Create Sales Invoice" to bill a customer.</p>
@@ -441,6 +467,12 @@ export const AccountsReceivablePage: React.FC = () => {
                         </p>
                         <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5">
                           Revenue Account: {inv.account_name}
+                        </span>
+                      </td>
+
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                          {(inv.payment_method || 'BANK_TRANSFER').replace(/_/g, ' ')}
                         </span>
                       </td>
 
@@ -489,7 +521,22 @@ export const AccountsReceivablePage: React.FC = () => {
                             <span>View Doc</span>
                           </button>
                         ) : (
-                          <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">None</span>
+                          <button
+                            onClick={() =>
+                              setPreviewDoc({
+                                isOpen: true,
+                                url: '/sample-receipt.svg',
+                                name: `sales-order-${inv.invoice_number}.pdf`,
+                                mime: 'application/pdf',
+                                type: 'SALES_ORDER',
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 transition-colors"
+                            title="View Sales Order / Document"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View Doc</span>
+                          </button>
                         )}
                       </td>
 
@@ -515,6 +562,89 @@ export const AccountsReceivablePage: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* AR Invoices Mobile Card View (< 640px) */}
+      <div className="block sm:hidden space-y-3">
+        {filteredInvoices.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <FileText className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-1.5" />
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">No accounts receivable invoices found</p>
+          </div>
+        ) : (
+          filteredInvoices.map((inv) => (
+            <div key={`mob-inv-${inv.id}`} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
+                  {inv.invoice_number}
+                </span>
+                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                  inv.status === 'PAID'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                    : inv.status === 'PARTIAL'
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                    : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                }`}>
+                  {inv.status}
+                </span>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                  {inv.customer_name}
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                  {inv.description}
+                </p>
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Invoice Date</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">{inv.invoice_date}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Due Date</span>
+                  <span className="text-rose-600 dark:text-rose-400 font-medium">{inv.due_date}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Mode of Payment</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                    {(inv.payment_method || 'BANK_TRANSFER').replace(/_/g, ' ')}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Total Amount</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-medium tabular-nums">
+                    ₱{inv.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Balance Due</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums tracking-tight">
+                    ₱{inv.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                {inv.balance > 0 ? (
+                  <button
+                    onClick={() => handleOpenCollectModal(inv)}
+                    className="w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-colors touch-target"
+                  >
+                    <Receipt className="w-4 h-4" />
+                    <span>Collect Payment</span>
+                  </button>
+                ) : (
+                  <span className="text-xs text-slate-400 dark:text-slate-500 inline-flex items-center justify-center w-full gap-1 py-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Fully Settled
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* MODAL 1: Create Sales Invoice */}
@@ -646,6 +776,23 @@ export const AccountsReceivablePage: React.FC = () => {
                       ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Mode of Payment (Receivable Channel) <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={invoiceForm.payment_method}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, payment_method: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="BANK_TRANSFER">Bank Transfer (Electronic / PESONet / Instapay)</option>
+                  <option value="CASH">Direct Cash / Over-the-Counter</option>
+                  <option value="CHECK">Customer Check / Post-Dated Check</option>
+                  <option value="GCASH">GCash / Maya QR Payment</option>
+                  <option value="ONLINE_GATEWAY">Online Payment Gateway / Credit Card</option>
+                </select>
               </div>
 
               <div>

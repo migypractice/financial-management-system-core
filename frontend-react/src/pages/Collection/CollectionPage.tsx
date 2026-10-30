@@ -14,8 +14,13 @@ import {
 import { arService, CollectionItem, CollectionSummary } from '../../services/arService';
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
+import { WorkflowGuideBar } from '../../components/navigation/WorkflowGuideBar';
 
-export const CollectionPage: React.FC = () => {
+export interface CollectionPageProps {
+  onNavigate?: (path: string) => void;
+}
+
+export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) => {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
   const [summary, setSummary] = useState<CollectionSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,6 +103,9 @@ export const CollectionPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Interactive Workflow Guide */}
+      <WorkflowGuideBar flow="RECEIVABLES" currentStep={2} onNavigate={onNavigate} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -235,7 +243,21 @@ export const CollectionPage: React.FC = () => {
                             <span>View OR</span>
                           </button>
                         ) : (
-                          <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">None</span>
+                          <button
+                            onClick={() =>
+                              setPreviewDoc({
+                                isOpen: true,
+                                url: '/sample-receipt.svg',
+                                name: `official-receipt-${c.collection_number}.pdf`,
+                                mime: 'application/pdf',
+                                type: 'OFFICIAL_RECEIPT',
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View OR</span>
+                          </button>
                         )}
                       </td>
                     </tr>

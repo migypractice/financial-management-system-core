@@ -75,3 +75,59 @@ input::-ms-clear {
   height: 0 !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   5 RESPONSIVE MOBILE UX RULES FOR FINANCIAL ERP DASHBOARDS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* FIX 2: Big Numbers / KPI Values: One line, capped font-size, tabular nums */
+.kpi-value,
+.stat-number {
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: -0.02em;
+}
+
+/* FIX 3: Inputs: 16px minimum on mobile devices to prevent iOS auto-zoom */
+@media screen and (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* FIX 4: Touch Targets: 44px min-height on coarse pointer (touch / mobile) */
+@media (pointer: coarse) {
+  .touch-target,
+  .mobile-touch-target,
+  button.action-btn,
+  .action-btn {
+    min-height: 44px !important;
+    min-width: 44px;
+  }
+}
+
+/* FIX 5: Safe area support and bottom clearance */
+.safe-area-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 16px));
+}
+
+.safe-area-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+}
+
+/* Ample bottom room so fixed/floating bottom action bars never cover the last card/row */
+.room-below {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 16px)) !important;
+}
+
+.bottom-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 16px));
+  z-index: 40;
+}
+
+

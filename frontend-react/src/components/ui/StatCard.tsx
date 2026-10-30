@@ -28,7 +28,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
         {title}
       </p>
-      <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white tabular-nums tracking-tight mt-1 truncate">
+      <h3 className="kpi-value whitespace-nowrap text-lg sm:text-xl font-semibold text-slate-900 dark:text-white tabular-nums tracking-tight mt-1 truncate">
         {value}
       </h3>
 

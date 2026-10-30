@@ -59,7 +59,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Migy Ferreras',
                 'username' => 'ferrerasmigy',
                 'email' => 'ferrerasmigy@gmail.com',
-                'password' => \Illuminate\Support\Facades\Hash::make('Admintesting123'),
+                'password' => \Illuminate\Support\Facades\Hash::make('Admin@2026'),
                 'role_id' => $superAdminRole->id,
                 'department' => 'Executive',
             ]);
@@ -71,7 +71,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Rex Semerebot',
                 'username' => 'rexsemerebot',
                 'email' => 'rexsemerebot@gmail.com',
-                'password' => \Illuminate\Support\Facades\Hash::make('Admintesting123'),
+                'password' => \Illuminate\Support\Facades\Hash::make('Admin@2026'),
                 'role_id' => $financeManagerRole->id,
                 'department' => 'Finance',
             ]);

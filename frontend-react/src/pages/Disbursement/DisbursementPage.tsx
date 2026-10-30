@@ -37,8 +37,13 @@ import { useAuth } from '../../context/AuthContext';
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { WorkflowGuideBar } from '../../components/navigation/WorkflowGuideBar';
 
-export const DisbursementPage: React.FC = () => {
+export interface DisbursementPageProps {
+  onNavigate?: (path: string) => void;
+}
+
+export const DisbursementPage: React.FC<DisbursementPageProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'REQUESTS' | 'REGISTER'>('REQUESTS');
 
@@ -272,12 +277,26 @@ export const DisbursementPage: React.FC = () => {
   const flaggedCount = paymentRequests.filter((p) => p.ai_anomaly_flag).length;
 
   const filteredRequests = useMemo(() => {
-    return paymentRequests.filter((pr) => {
+    const list = paymentRequests.filter((pr) => {
       const matchSearch =
         pr.request_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
         pr.payee_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         pr.purpose.toLowerCase().includes(searchQuery.toLowerCase());
       return matchSearch;
+    });
+
+    const statusPriority: Record<string, number> = {
+      PENDING_APPROVAL: 1,
+      APPROVED: 2,
+      DISBURSED: 3,
+      REJECTED: 4,
+    };
+
+    return [...list].sort((a, b) => {
+      const pA = statusPriority[a.status] || 99;
+      const pB = statusPriority[b.status] || 99;
+      if (pA !== pB) return pA - pB;
+      return (b.id ? String(b.id).localeCompare(String(a.id)) : 0);
     });
   }, [paymentRequests, searchQuery]);
 
@@ -333,6 +352,9 @@ export const DisbursementPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Interactive Workflow Guide */}
+      <WorkflowGuideBar flow="PAYABLES" currentStep={3} onNavigate={onNavigate} />
 
       {/* Corporate Liquidity & Solvency Monitor Strip */}
       <CorporateLiquidityBanner
@@ -433,7 +455,8 @@ export const DisbursementPage: React.FC = () => {
             ))}
           </div>
 
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-xs">
+          {/* Desktop Table View (>= 640px) */}
+          <div className="hidden sm:block bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
@@ -599,6 +622,124 @@ export const DisbursementPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Mobile Card View (< 640px) */}
+          <div className="block sm:hidden space-y-3">
+            {filteredRequests.length === 0 ? (
+              <div className="p-8 text-center text-slate-500 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                <FileCheck className="w-8 h-8 mx-auto text-slate-400 dark:text-slate-600 mb-1.5" />
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">No payment requests found</p>
+              </div>
+            ) : (
+              filteredRequests.map((pr) => {
+                const isOwner = pr.requested_by_id === user?.id;
+                const hasDoc = pr.attachments && pr.attachments.length > 0;
+                const firstDoc = hasDoc ? pr.attachments[0] : null;
+
+                return (
+                  <div key={`mob-${pr.id}`} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+                    {/* Header: Voucher # + Status Badge */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono tracking-wide">
+                        {pr.request_number}
+                      </span>
+                      <StatusBadge status={pr.status} />
+                    </div>
+
+                    {/* Payee & Purpose */}
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                        {pr.payee_name}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                        {pr.purpose}
+                      </p>
+                      {pr.bill_number && (
+                        <span className="inline-block mt-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                          Bill #{pr.bill_number}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Info Rows */}
+                    <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Created Date</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-medium">
+                          {new Date(pr.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Department</span>
+                        <span className="text-slate-700 dark:text-slate-300">{pr.requester_dept || 'Finance'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Amount</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums tracking-tight">
+                          ₱{pr.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Attachment preview trigger on mobile */}
+                    <div className="flex items-center justify-between pt-1 text-xs">
+                      <span className="text-slate-400">Receipt / Invoice:</span>
+                      <button
+                        onClick={() =>
+                          setPreviewDoc({
+                            isOpen: true,
+                            url: firstDoc ? firstDoc.file_url : '/sample-receipt.svg',
+                            name: firstDoc ? firstDoc.file_name : `voucher-support-${pr.request_number}.pdf`,
+                            mime: firstDoc ? firstDoc.mime_type : 'application/pdf',
+                            type: firstDoc?.document_type || 'BILLING_STATEMENT',
+                          })
+                        }
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View Document</span>
+                      </button>
+                    </div>
+
+                    {/* Actions with 44px min-height touch targets (Fix 4) */}
+                    {pr.status === 'PENDING_APPROVAL' && isManagerOrAdmin && (
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                        <button
+                          onClick={() => handleApprove(pr)}
+                          disabled={actionLoading}
+                          className="w-full min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-colors active:scale-95 disabled:opacity-50 cursor-pointer touch-target"
+                        >
+                          <CheckCircle2 size={16} /> Approve
+                        </button>
+                        <button
+                          onClick={() => handleOpenReject(pr)}
+                          disabled={actionLoading}
+                          className="w-full min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-xs transition-colors active:scale-95 disabled:opacity-50 cursor-pointer touch-target"
+                        >
+                          <X size={16} /> Reject
+                        </button>
+                      </div>
+                    )}
+
+                    {pr.status === 'APPROVED' && canDisburse && (
+                      <button
+                        onClick={() => handleOpenDisburse(pr)}
+                        className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all active:scale-95 cursor-pointer touch-target"
+                      >
+                        <Send size={15} /> Release Payment
+                      </button>
+                    )}
+
+                    {pr.status === 'DISBURSED' && (
+                      <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-semibold flex items-center justify-center gap-1.5">
+                        <CheckCircle2 size={15} /> Disbursed & Posted to Ledger
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}

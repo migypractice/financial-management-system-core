@@ -16,9 +16,12 @@ class BudgetAllocation extends Model
         'category',
         'fiscal_year',
         'period',
+        'period_type',
         'allocated_amount',
+        'attachment_verified',
         'action_type',
         'notes',
+        'adjustment_reason',
         'allocated_by',
     ];
 

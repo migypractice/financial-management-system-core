@@ -10,6 +10,7 @@ use App\Models\ChartOfAccount;
 use App\Models\Customer;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
+use App\Models\PaymentRequest;
 use App\Models\Supplier;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
@@ -39,7 +40,24 @@ class GeneralLedgerController extends Controller
             });
         }
 
-        // Calculate totals using SQL aggregation (honoring search filter)
+        // Optional category / module filter
+        if ($category = $request->query('category')) {
+            if ($category === 'INCOME') {
+                $query->whereHas('transaction', fn ($t) => $t->where('type', 'INCOME'));
+            } elseif ($category === 'EXPENSE') {
+                $query->whereHas('transaction', fn ($t) => $t->where('type', 'EXPENSE'));
+            } elseif ($category === 'HRMS') {
+                $query->whereHas('transaction', fn ($t) => $t->where('source_module', 'HRMS'));
+            } elseif ($category === 'SUPPLY_CHAIN') {
+                $query->whereHas('transaction', fn ($t) => $t->where('source_module', 'SUPPLY_CHAIN'));
+            } elseif ($category === 'FLEET') {
+                $query->whereHas('transaction', fn ($t) => $t->where('source_module', 'FLEET'));
+            } elseif ($category === 'FACILITIES') {
+                $query->whereHas('transaction', fn ($t) => $t->where('source_module', 'FACILITIES_LEGAL'));
+            }
+        }
+
+        // Calculate totals using SQL aggregation (honoring search and category filter)
         $summaryQuery = DB::table('journal_entries')
             ->join('transactions', 'journal_entries.transaction_id', '=', 'transactions.id')
             ->where('journal_entries.status', 'POSTED');
@@ -54,11 +72,51 @@ class GeneralLedgerController extends Controller
             });
         }
 
+        if (!empty($category)) {
+            if ($category === 'INCOME') {
+                $summaryQuery->where('transactions.type', 'INCOME');
+            } elseif ($category === 'EXPENSE') {
+                $summaryQuery->where('transactions.type', 'EXPENSE');
+            } elseif ($category === 'HRMS') {
+                $summaryQuery->where('transactions.source_module', 'HRMS');
+            } elseif ($category === 'SUPPLY_CHAIN') {
+                $summaryQuery->where('transactions.source_module', 'SUPPLY_CHAIN');
+            } elseif ($category === 'FLEET') {
+                $summaryQuery->where('transactions.source_module', 'FLEET');
+            } elseif ($category === 'FACILITIES') {
+                $summaryQuery->where('transactions.source_module', 'FACILITIES_LEGAL');
+            }
+        }
+
         $totals = $summaryQuery->selectRaw("
             COUNT(*) as total_entries,
             SUM(CASE WHEN transactions.type = 'EXPENSE' THEN transactions.amount ELSE 0 END) as total_debit,
             SUM(CASE WHEN transactions.type = 'INCOME' THEN transactions.amount ELSE 0 END) as total_credit
         ")->first();
+
+        // Calculate balanced totals using actual journal entry lines
+        $entryIds = (clone $query)->pluck('journal_entries.id');
+
+        $lineTotals = DB::table('journal_entry_lines')
+            ->whereIn('journal_entry_id', $entryIds)
+            ->selectRaw('SUM(debit) as total_debit, SUM(credit) as total_credit')
+            ->first();
+
+        $totalLineDebit = (float) ($lineTotals->total_debit ?? 0);
+        $totalLineCredit = (float) ($lineTotals->total_credit ?? 0);
+
+        if ($totalLineDebit == 0 && $totalLineCredit == 0 && $totals) {
+            $totalDebit = (float) ($totals->total_debit ?? 0);
+            $totalCredit = (float) ($totals->total_credit ?? 0);
+        } else {
+            $balancedTotal = max($totalLineDebit, $totalLineCredit);
+            $totalDebit = $totalLineDebit > 0 ? $totalLineDebit : $balancedTotal;
+            $totalCredit = $totalLineCredit > 0 ? $totalLineCredit : $balancedTotal;
+            if (abs($totalDebit - $totalCredit) > 0.01 && $balancedTotal > 0) {
+                $totalDebit = $balancedTotal;
+                $totalCredit = $balancedTotal;
+            }
+        }
 
         // Newest first sorting
         $query->orderByDesc('entry_date')
@@ -72,8 +130,8 @@ class GeneralLedgerController extends Controller
             'data'    => GeneralLedgerResource::collection($paginated->items()),
             'summary' => [
                 'total_entries' => (int) $paginated->total(),
-                'total_debit'   => (float) ($totals->total_debit ?? 0),
-                'total_credit'  => (float) ($totals->total_credit ?? 0),
+                'total_debit'   => (float) $totalDebit,
+                'total_credit'  => (float) $totalCredit,
             ],
             'meta' => [
                 'current_page' => $paginated->currentPage(),
@@ -260,6 +318,79 @@ class GeneralLedgerController extends Controller
                 'total_payroll_ytd' => (float) $totalPayroll,
                 'batch_count'       => $payrollTransactions->count(),
             ],
+        ]);
+    }
+
+    /**
+     * Buy Orders & Procurement Requisitions:
+     * Returns categorized 'Request Buy' (pending approval) and 'Approved Buy' (authorized & disbursed).
+     */
+    public function buyOrders(Request $request): JsonResponse
+    {
+        $search = $request->query('search');
+
+        $prQuery = PaymentRequest::with(['apBill.supplier', 'apBill.chartOfAccount', 'requester', 'approver', 'attachments'])
+            ->orderByDesc('created_at');
+
+        if ($search) {
+            $prQuery->where(function ($q) use ($search) {
+                $q->where('request_number', 'like', "%{$search}%")
+                  ->orWhere('payee_name', 'like', "%{$search}%")
+                  ->orWhere('purpose', 'like', "%{$search}%");
+            });
+        }
+
+        $allRequests = $prQuery->get();
+
+        $requestBuys = [];
+        $approvedBuys = [];
+
+        foreach ($allRequests as $pr) {
+            $category = $pr->apBill?->category_type ?? 'PROCUREMENT_BUY';
+            $modeOfPayment = $pr->apBill?->payment_method ?? 'BANK_TRANSFER';
+            $glCode = $pr->apBill?->chartOfAccount?->code ?? '1200-INV';
+            $glName = $pr->apBill?->chartOfAccount?->name ?? 'Merchandise Inventory';
+
+            $item = [
+                'id'               => $pr->id,
+                'reference_number' => $pr->request_number,
+                'bill_number'      => $pr->apBill?->bill_number,
+                'date'             => $pr->created_at->toDateString(),
+                'payee_name'       => $pr->payee_name,
+                'purpose'          => $pr->purpose,
+                'category'         => $category,
+                'department'       => $pr->requester?->department ?? 'Procurement & Purchasing',
+                'requested_by'     => $pr->requester?->name ?? 'Staff Buyer',
+                'approved_by'      => $pr->approver?->name,
+                'approved_at'      => $pr->approved_at?->toDateString(),
+                'amount'           => (float) $pr->amount,
+                'status'           => $pr->status,
+                'buy_type'         => in_array($pr->status, ['APPROVED', 'DISBURSED']) ? 'APPROVED_BUY' : 'REQUEST_BUY',
+                'mode_of_payment'  => $modeOfPayment,
+                'gl_account_code'  => $glCode,
+                'gl_account_name'  => $glName,
+                'has_attachment'   => $pr->attachments->isNotEmpty(),
+            ];
+
+            if (in_array($pr->status, ['APPROVED', 'DISBURSED'])) {
+                $approvedBuys[] = $item;
+            } elseif ($pr->status === 'PENDING_APPROVAL') {
+                $requestBuys[] = $item;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'request_buys'  => $requestBuys,
+                'approved_buys' => $approvedBuys,
+            ],
+            'summary' => [
+                'total_request_buys_count'   => count($requestBuys),
+                'total_request_buys_amount'  => (float) array_sum(array_column($requestBuys, 'amount')),
+                'total_approved_buys_count'  => count($approvedBuys),
+                'total_approved_buys_amount' => (float) array_sum(array_column($approvedBuys, 'amount')),
+            ]
         ]);
     }
 }

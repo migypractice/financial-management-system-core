@@ -254,10 +254,10 @@ export const CashManagementPage: React.FC = () => {
           subtitle="Approved disbursements released"
         />
         <StatCard
-          title="Net Cash Position"
-          value={`₱${(summary?.net_cash_flow ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          isPositive={(summary?.net_cash_flow ?? 0) >= 0}
-          subtitle="Net corporate cash variance"
+          title="Available Free Cash (After AP)"
+          value={`₱${((summary?.total_cash_in_bank ?? 0) - unpaidAp).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          isPositive={((summary?.total_cash_in_bank ?? 0) - unpaidAp) >= 0}
+          subtitle="Total Cash in Banks - Unpaid Payables"
         />
       </div>
 

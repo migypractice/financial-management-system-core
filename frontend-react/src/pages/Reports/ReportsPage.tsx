@@ -261,7 +261,7 @@ export const ReportsPage: React.FC = () => {
               Cash: ₱{cashAndEquivalents.toLocaleString('en-US', { maximumFractionDigits: 0 })} + AR: ₱{arOutstanding.toLocaleString('en-US', { maximumFractionDigits: 0 })}
             </div>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/60 dark:border-slate-800">
-              Formula: (Cash + AR) ÷ Current Liabilities
+              Formula: (Cash + Trade AR) ÷ Current Liabilities
             </p>
           </div>
 
@@ -283,7 +283,7 @@ export const ReportsPage: React.FC = () => {
               Bank Cash Reserves Only
             </div>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/60 dark:border-slate-800">
-              Formula: Cash & Bank Balances ÷ Liabilities
+              Formula: Cash & Bank Balances ÷ Current Liabilities
             </p>
           </div>
 
@@ -545,7 +545,7 @@ export const ReportsPage: React.FC = () => {
               <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 dark:border-slate-700/60">
                 <div>
                   <p className="font-semibold text-slate-800 dark:text-slate-200">Cash Liquidity Ratio</p>
-                  <p className="text-[10px] text-slate-400">Cash in Bank ÷ Current Liabilities</p>
+                  <p className="text-[10px] text-slate-400">Cash & Bank Balances ÷ Current Liabilities</p>
                 </div>
                 <div className="text-right">
                   <span className="tabular-nums font-bold text-sm text-cyan-600 dark:text-cyan-400 block">

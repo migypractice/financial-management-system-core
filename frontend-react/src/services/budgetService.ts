@@ -1,19 +1,26 @@
 import apiClient from './apiClient';
+import { AttachmentItem } from './apService';
 
 export interface Budget {
   id: string;
   department: string;
   category: string;
+  purpose?: string;
   fiscal_year: number | string;
   period: string;
+  period_type?: 'YEARLY' | 'MONTHLY' | 'WEEKLY';
   allocated_amount: number;
   spent_amount: number;
   remaining_amount: number;
   utilization_rate: number;
   status: 'ON_TRACK' | 'NEAR_LIMIT' | 'OVER_BUDGET';
+  forecast_message?: string;
+  attachment_verified?: boolean;
+  adjustment_reason?: string | null;
   account_code?: string | null;
   account_name?: string | null;
   notes?: string | null;
+  attachments?: AttachmentItem[];
 }
 
 export interface BudgetSummary {
@@ -57,26 +64,31 @@ export interface BudgetAllocationLog {
 export interface CreateBudgetPayload {
   department: string;
   category: string;
+  purpose?: string;
+  period_type?: 'YEARLY' | 'MONTHLY' | 'WEEKLY';
   fiscal_year: number;
   period: string;
   allocated_amount: number;
   allocation_mode?: 'SET' | 'ADD';
   chart_of_account_id?: string;
   notes?: string;
+  attachment?: File;
 }
 
 export const budgetService = {
-  async getBudgets(fiscalYear: number = 2026, period: string = '2026-10'): Promise<{ 
+  async getBudgets(fiscalYear: number = 2026, period: string = '2026-10', periodType?: string): Promise<{ 
     data: Budget[]; 
     summary: BudgetSummary;
     meta?: { current_period: string; available_periods: string[] };
   }> {
-    const res = await apiClient.get('/budgets', { 
-      params: { 
-        fiscal_year: fiscalYear,
-        period: period 
-      } 
-    });
+    const params: Record<string, any> = {
+      fiscal_year: fiscalYear,
+      period: period
+    };
+    if (periodType && periodType !== 'ALL') {
+      params.period_type = periodType;
+    }
+    const res = await apiClient.get('/budgets', { params });
     return {
       data: res.data.data,
       summary: res.data.summary,
@@ -94,8 +106,16 @@ export const budgetService = {
     return res.data.data;
   },
 
-  async createBudget(payload: CreateBudgetPayload): Promise<{ message: string; data: Budget }> {
-    const res = await apiClient.post('/budgets', payload);
+  async createBudget(payload: CreateBudgetPayload | FormData): Promise<{ message: string; data: Budget }> {
+    const config = payload instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined;
+    const res = await apiClient.post('/budgets', payload, config);
+    return res.data;
+  },
+
+  async adjustBudget(id: string, payload: FormData): Promise<{ message: string; data: Budget }> {
+    const res = await apiClient.post(`/budgets/${id}/adjust`, payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return res.data;
   },
 };

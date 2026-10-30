@@ -173,11 +173,11 @@ export const App: React.FC = () => {
       case '/ap':
         return <AccountsPayablePage onNavigate={(path) => setActivePath(path as AppRoute)} />;
       case '/ar':
-        return <AccountsReceivablePage />;
+        return <AccountsReceivablePage onNavigate={(path) => setActivePath(path as AppRoute)} />;
       case '/disbursements':
-        return <DisbursementPage />;
+        return <DisbursementPage onNavigate={(path) => setActivePath(path as AppRoute)} />;
       case '/collections':
-        return <CollectionPage />;
+        return <CollectionPage onNavigate={(path) => setActivePath(path as AppRoute)} />;
       case '/budget':
         return <BudgetPage />;
       case '/cash':

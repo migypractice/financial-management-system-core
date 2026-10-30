@@ -51,16 +51,19 @@ class BankAccountController extends Controller
         $totalBalance = $accounts->sum('current_balance');
         $totalInflows = (float) Collection::sum('amount');
         $totalOutflows = (float) Disbursement::sum('amount');
+        $unpaidAp = (float) \App\Models\ApBill::where('status', '!=', 'PAID')->sum('balance');
 
         return response()->json([
             'success' => true,
             'data'    => $accounts,
             'summary' => [
-                'total_cash_in_bank' => (float) $totalBalance,
-                'total_inflows'      => $totalInflows,
-                'total_outflows'     => $totalOutflows,
-                'net_cash_flow'      => $totalInflows - $totalOutflows,
-                'account_count'      => $accounts->count(),
+                'total_cash_in_bank'  => (float) $totalBalance,
+                'total_inflows'       => $totalInflows,
+                'total_outflows'      => $totalOutflows,
+                'net_cash_flow'       => $totalInflows - $totalOutflows,
+                'unpaid_ap'           => $unpaidAp,
+                'available_free_cash' => (float) ($totalBalance - $unpaidAp),
+                'account_count'       => $accounts->count(),
             ],
         ]);
     }

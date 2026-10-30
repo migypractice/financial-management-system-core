@@ -336,5 +336,187 @@ class AccountsReceivableSeeder extends Seeder
                 'uploaded_by'   => $staff->id,
             ]);
         }
+
+        // --- INVOICE 4: Megawide Construction Supply (₱145,000, UNPAID, Ready for Demo) ---
+        $megawide = Customer::firstOrCreate(
+            ['customer_code' => 'CUST-MEGAWIDE'],
+            [
+                'name'               => 'Megawide Construction Supply',
+                'company_name'       => 'Megawide Builders & Infrastructure Corp.',
+                'email'              => 'procurement@megawide.ph',
+                'phone'              => '+63 2 8655 2200',
+                'address'            => 'Quezon City, Metro Manila, Philippines',
+                'credit_limit'       => 5000000.00,
+                'payment_terms_days' => 30,
+            ]
+        );
+
+        if (!ArInvoice::where('invoice_number', 'INV-2026-1008')->exists()) {
+            $txn4 = Transaction::create([
+                'id'                    => (string) Str::uuid(),
+                'transaction_code'      => 'TXN-INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6)),
+                'subsystem_id'          => $glModule?->id ?? (string) Str::uuid(),
+                'source_module'         => 'ACCOUNTS_RECEIVABLE',
+                'category_type'         => 'HARDWARE_SALES',
+                'external_reference_id' => 'INV-2026-1008',
+                'type'                  => 'INCOME',
+                'amount'                => 145000.00,
+                'tax_amount'            => 15535.71,
+                'net_amount'            => 145000.00,
+                'currency'              => 'PHP',
+                'description'           => 'Bulk supply of 500 bags Portland Cement & Deformed Steel Bars to Megawide',
+                'status'                => 'posted',
+                'ai_confidence_score'   => 0.9950,
+                'ai_suggested_gl_code'  => '4000-REV',
+                'ai_suggested_gl_name'  => 'Sales Revenue — Hardware & E-Commerce',
+                'ai_anomaly_flag'       => false,
+                'created_by'            => $staff->id,
+                'approved_by'           => $manager->id,
+                'approved_at'           => now()->subDays(2),
+                'posted_at'             => now()->subDays(2),
+            ]);
+
+            $entryNumber4 = 'JE-' . now()->format('Ym') . '-AR' . strtoupper(Str::random(4));
+            $je4 = JournalEntry::create([
+                'id'             => (string) Str::uuid(),
+                'transaction_id' => $txn4->id,
+                'entry_number'   => $entryNumber4,
+                'entry_date'     => now()->subDays(2)->toDateString(),
+                'status'         => 'POSTED',
+            ]);
+
+            JournalEntryLine::create([
+                'journal_entry_id'    => $je4->id,
+                'chart_of_account_id' => $arAccount->id,
+                'debit'               => 145000.00,
+                'credit'              => 0.00,
+                'description'         => 'Invoice #INV-2026-1008 - Megawide Construction Supply AR',
+            ]);
+
+            JournalEntryLine::create([
+                'journal_entry_id'    => $je4->id,
+                'chart_of_account_id' => $revAccount->id,
+                'debit'               => 0.00,
+                'credit'              => 145000.00,
+                'description'         => 'Invoice #INV-2026-1008 - Hardware Sales Revenue',
+            ]);
+
+            $inv4 = ArInvoice::create([
+                'invoice_number'      => 'INV-2026-1008',
+                'customer_id'         => $megawide->id,
+                'chart_of_account_id' => $revAccount->id,
+                'invoice_date'        => now()->subDays(2)->toDateString(),
+                'due_date'            => now()->addDays(28)->toDateString(),
+                'total_amount'        => 145000.00,
+                'paid_amount'         => 0.00,
+                'balance'             => 145000.00,
+                'category_type'       => 'HARDWARE_SALES',
+                'payment_method'      => 'BANK_TRANSFER',
+                'description'         => 'Bulk supply of 500 bags Portland Cement & Deformed Steel Bars to Megawide',
+                'status'              => 'UNPAID',
+                'created_by'          => $staff->id,
+                'journal_entry_id'    => $je4->id,
+            ]);
+
+            $inv4->attachments()->create([
+                'file_name'     => 'megawide_sales_order_1008.pdf',
+                'file_path'     => 'attachments/invoices/sales_inv_sample.pdf',
+                'mime_type'     => 'application/pdf',
+                'file_size'     => 1024,
+                'document_type' => 'SALES_ORDER',
+                'uploaded_by'   => $staff->id,
+            ]);
+        }
+
+        // --- INVOICE 5: Shopee/Lazada Mall Seller Commission (₱68,000, UNPAID, Ready for Demo) ---
+        $shopeeLazada = Customer::firstOrCreate(
+            ['customer_code' => 'CUST-ECOM-BATCH'],
+            [
+                'name'               => 'Shopee / Lazada Mall Seller Network',
+                'company_name'       => 'Shopee & Lazada E-Commerce Merchant Network',
+                'email'              => 'merchant.ops@ecom-hub.ph',
+                'phone'              => '+63 2 8999 1234',
+                'address'            => 'Bonifacio Global City, Taguig City, Philippines',
+                'credit_limit'       => 2000000.00,
+                'payment_terms_days' => 15,
+            ]
+        );
+
+        if (!ArInvoice::where('invoice_number', 'INV-2026-1009')->exists()) {
+            $txn5 = Transaction::create([
+                'id'                    => (string) Str::uuid(),
+                'transaction_code'      => 'TXN-INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6)),
+                'subsystem_id'          => $glModule?->id ?? (string) Str::uuid(),
+                'source_module'         => 'ECOMMERCE',
+                'category_type'         => 'ECOMMERCE_SALES',
+                'external_reference_id' => 'INV-2026-1009',
+                'type'                  => 'INCOME',
+                'amount'                => 68000.00,
+                'tax_amount'            => 7285.71,
+                'net_amount'            => 68000.00,
+                'currency'              => 'PHP',
+                'description'           => 'Shopee / Lazada Mall Seller Commission & Fulfillment Remittance Batch 10-2026',
+                'status'                => 'posted',
+                'ai_confidence_score'   => 0.9980,
+                'ai_suggested_gl_code'  => '4000-REV',
+                'ai_suggested_gl_name'  => 'Sales Revenue — Hardware & E-Commerce',
+                'ai_anomaly_flag'       => false,
+                'created_by'            => $staff->id,
+                'approved_by'           => $manager->id,
+                'approved_at'           => now()->subDays(1),
+                'posted_at'             => now()->subDays(1),
+            ]);
+
+            $entryNumber5 = 'JE-' . now()->format('Ym') . '-AR' . strtoupper(Str::random(4));
+            $je5 = JournalEntry::create([
+                'id'             => (string) Str::uuid(),
+                'transaction_id' => $txn5->id,
+                'entry_number'   => $entryNumber5,
+                'entry_date'     => now()->subDays(1)->toDateString(),
+                'status'         => 'POSTED',
+            ]);
+
+            JournalEntryLine::create([
+                'journal_entry_id'    => $je5->id,
+                'chart_of_account_id' => $arAccount->id,
+                'debit'               => 68000.00,
+                'credit'              => 0.00,
+                'description'         => 'Invoice #INV-2026-1009 - Shopee/Lazada Receivable',
+            ]);
+
+            JournalEntryLine::create([
+                'journal_entry_id'    => $je5->id,
+                'chart_of_account_id' => $revAccount->id,
+                'debit'               => 0.00,
+                'credit'              => 68000.00,
+                'description'         => 'Invoice #INV-2026-1009 - E-Commerce Revenue',
+            ]);
+
+            $inv5 = ArInvoice::create([
+                'invoice_number'      => 'INV-2026-1009',
+                'customer_id'         => $shopeeLazada->id,
+                'chart_of_account_id' => $revAccount->id,
+                'invoice_date'        => now()->subDays(1)->toDateString(),
+                'due_date'            => now()->addDays(14)->toDateString(),
+                'total_amount'        => 68000.00,
+                'paid_amount'         => 0.00,
+                'balance'             => 68000.00,
+                'category_type'       => 'ECOMMERCE_SALES',
+                'payment_method'      => 'ONLINE',
+                'description'         => 'Shopee / Lazada Mall Seller Commission & Fulfillment Remittance Batch 10-2026',
+                'status'              => 'UNPAID',
+                'created_by'          => $staff->id,
+                'journal_entry_id'    => $je5->id,
+            ]);
+
+            $inv5->attachments()->create([
+                'file_name'     => 'settlement_report_INV-2026-1009.pdf',
+                'file_path'     => 'attachments/invoices/sales_inv_sample.pdf',
+                'mime_type'     => 'application/pdf',
+                'file_size'     => 1024,
+                'document_type' => 'SALES_ORDER',
+                'uploaded_by'   => $staff->id,
+            ]);
+        }
     }
 }

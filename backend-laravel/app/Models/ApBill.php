@@ -20,6 +20,7 @@ class ApBill extends Model
         'paid_amount',
         'balance',
         'category_type',
+        'payment_method',
         'description',
         'status',
         'created_by',

@@ -737,7 +737,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </header>
 
         {/* Content */}
-        <main className="print:overflow-visible print:h-auto flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-slate-900">
+        <main className="print:overflow-visible print:h-auto flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-slate-900 pb-[calc(2.5rem+env(safe-area-inset-bottom,16px))]">
           {children}
         </main>
       </div>

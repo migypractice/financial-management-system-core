@@ -74,6 +74,7 @@ Route::prefix('v1/dashboard/gl')->middleware('auth:sanctum')->group(function () 
         Route::get('/ar-subledger', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'arSubledger']);
         Route::get('/ap-subledger', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'apSubledger']);
         Route::get('/payroll-subledger', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'payrollSubledger']);
+        Route::get('/buy-orders', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'buyOrders']);
     });
 });
 
@@ -132,6 +133,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/budgets', [\App\Http\Controllers\API\BudgetController::class, 'index']);
     Route::get('/budgets/history', [\App\Http\Controllers\API\BudgetController::class, 'history']);
     Route::post('/budgets', [\App\Http\Controllers\API\BudgetController::class, 'store'])
+        ->middleware('role:super_admin,finance_manager');
+    Route::post('/budgets/{id}/adjust', [\App\Http\Controllers\API\BudgetController::class, 'adjustBudget'])
         ->middleware('role:super_admin,finance_manager');
 
     // Tax Management — 100% Live VAT & EWT from AR/AP records

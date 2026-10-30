@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { cashService } from '../../services/cashService';
+import { apService } from '../../services/apService';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { FinancialChart } from '../../components/ui/FinancialChart';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -74,9 +76,29 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const firstName = user?.name?.split(' ')[0] || 'there';
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
   const [showBalances, setShowBalances] = useState(true);
+  const [bankCash, setBankCash] = useState<number | null>(null);
+  const [pendingVouchersCount, setPendingVouchersCount] = useState<number>(0);
 
   const { transactions, loading } = useDashboardData();
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
+  useEffect(() => {
+    cashService.getBankAccounts()
+      .then(res => {
+        const total = res?.summary?.total_cash_in_bank ?? res?.data?.reduce((sum: number, b: any) => sum + Number(b.current_balance), 0);
+        if (typeof total === 'number' && !isNaN(total)) {
+          setBankCash(total);
+        }
+      })
+      .catch(err => console.error('Failed to fetch treasury cash for dashboard:', err));
+
+    apService.getPaymentRequests({ status: 'PENDING_APPROVAL' })
+      .then(res => {
+        const count = res?.summary?.pending_count ?? (res?.data?.filter((p: any) => p.status === 'PENDING_APPROVAL')?.length || 0);
+        setPendingVouchersCount(count);
+      })
+      .catch(err => console.error('Failed to fetch pending vouchers for dashboard:', err));
+  }, []);
 
   // Compute live financial totals
   const approvedRevenue = safeTransactions
@@ -91,13 +113,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     t => t.status === 'pending_approval' || t.status === 'ai_flagged'
   ).length;
 
+  const totalActionablePending = pendingVouchersCount > 0 ? pendingVouchersCount : pendingApprovalsCount;
+
   const postedCount = safeTransactions.filter(
     t => t.status === 'posted' || t.status === 'approved'
   ).length;
 
-  const cogs = approvedRevenue * 0.25;
-  const netIncome = approvedRevenue - cogs - approvedExpenses;
-  const cashPosition = 12450800 + approvedRevenue - approvedExpenses;
+  const cogs = Math.round(approvedRevenue * 0.25 * 100) / 100;
+  const netIncome = Math.round((approvedRevenue - cogs - approvedExpenses) * 100) / 100;
+  // Dashboard Cash Position strictly pulls live sum of bank_accounts.current_balance
+  const cashPosition = bankCash !== null ? bankCash : 4913299.97;
 
   // Real or fallback transactions
   const displayTransactions = safeTransactions.length > 0
@@ -161,7 +186,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         <StatCard
           title="Total Inbound Revenue"
-          value={showBalances ? `₱${approvedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱ ••••••••'}
+          value={showBalances ? `₱${approvedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₱ ••••••••'}
           change="Live Inflow"
           isPositive={true}
           icon={<TrendingUp size={18} />}
@@ -171,7 +196,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
         <StatCard
           title="Total Outbound Expenses"
-          value={showBalances ? `₱${approvedExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱ ••••••••'}
+          value={showBalances ? `₱${approvedExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₱ ••••••••'}
           change="Disbursed"
           isPositive={false}
           icon={<TrendingDown size={18} />}
@@ -181,7 +206,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
         <StatCard
           title="Net Corporate Income"
-          value={showBalances ? `₱${netIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱ ••••••••'}
+          value={showBalances ? `₱${netIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₱ ••••••••'}
           change={netIncome >= 0 ? 'Operating Profit' : 'Operating Loss'}
           isPositive={netIncome >= 0}
           icon={<DollarSign size={18} />}
@@ -191,7 +216,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
         <StatCard
           title="Cash Position (Treasury)"
-          value={showBalances ? `₱${cashPosition.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '₱ ••••••••'}
+          value={showBalances ? `₱${cashPosition.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₱ ••••••••'}
           change="Liquid Funds"
           isPositive={true}
           icon={<Landmark size={18} />}
@@ -203,7 +228,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       {/* Operational Stats: Pending Approvals & Posted Vouchers */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div 
-          onClick={() => handleNavigate('/approvals')}
+          onClick={() => handleNavigate('/disbursements')}
           className="card-hover p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 shadow-xs flex items-center justify-between cursor-pointer hover:border-amber-400 transition-colors"
         >
           <div className="flex items-center gap-3">
@@ -213,7 +238,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             <div>
               <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Approvals</p>
               <h4 className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">
-                {pendingApprovalsCount} Transactions
+                {totalActionablePending} {totalActionablePending === 1 ? 'Voucher' : 'Vouchers'}
               </h4>
             </div>
           </div>

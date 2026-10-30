@@ -30,6 +30,7 @@ export interface ArInvoiceItem {
   status: 'UNPAID' | 'PARTIAL' | 'PAID' | 'OVERDUE';
   days_past_due: number;
   description: string;
+  payment_method?: string;
   attachments: AttachmentItem[];
   collections_count: number;
 }

@@ -88,6 +88,9 @@ export const MpinPage: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => 
                 key={i}
                 id={`pin-${i}`}
                 type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="one-time-code"
                 maxLength={1}
                 value={digit}
                 onChange={(e) => handleInput(i, e.target.value)}

@@ -13,16 +13,21 @@ class Budget extends Model
     protected $fillable = [
         'department',
         'category',
+        'purpose',
         'fiscal_year',
         'period',
+        'period_type',
         'allocated_amount',
+        'attachment_verified',
         'chart_of_account_id',
         'notes',
+        'adjustment_reason',
         'created_by',
     ];
 
     protected $casts = [
-        'allocated_amount' => 'decimal:2',
+        'allocated_amount'    => 'decimal:2',
+        'attachment_verified' => 'boolean',
     ];
 
     public function chartOfAccount()
@@ -38,5 +43,10 @@ class Budget extends Model
     public function allocations()
     {
         return $this->hasMany(BudgetAllocation::class, 'budget_id');
+    }
+
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
     }
 }

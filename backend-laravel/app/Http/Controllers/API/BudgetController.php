@@ -21,80 +21,81 @@ class BudgetController extends Controller
     {
         $fiscalYear = $request->query('fiscal_year', 2026);
         $period = $request->query('period', '2026-10'); // Default to active monthly period
+        $periodType = $request->query('period_type'); // ALL, YEARLY, MONTHLY, WEEKLY
 
         $query = Budget::where('fiscal_year', $fiscalYear)
-            ->with(['chartOfAccount', 'creator'])
+            ->with(['chartOfAccount', 'creator', 'attachments'])
             ->orderBy('department');
 
         if ($period && $period !== 'ALL') {
             $query->where('period', $period);
         }
 
-        $budgets = $query->get()->map(function (Budget $b) {
+        if ($periodType && $periodType !== 'ALL') {
+            $query->where('period_type', $periodType);
+        }
+
+        $mapBudget = function (Budget $b) {
             $actualSpent = $this->calculateSpentAmount($b);
             $allocated = (float) $b->allocated_amount;
             $remaining = max(0, $allocated - $actualSpent);
             $utilizationRate = $allocated > 0 ? round(($actualSpent / $allocated) * 100, 1) : 0;
 
             $status = 'ON_TRACK';
+            $forecastMessage = 'Healthy allocation. Within operating limits.';
             if ($utilizationRate > 100) {
                 $status = 'OVER_BUDGET';
+                $forecastMessage = 'Critical: Budget Overrun by PHP ' . number_format($actualSpent - $allocated, 2) . '. Immediate adjustment required.';
             } elseif ($utilizationRate >= 85) {
                 $status = 'NEAR_LIMIT';
+                $forecastMessage = 'Warning: Spending is at ' . $utilizationRate . '%. Projected to exhaust soon.';
+            } elseif ($utilizationRate <= 40) {
+                $forecastMessage = 'Low burn rate. Sufficient liquidity available for pending buy requests.';
             }
 
             return [
-                'id'               => $b->id,
-                'department'       => $b->department,
-                'category'         => $b->category,
-                'fiscal_year'      => $b->fiscal_year,
-                'period'           => $b->period,
-                'allocated_amount' => $allocated,
-                'spent_amount'     => $actualSpent,
-                'remaining_amount' => $remaining,
-                'utilization_rate' => $utilizationRate,
-                'status'           => $status,
-                'account_code'     => $b->chartOfAccount?->code,
-                'account_name'     => $b->chartOfAccount?->name,
-                'notes'            => $b->notes,
+                'id'                  => $b->id,
+                'department'          => $b->department,
+                'category'            => $b->category,
+                'purpose'             => $b->purpose ?? $b->notes ?? 'Department Operational Budget Allocation',
+                'fiscal_year'         => $b->fiscal_year,
+                'period'              => $b->period,
+                'period_type'         => $b->period_type ?? 'MONTHLY',
+                'allocated_amount'    => $allocated,
+                'spent_amount'        => $actualSpent,
+                'remaining_amount'    => $remaining,
+                'utilization_rate'    => $utilizationRate,
+                'status'              => $status,
+                'forecast_message'    => $forecastMessage,
+                'attachment_verified' => (bool) ($b->attachment_verified ?? true),
+                'adjustment_reason'   => $b->adjustment_reason,
+                'account_code'        => $b->chartOfAccount?->code,
+                'account_name'        => $b->chartOfAccount?->name,
+                'notes'               => $b->notes,
+                'attachments'         => $b->attachments->map(fn ($a) => [
+                    'id'            => $a->id,
+                    'file_name'     => $a->file_name,
+                    'file_url'      => asset('storage/' . $a->file_path),
+                    'mime_type'     => $a->mime_type,
+                    'file_size'     => $a->file_size,
+                    'document_type' => $a->document_type,
+                ]),
             ];
-        });
+        };
+
+        $budgets = $query->get()->map($mapBudget);
 
         // If no budgets found for the selected period, fall back to FY2026 or all periods
         if ($budgets->isEmpty() && $period !== 'ALL') {
-            $budgets = Budget::where('fiscal_year', $fiscalYear)
-                ->with(['chartOfAccount', 'creator'])
-                ->orderBy('department')
-                ->get()
-                ->map(function (Budget $b) {
-                    $actualSpent = $this->calculateSpentAmount($b);
-                    $allocated = (float) $b->allocated_amount;
-                    $remaining = max(0, $allocated - $actualSpent);
-                    $utilizationRate = $allocated > 0 ? round(($actualSpent / $allocated) * 100, 1) : 0;
+            $fallbackQuery = Budget::where('fiscal_year', $fiscalYear)
+                ->with(['chartOfAccount', 'creator', 'attachments'])
+                ->orderBy('department');
 
-                    $status = 'ON_TRACK';
-                    if ($utilizationRate > 100) {
-                        $status = 'OVER_BUDGET';
-                    } elseif ($utilizationRate >= 85) {
-                        $status = 'NEAR_LIMIT';
-                    }
+            if ($periodType && $periodType !== 'ALL') {
+                $fallbackQuery->where('period_type', $periodType);
+            }
 
-                    return [
-                        'id'               => $b->id,
-                        'department'       => $b->department,
-                        'category'         => $b->category,
-                        'fiscal_year'      => $b->fiscal_year,
-                        'period'           => $b->period,
-                        'allocated_amount' => $allocated,
-                        'spent_amount'     => $actualSpent,
-                        'remaining_amount' => $remaining,
-                        'utilization_rate' => $utilizationRate,
-                        'status'           => $status,
-                        'account_code'     => $b->chartOfAccount?->code,
-                        'account_name'     => $b->chartOfAccount?->name,
-                        'notes'            => $b->notes,
-                    ];
-                });
+            $budgets = $fallbackQuery->get()->map($mapBudget);
         }
 
         $totalAllocated = $budgets->sum('allocated_amount');
@@ -224,16 +225,21 @@ class BudgetController extends Controller
         $validated = $request->validate([
             'department'          => 'required|string|max:100',
             'category'            => 'required|string|max:100',
+            'purpose'             => 'nullable|string|max:1000',
             'fiscal_year'         => 'required|integer|min:2020|max:2030',
             'period'              => 'required|string|max:20',
+            'period_type'         => 'nullable|string|in:YEARLY,MONTHLY,WEEKLY',
             'allocated_amount'    => 'required|numeric|min:0.01',
             'allocation_mode'     => 'nullable|string|in:SET,ADD',
             'chart_of_account_id' => 'nullable|exists:chart_of_accounts,id',
             'notes'               => 'nullable|string|max:500',
+            'attachment'          => 'nullable|file|mimes:pdf,jpg,jpeg,png,docx,xlsx|max:10240',
         ]);
 
         $mode = $request->input('allocation_mode', 'SET');
         $inputAmount = (float) $validated['allocated_amount'];
+        $periodType = $validated['period_type'] ?? 'MONTHLY';
+        $purpose = $validated['purpose'] ?? $validated['notes'] ?? "Department budget for {$validated['category']}";
 
         $existing = Budget::where('department', $validated['department'])
             ->where('category', $validated['category'])
@@ -253,25 +259,44 @@ class BudgetController extends Controller
                 'period'     => $validated['period'],
             ],
             [
+                'purpose'             => $purpose,
                 'fiscal_year'         => $validated['fiscal_year'],
+                'period_type'         => $periodType,
                 'allocated_amount'    => $finalAmount,
+                'attachment_verified' => true,
                 'chart_of_account_id' => $validated['chart_of_account_id'] ?? $existing?->chart_of_account_id,
                 'notes'               => $validated['notes'] ?? $existing?->notes,
                 'created_by'          => $request->user()?->id,
             ]
         );
 
+        // Handle attached budget proposal / documentation
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $path = $file->store('attachments/budgets', 'public');
+            $budget->attachments()->create([
+                'file_name'     => $file->getClientOriginalName(),
+                'file_path'     => $path,
+                'mime_type'     => $file->getClientMimeType(),
+                'file_size'     => $file->getSize(),
+                'document_type' => 'BUDGET_PROPOSAL',
+                'uploaded_by'   => $request->user()?->id,
+            ]);
+        }
+
         // Record in the Budget History / Allocation Audit Log
         BudgetAllocation::create([
-            'budget_id'        => $budget->id,
-            'department'       => $budget->department,
-            'category'         => $budget->category,
-            'fiscal_year'      => $budget->fiscal_year,
-            'period'           => $budget->period,
-            'allocated_amount' => $inputAmount,
-            'action_type'      => ($mode === 'ADD') ? 'TOP_UP' : ($existing ? 'REVISION' : 'MONTHLY_GRANT'),
-            'notes'            => $validated['notes'] ?? 'Monthly department budget granted by Finance Management',
-            'allocated_by'     => $request->user()?->id,
+            'budget_id'           => $budget->id,
+            'department'          => $budget->department,
+            'category'            => $budget->category,
+            'fiscal_year'         => $budget->fiscal_year,
+            'period'              => $budget->period,
+            'period_type'         => $periodType,
+            'allocated_amount'    => $inputAmount,
+            'attachment_verified' => true,
+            'action_type'         => ($mode === 'ADD') ? 'TOP_UP' : ($existing ? 'REVISION' : 'GRANT'),
+            'notes'               => $validated['notes'] ?? "Budget granted for {$purpose}",
+            'allocated_by'        => $request->user()?->id,
         ]);
 
         $actionDesc = ($mode === 'ADD') ? 'topped up by' : 'set to';
@@ -279,8 +304,69 @@ class BudgetController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Budget for {$budget->department} ({$budget->period}) {$actionDesc} PHP " . number_format($finalAmount, 2) . " successfully.",
-            'data'    => $budget->load('chartOfAccount'),
+            'data'    => $budget->load(['chartOfAccount', 'attachments']),
         ], 201);
+    }
+
+    /**
+     * Adjust budget amount, verify supporting attachment, and log adjustment reasons.
+     * Handles cases where the attachment has discrepancies or needs modification.
+     */
+    public function adjustBudget(Request $request, string $id): JsonResponse
+    {
+        $budget = Budget::findOrFail($id);
+
+        $validated = $request->validate([
+            'allocated_amount'    => 'required|numeric|min:0',
+            'attachment_verified' => 'required|boolean',
+            'adjustment_reason'   => 'required|string|max:1000',
+            'attachment'          => 'nullable|file|mimes:pdf,jpg,jpeg,png,docx,xlsx|max:10240',
+        ]);
+
+        $oldAmount = (float) $budget->allocated_amount;
+        $newAmount = (float) $validated['allocated_amount'];
+        $isVerified = (bool) $validated['attachment_verified'];
+        $reason = $validated['adjustment_reason'];
+
+        $budget->allocated_amount = $newAmount;
+        $budget->attachment_verified = $isVerified;
+        $budget->adjustment_reason = $reason;
+        $budget->save();
+
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $path = $file->store('attachments/budgets', 'public');
+            $budget->attachments()->create([
+                'file_name'     => $file->getClientOriginalName(),
+                'file_path'     => $path,
+                'mime_type'     => $file->getClientMimeType(),
+                'file_size'     => $file->getSize(),
+                'document_type' => 'CORRECTED_BUDGET_ATTACHMENT',
+                'uploaded_by'   => $request->user()?->id,
+            ]);
+        }
+
+        // Log to BudgetAllocation history
+        BudgetAllocation::create([
+            'budget_id'           => $budget->id,
+            'department'          => $budget->department,
+            'category'            => $budget->category,
+            'fiscal_year'         => $budget->fiscal_year,
+            'period'              => $budget->period,
+            'period_type'         => $budget->period_type ?? 'MONTHLY',
+            'allocated_amount'    => $newAmount,
+            'attachment_verified' => $isVerified,
+            'action_type'         => $isVerified ? 'BUDGET_ADJUSTMENT' : 'DISCREPANCY_ADJUSTMENT',
+            'notes'               => "Budget adjusted from PHP " . number_format($oldAmount, 2) . " to PHP " . number_format($newAmount, 2) . ". Reason: {$reason}",
+            'adjustment_reason'   => $reason,
+            'allocated_by'        => $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Budget for {$budget->department} adjusted successfully to PHP " . number_format($newAmount, 2) . ".",
+            'data'    => $budget->load(['chartOfAccount', 'attachments']),
+        ]);
     }
 
     /**
