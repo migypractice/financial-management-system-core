@@ -38,6 +38,7 @@ import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { WorkflowGuideBar } from '../../components/navigation/WorkflowGuideBar';
+import { BirForm2307Modal, BirForm2307Data } from '../../components/modals/BirForm2307Modal';
 
 export interface DisbursementPageProps {
   onNavigate?: (path: string) => void;
@@ -90,6 +91,15 @@ export const DisbursementPage: React.FC<DisbursementPageProps> = ({ onNavigate }
     type?: string;
   }>({ isOpen: false, url: null });
 
+  // BIR Form 2307 Modal
+  const [birModalData, setBirModalData] = useState<BirForm2307Data>({
+    isOpen: false,
+    payeeName: '',
+    atcCode: 'WC160',
+    taxBase: 0,
+    taxWithheld: 0,
+  });
+
   const [actionLoading, setActionLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -99,7 +109,9 @@ export const DisbursementPage: React.FC<DisbursementPageProps> = ({ onNavigate }
   };
 
   const isManagerOrAdmin = user?.role === 'super_admin' || user?.role === 'finance_manager';
-  const canDisburse = isManagerOrAdmin || user?.role === 'accountant';
+  const isAccountant = user?.role === 'accountant';
+  const isAuditor = user?.role === 'auditor';
+  const canDisburse = isManagerOrAdmin;
 
   const loadData = async () => {
     try {
@@ -585,10 +597,23 @@ export const DisbursementPage: React.FC<DisbursementPageProps> = ({ onNavigate }
                                     Reject
                                   </button>
                                 </div>
-                              ) : isOwner ? (
-                                <span className="text-xs text-slate-400 italic">Awaiting Checker</span>
+                              ) : isAccountant ? (
+                                <div className="flex flex-col items-end">
+                                  <button
+                                    disabled
+                                    className="px-2.5 py-1 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-600 cursor-not-allowed"
+                                    title="Segregation of Duties: Requires Finance Manager Approval (Maker ≠ Checker)"
+                                  >
+                                    Locked (Maker)
+                                  </button>
+                                  <span className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                                    Requires Checker
+                                  </span>
+                                </div>
+                              ) : isAuditor ? (
+                                <span className="text-xs text-slate-400 dark:text-slate-500 italic">Read-Only Mode</span>
                               ) : (
-                                <span className="text-xs text-slate-400">Pending Manager</span>
+                                <span className="text-xs text-slate-400">Pending Checker</span>
                               )
                             )}
 
@@ -600,15 +625,46 @@ export const DisbursementPage: React.FC<DisbursementPageProps> = ({ onNavigate }
                                 >
                                   Release Payment
                                 </button>
+                              ) : isAccountant ? (
+                                <div className="flex flex-col items-end">
+                                  <button
+                                    disabled
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 font-semibold text-xs border border-slate-200 dark:border-slate-600 cursor-not-allowed"
+                                    title="Segregation of Duties: Requires Finance Manager Approval"
+                                  >
+                                    Disburse Locked
+                                  </button>
+                                  <span className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                                    Requires Checker
+                                  </span>
+                                </div>
                               ) : (
-                                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">Ready to Pay</span>
+                                <span className="text-xs text-slate-400 italic">Read-Only Mode</span>
                               )
                             )}
 
                             {pr.status === 'DISBURSED' && (
-                              <span className="text-xs text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 font-medium">
-                                <CheckCircle2 className="w-3.5 h-3.5" /> Paid
-                              </span>
+                              <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                                <span className="text-xs text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 font-medium">
+                                  <CheckCircle2 className="w-3.5 h-3.5" /> Paid
+                                </span>
+                                <button
+                                  onClick={() => setBirModalData({
+                                    isOpen: true,
+                                    payeeName: pr.payee_name,
+                                    tin: '004-882-913-000',
+                                    atcCode: pr.purpose.toLowerCase().includes('good') || pr.purpose.toLowerCase().includes('steel') || pr.purpose.toLowerCase().includes('cement') ? 'WC158' : 'WC160',
+                                    taxBase: pr.amount / 1.12,
+                                    taxWithheld: (pr.amount / 1.12) * (pr.purpose.toLowerCase().includes('good') || pr.purpose.toLowerCase().includes('steel') || pr.purpose.toLowerCase().includes('cement') ? 0.01 : 0.02),
+                                    period: 'October 2026',
+                                    voucherRef: pr.request_number,
+                                  })}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer"
+                                  title="View & Print BIR Form 2307 Withholding Certificate"
+                                >
+                                  <span>🖨️ Form 2307</span>
+                                </button>
+                              </div>
                             )}
 
                             {pr.status === 'REJECTED' && (
@@ -1200,6 +1256,12 @@ export const DisbursementPage: React.FC<DisbursementPageProps> = ({ onNavigate }
         fileName={previewDoc.name}
         mimeType={previewDoc.mime}
         documentType={previewDoc.type}
+      />
+
+      {/* BIR Form 2307 Certificate Modal */}
+      <BirForm2307Modal
+        data={birModalData}
+        onClose={() => setBirModalData((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

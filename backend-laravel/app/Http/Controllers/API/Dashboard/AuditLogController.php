@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AuditLogController extends Controller
 {
@@ -100,6 +101,53 @@ class AuditLogController extends Controller
                 'flagged'    => $logs->where('ai_decision', 'FLAGGED')->count(),
                 'passed'     => $logs->where('ai_decision', 'PASSED')->count(),
             ],
+        ]);
+    }
+
+    /**
+     * Fetch System & M2M Security Trail from audit_logs table.
+     */
+    public function securityLogs(Request $request): JsonResponse
+    {
+        if (!Schema::hasTable('audit_logs')) {
+            return response()->json([
+                'success' => true,
+                'data'    => [],
+                'summary' => ['total_logs' => 0]
+            ]);
+        }
+
+        $query = DB::table('audit_logs');
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('event', 'like', "%{$search}%")
+                  ->orWhere('action_description', 'like', "%{$search}%")
+                  ->orWhere('actor_name', 'like', "%{$search}%")
+                  ->orWhere('actor_role', 'like', "%{$search}%")
+                  ->orWhere('ip_address', 'like', "%{$search}%")
+                  ->orWhere('subsystem', 'like', "%{$search}%");
+            });
+        }
+
+        if ($event = $request->query('event')) {
+            if ($event !== 'ALL') {
+                $query->where('event', $event);
+            }
+        }
+
+        $logs = $query->orderByDesc('created_at')->limit(200)->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'System & M2M Security Trail retrieved successfully.',
+            'data'    => $logs,
+            'summary' => [
+                'total_logs'   => $logs->count(),
+                'm2m_calls'    => $logs->whereIn('event', ['M2M_AUTHENTICATION', 'M2M_BATCH_SYNC', 'M2M_INBOUND'])->count(),
+                'gl_reversals' => $logs->where('event', 'GL_REVERSAL')->count(),
+                'role_audits'  => $logs->whereIn('event', ['ROLE_SWITCH_VERIFICATION', 'ROLE_SWITCH'])->count(),
+            ]
         ]);
     }
 }

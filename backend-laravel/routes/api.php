@@ -68,7 +68,7 @@ Route::prefix('v1/dashboard/transactions')->middleware('auth:sanctum')->group(fu
 });
 
 Route::prefix('v1/dashboard/gl')->middleware('auth:sanctum')->group(function () {
-    Route::middleware('role:super_admin,finance_manager,accountant')->group(function () {
+    Route::middleware('role:super_admin,finance_manager,accountant,auditor')->group(function () {
         Route::get('/', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'index']);
         Route::get('/trial-balance', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'trialBalance']);
         Route::get('/ar-subledger', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'arSubledger']);
@@ -76,11 +76,14 @@ Route::prefix('v1/dashboard/gl')->middleware('auth:sanctum')->group(function () 
         Route::get('/payroll-subledger', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'payrollSubledger']);
         Route::get('/buy-orders', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'buyOrders']);
     });
+    Route::post('/{id}/reverse', [\App\Http\Controllers\API\Dashboard\GeneralLedgerController::class, 'reverse'])
+        ->middleware('role:super_admin,finance_manager');
 });
 
 Route::prefix('v1/dashboard/audit-logs')->middleware('auth:sanctum')->group(function () {
-    Route::middleware('role:super_admin,finance_manager')->group(function () {
+    Route::middleware('role:super_admin,finance_manager,auditor')->group(function () {
         Route::get('/', [\App\Http\Controllers\API\Dashboard\AuditLogController::class, 'index']);
+        Route::get('/security', [\App\Http\Controllers\API\Dashboard\AuditLogController::class, 'securityLogs']);
     });
 });
 

@@ -15,6 +15,7 @@ import { arService, CollectionItem, CollectionSummary } from '../../services/arS
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { WorkflowGuideBar } from '../../components/navigation/WorkflowGuideBar';
+import { OfficialReceiptModal, OfficialReceiptData } from '../../components/modals/OfficialReceiptModal';
 
 export interface CollectionPageProps {
   onNavigate?: (path: string) => void;
@@ -26,6 +27,17 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) =>
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Official Receipt Modal
+  const [receiptModalData, setReceiptModalData] = useState<OfficialReceiptData>({
+    isOpen: false,
+    receiptNumber: '',
+    collectionDate: '',
+    customerName: '',
+    paymentMethod: 'BANK_TRANSFER',
+    referenceNumber: '',
+    amount: 0,
+  });
 
   // Preview Modal
   const [previewDoc, setPreviewDoc] = useState<{
@@ -226,39 +238,24 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) =>
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
-                        {hasDoc && firstDoc ? (
-                          <button
-                            onClick={() =>
-                              setPreviewDoc({
-                                isOpen: true,
-                                url: firstDoc.file_url,
-                                name: firstDoc.file_name,
-                                mime: firstDoc.mime_type,
-                                type: firstDoc.document_type || 'OFFICIAL_RECEIPT',
-                              })
-                            }
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>View OR</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              setPreviewDoc({
-                                isOpen: true,
-                                url: '/sample-receipt.svg',
-                                name: `official-receipt-${c.collection_number}.pdf`,
-                                mime: 'application/pdf',
-                                type: 'OFFICIAL_RECEIPT',
-                              })
-                            }
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>View OR</span>
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setReceiptModalData({
+                            isOpen: true,
+                            receiptNumber: `OR-${c.collection_number}`,
+                            collectionDate: c.collection_date,
+                            customerName: c.customer_name,
+                            invoiceNumber: c.invoice_number,
+                            paymentMethod: c.payment_method,
+                            referenceNumber: c.reference_number || 'BDO-TRF-202610-8841',
+                            amount: c.amount,
+                            collectedByName: c.collected_by_name || 'Archon Nell Treasury',
+                          })}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 transition-colors shadow-xs cursor-pointer"
+                          title="View & Print Official Receipt (BIR Compliant)"
+                        >
+                          <Receipt className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <span>🧾 View Official Receipt</span>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -277,6 +274,12 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) =>
         fileName={previewDoc.name}
         mimeType={previewDoc.mime}
         documentType={previewDoc.type}
+      />
+
+      {/* Official Receipt Modal (BIR Compliant) */}
+      <OfficialReceiptModal
+        data={receiptModalData}
+        onClose={() => setReceiptModalData((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

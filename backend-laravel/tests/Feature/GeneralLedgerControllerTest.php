@@ -17,7 +17,7 @@ class GeneralLedgerControllerTest extends TestCase
 
     private function makeUser(string $roleSlug): User
     {
-        $role = Role::where('slug', $roleSlug)->firstOrFail();
+        $role = Role::firstOrCreate(['slug' => $roleSlug], ['name' => ucfirst(str_replace('_', ' ', $roleSlug))]);
 
         return User::create([
             'name'     => ucfirst($roleSlug) . ' Tester',
@@ -166,6 +166,66 @@ class GeneralLedgerControllerTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonStructure(['data', 'summary']);
+    }
+
+    public function test_can_reverse_posted_journal_entry(): void
+    {
+        $admin = $this->makeUser('finance_manager');
+        $transaction = $this->makePostedTransaction(['amount' => 5000]);
+        $entry = JournalEntry::where('transaction_id', $transaction->id)->firstOrFail();
+
+        // Add a line to the entry
+        \App\Models\JournalEntryLine::create([
+            'id'                  => (string) Str::uuid(),
+            'journal_entry_id'    => $entry->id,
+            'chart_of_account_id' => \App\Models\ChartOfAccount::first()->id,
+            'debit'               => 5000,
+            'credit'              => 0,
+            'description'         => 'Office Supplies Expense',
+        ]);
+        \App\Models\JournalEntryLine::create([
+            'id'                  => (string) Str::uuid(),
+            'journal_entry_id'    => $entry->id,
+            'chart_of_account_id' => \App\Models\ChartOfAccount::skip(1)->first()->id,
+            'debit'               => 0,
+            'credit'              => 5000,
+            'description'         => 'Cash at Bank',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')->postJson("/api/v1/dashboard/gl/{$entry->id}/reverse", [
+            'reason' => 'Vendor billing error duplicate voucher',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        // Verify reversal entry created with swapped lines
+        $reversalEntry = JournalEntry::where('entry_number', '!=', $entry->entry_number)->latest()->first();
+        $this->assertNotNull($reversalEntry);
+        $this->assertStringContainsString("REVERSAL OF {$entry->entry_number}", $reversalEntry->transaction->description);
+
+        $reversalLines = $reversalEntry->lines;
+        $this->assertEquals(5000, (float) $reversalLines->firstWhere('credit', 5000)->credit);
+        $this->assertEquals(5000, (float) $reversalLines->firstWhere('debit', 5000)->debit);
+
+        // Verify cannot reverse twice
+        $repeatResponse = $this->actingAs($admin, 'sanctum')->postJson("/api/v1/dashboard/gl/{$entry->id}/reverse", [
+            'reason' => 'Attempting second reversal',
+        ]);
+        $repeatResponse->assertStatus(422);
+    }
+
+    public function test_accountant_cannot_reverse_entry_due_to_segregation_of_duties(): void
+    {
+        $accountant = $this->makeUser('accountant');
+        $transaction = $this->makePostedTransaction();
+        $entry = JournalEntry::where('transaction_id', $transaction->id)->firstOrFail();
+
+        $response = $this->actingAs($accountant, 'sanctum')->postJson("/api/v1/dashboard/gl/{$entry->id}/reverse", [
+            'reason' => 'Accountant attempting reversal',
+        ]);
+
+        $response->assertStatus(403);
     }
 }
 

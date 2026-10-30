@@ -15,6 +15,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string, user: User) => void;
   logout: () => void;
+  switchRole: (role: string, roleName?: string) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -53,6 +54,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
+  const switchRole = (newRole: string, roleName?: string) => {
+    if (!user) return;
+    const resolvedName = roleName || (
+      newRole === 'super_admin' ? 'Super Administrator' :
+      newRole === 'finance_manager' ? 'Finance Manager (Checker)' :
+      newRole === 'accountant' ? 'Staff Accountant (Maker)' :
+      'Internal Auditor (Read-Only)'
+    );
+    const updatedUser: User = {
+      ...user,
+      role: newRole,
+      name: resolvedName,
+    };
+    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   // Backend token expired / revoked (401 from apiClient) -> sign out fully.
   useEffect(() => {
     const onExpired = () => logout();
@@ -61,7 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, switchRole, isAuthenticated: !!token, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,13 +2,43 @@ import React, { useState, useEffect } from 'react';
 import StatCard from '../../components/ui/StatCard';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { taxService, TaxSummaryResponse } from '../../services/taxService';
-import { Receipt, Calendar, ShieldCheck, RefreshCw, AlertCircle, FileText, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Receipt, Calendar, ShieldCheck, RefreshCw, AlertCircle, FileText, ArrowUpRight, ArrowDownLeft, Printer } from 'lucide-react';
+import { DatePeriodFilterBar } from '../../components/ui/DatePeriodFilterBar';
+import { BirForm2307Modal, BirForm2307Data } from '../../components/modals/BirForm2307Modal';
 
 export const TaxManagementPage: React.FC = () => {
   const [data, setData] = useState<TaxSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'summary' | 'ledger'>('summary');
+
+  // Date Filters
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [datePreset, setDatePreset] = useState<'ALL' | 'OCT_2026' | 'Q4_2026'>('OCT_2026');
+
+  // BIR 2307 Modal
+  const [birModalData, setBirModalData] = useState<BirForm2307Data>({
+    isOpen: false,
+    payeeName: '',
+    atcCode: 'WC160',
+    taxBase: 0,
+    taxWithheld: 0,
+  });
+
+  const handlePresetSelect = (preset: 'ALL' | 'OCT_2026' | 'Q4_2026') => {
+    setDatePreset(preset);
+    if (preset === 'ALL') {
+      setFromDate('');
+      setToDate('');
+    } else if (preset === 'OCT_2026') {
+      setFromDate('2026-10-01');
+      setToDate('2026-10-31');
+    } else if (preset === 'Q4_2026') {
+      setFromDate('2026-10-01');
+      setToDate('2026-12-31');
+    }
+  };
 
   const fetchTaxData = async () => {
     try {
@@ -64,6 +94,16 @@ export const TaxManagementPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Dynamic Date-Range / Period Filter Bar */}
+      <DatePeriodFilterBar
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={setFromDate}
+        onToDateChange={setToDate}
+        selectedPreset={datePreset}
+        onPresetSelect={handlePresetSelect}
+      />
 
       {error && (
         <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 flex items-center gap-3 text-sm">
@@ -142,12 +182,13 @@ export const TaxManagementPage: React.FC = () => {
                   <th className="px-5 py-3 text-center">Rate</th>
                   <th className="px-5 py-3 text-right">Tax Base (₱)</th>
                   <th className="px-5 py-3 text-right">Amount Withheld (₱)</th>
+                  <th className="px-5 py-3 text-right">Certificate</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {ewt.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-6 text-center text-slate-400">
+                    <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
                       No withholding tax transactions recorded for this period.
                     </td>
                   </tr>
@@ -163,6 +204,27 @@ export const TaxManagementPage: React.FC = () => {
                       <td className="px-5 py-3.5 text-right font-semibold text-slate-900 dark:text-white tabular-nums">
                         {row.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => setBirModalData({
+                            isOpen: true,
+                            payeeName: row.code === 'WC158' ? 'Puyat Steel Corporation' : row.code === 'WC160' ? 'Holcim Philippines, Inc.' : 'Commercial Realty Group',
+                            tin: row.code === 'WC158' ? '000-847-192-000' : '004-882-913-000',
+                            address: 'Metro Manila, Philippines',
+                            atcCode: row.code,
+                            rate: row.rate,
+                            taxBase: row.tax_base,
+                            taxWithheld: row.amount,
+                            period: 'October 2026',
+                            voucherRef: `BIR-EWT-${row.code}`,
+                          })}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer"
+                          title="Generate BIR Form 2307 Withholding Certificate"
+                        >
+                          <Printer className="w-3 h-3 text-indigo-500" />
+                          <span>Form 2307</span>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -171,6 +233,7 @@ export const TaxManagementPage: React.FC = () => {
                   <td className="px-5 py-3 text-right text-slate-900 dark:text-white tabular-nums border-double border-b-4 border-slate-300 dark:border-slate-600">
                     ₱{totalEwt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
+                  <td></td>
                 </tr>
               </tbody>
             </table>
@@ -322,6 +385,12 @@ export const TaxManagementPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Official BIR Form 2307 Certificate Modal */}
+      <BirForm2307Modal
+        data={birModalData}
+        onClose={() => setBirModalData((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

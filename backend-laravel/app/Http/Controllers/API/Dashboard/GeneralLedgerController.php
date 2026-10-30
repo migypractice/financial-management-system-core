@@ -11,11 +11,14 @@ use App\Models\Customer;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
 use App\Models\PaymentRequest;
+use App\Models\Subsystem;
 use App\Models\Supplier;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class GeneralLedgerController extends Controller
 {
@@ -392,5 +395,121 @@ class GeneralLedgerController extends Controller
                 'total_approved_buys_amount' => (float) array_sum(array_column($approvedBuys, 'amount')),
             ]
         ]);
+    }
+
+    /**
+     * Reverse a posted Journal Entry by creating an offsetting balanced Journal Entry.
+     * Complies with WORM immutability and PFRS (no DELETE or UPDATE on POSTED records).
+     */
+    public function reverse(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $entry = JournalEntry::with(['lines.chartOfAccount', 'transaction'])->findOrFail($id);
+
+        if ($entry->status !== 'POSTED') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only POSTED journal entries can be reversed.',
+            ], 422);
+        }
+
+        // Check if already a reversing entry
+        $entryDesc = $entry->transaction?->description ?? '';
+        if (str_starts_with($entryDesc, 'REVERSAL OF')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This entry is already an offsetting reversal entry and cannot be reversed again.',
+            ], 422);
+        }
+
+        $existingReversal = JournalEntry::whereHas('transaction', function ($q) use ($entry) {
+            $q->where('description', 'like', "REVERSAL OF {$entry->entry_number}%");
+        })->first();
+
+        if ($existingReversal) {
+            return response()->json([
+                'success' => false,
+                'message' => "Journal Entry {$entry->entry_number} has already been reversed by {$existingReversal->entry_number}.",
+            ], 422);
+        }
+
+        $reason = $validated['reason'] ?? 'Correction of accounting record / Reversing entry';
+
+        return DB::transaction(function () use ($entry, $reason, $request) {
+            $yearMonth = now()->format('Ym');
+            $countThisMonth = JournalEntry::where('entry_number', 'like', "JE-{$yearMonth}-%")->count() + 1;
+            $entryNumber = "JE-{$yearMonth}-" . str_pad($countThisMonth, 4, '0', STR_PAD_LEFT);
+
+            // Create Reversal Transaction record
+            $origTx = $entry->transaction;
+            $reversalTx = Transaction::create([
+                'id'                     => (string) Str::uuid(),
+                'transaction_code'       => 'TXN-REV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6)),
+                'external_reference_id'  => 'REV-' . $entry->entry_number,
+                'subsystem_id'           => $origTx?->subsystem_id ?? Subsystem::first()?->id ?? (string) Str::uuid(),
+                'source_module'          => 'GENERAL_LEDGER',
+                'type'                   => $origTx?->type === 'EXPENSE' ? 'INCOME' : 'EXPENSE',
+                'amount'                 => $origTx?->amount ?? (float) $entry->lines->sum('debit'),
+                'description'            => "REVERSAL OF {$entry->entry_number}: {$reason}",
+                'status'                 => 'APPROVED',
+                'created_by'             => auth()->id(),
+                'approved_by'            => auth()->id(),
+                'posted_at'              => now(),
+                'metadata'               => json_encode([
+                    'original_journal_entry' => $entry->entry_number,
+                    'reversal_for'           => $entry->id,
+                    'reason'                 => $reason,
+                ]),
+            ]);
+
+            $reversingEntry = JournalEntry::create([
+                'id'             => (string) Str::uuid(),
+                'entry_number'   => $entryNumber,
+                'transaction_id' => $reversalTx->id,
+                'entry_date'     => now()->toDateString(),
+                'status'         => 'POSTED',
+            ]);
+
+            foreach ($entry->lines as $line) {
+                JournalEntryLine::create([
+                    'id'                  => (string) Str::uuid(),
+                    'journal_entry_id'    => $reversingEntry->id,
+                    'chart_of_account_id' => $line->chart_of_account_id,
+                    'debit'               => (float) $line->credit,
+                    'credit'              => (float) $line->debit,
+                    'description'         => "Reversal of line: " . ($line->description ?: $line->chartOfAccount?->name),
+                ]);
+            }
+
+            if (Schema::hasTable('audit_logs')) {
+                DB::table('audit_logs')->insert([
+                    'id'                 => (string) Str::uuid(),
+                    'event'              => 'GL_REVERSAL',
+                    'action_description' => "Reversed Journal Entry {$entry->entry_number} via offsetting entry {$entryNumber}. Reason: {$reason}",
+                    'actor_name'         => auth()->user()?->name ?? 'Finance User',
+                    'actor_role'         => auth()->user()?->role?->slug ?? 'finance_manager',
+                    'ip_address'         => $request->ip() ?: '127.0.0.1',
+                    'subsystem'          => 'TRANSACTION_CORE',
+                    'metadata'           => json_encode([
+                        'original_entry_id'     => $entry->id,
+                        'original_entry_number' => $entry->entry_number,
+                        'reversal_entry_id'     => $reversingEntry->id,
+                        'reversal_entry_number' => $entryNumber,
+                        'reason'                => $reason,
+                    ]),
+                    'created_at'         => now(),
+                    'updated_at'         => now(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Journal Entry {$entry->entry_number} successfully reversed via offsetting Entry {$entryNumber}.",
+                'data'    => $reversingEntry->load(['lines.chartOfAccount', 'transaction']),
+            ], 201);
+        });
     }
 }

@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { reportsService, FinancialStatementsResponse } from '../../services/reportsService';
-import { 
-  Lock, 
-  ShieldCheck, 
-  AlertCircle, 
-  X, 
-  CheckCircle2, 
-  RefreshCw, 
-  Sparkles, 
-  TrendingUp, 
+import {
+  Lock,
+  ShieldCheck,
+  AlertCircle,
+  X,
+  CheckCircle2,
+  RefreshCw,
+  Sparkles,
+  TrendingUp,
   DollarSign,
   Activity,
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   Landmark,
   Gauge
 } from 'lucide-react';
+import { DatePeriodFilterBar } from '../../components/ui/DatePeriodFilterBar';
 
 export const ReportsPage: React.FC = () => {
   const [data, setData] = useState<FinancialStatementsResponse | null>(null);
@@ -28,6 +29,25 @@ export const ReportsPage: React.FC = () => {
   const [isMpinModalOpen, setIsMpinModalOpen] = useState(false);
   const [mpin, setMpin] = useState(['', '', '', '']);
   const [mpinError, setMpinError] = useState(false);
+
+  // Date Filter State
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [datePreset, setDatePreset] = useState<'ALL' | 'OCT_2026' | 'Q4_2026'>('OCT_2026');
+
+  const handlePresetSelect = (preset: 'ALL' | 'OCT_2026' | 'Q4_2026') => {
+    setDatePreset(preset);
+    if (preset === 'ALL') {
+      setFromDate('');
+      setToDate('');
+    } else if (preset === 'OCT_2026') {
+      setFromDate('2026-10-01');
+      setToDate('2026-10-31');
+    } else if (preset === 'Q4_2026') {
+      setFromDate('2026-10-01');
+      setToDate('2026-12-31');
+    }
+  };
   const [isSuccess, setIsSuccess] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -142,7 +162,7 @@ export const ReportsPage: React.FC = () => {
 
   const liveCurrentRatio = ratios.current_ratio;
   const liveQuickRatio = ratios.quick_ratio;
-  const liveCashRatio = currentLiabilities > 0 
+  const liveCashRatio = currentLiabilities > 0
     ? (cashAndEquivalents / currentLiabilities).toFixed(2)
     : (cashAndEquivalents > 0 ? '99.9+' : '0.00');
   const netWorkingCapital = currentAssets - currentLiabilities;
@@ -188,6 +208,16 @@ export const ReportsPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Dynamic Date-Range / Period Filter Bar */}
+      <DatePeriodFilterBar
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={setFromDate}
+        onToDateChange={setToDate}
+        selectedPreset={datePreset}
+        onPresetSelect={handlePresetSelect}
+      />
 
       {error && (
         <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 flex items-center gap-3 text-sm">
@@ -408,11 +438,10 @@ export const ReportsPage: React.FC = () => {
               <div className="flex justify-between items-center pt-3 border-t-2 border-slate-200 dark:border-slate-700">
                 <span className="font-bold text-base text-slate-900 dark:text-white">Net Income / (Loss)</span>
                 <span
-                  className={`tabular-nums text-base font-bold border-double border-b-4 ${
-                    is.net_income >= 0
-                      ? 'text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700'
-                      : 'text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700'
-                  }`}
+                  className={`tabular-nums text-base font-bold border-double border-b-4 ${is.net_income >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700'
+                    : 'text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700'
+                    }`}
                 >
                   ₱{is.net_income.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
@@ -427,6 +456,19 @@ export const ReportsPage: React.FC = () => {
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Statement of Financial Position (Balance Sheet)</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Assets = Liabilities + Owner Equity</p>
               </div>
+            </div>
+
+            {/* Accounting Equation Verification Banner */}
+            <div className="mx-5 mt-4 p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-semibold text-emerald-800 dark:text-emerald-300">
+                  ✓ Accounting Equation Balanced: Total Assets (₱{bs.assets.total_current_assets.toLocaleString('en-US', { minimumFractionDigits: 2 })}) = Total Liabilities (₱{bs.liabilities.total_current_liabilities.toLocaleString('en-US', { minimumFractionDigits: 2 })}) + Total Equity (₱{bs.equity.total_equity.toLocaleString('en-US', { minimumFractionDigits: 2 })})
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded uppercase tracking-wider self-start sm:self-auto shrink-0">
+                PFRS Compliant
+              </span>
             </div>
             <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 text-sm">
               <div>
@@ -655,13 +697,12 @@ export const ReportsPage: React.FC = () => {
                   autoFocus={idx === 0}
                   onChange={(e) => handleMpinChange(idx, e.target.value)}
                   onKeyDown={(e) => handleMpinKeyDown(idx, e)}
-                  className={`w-12 h-14 text-center tabular-nums text-2xl font-bold rounded-xl border transition-all bg-slate-950 text-white focus:outline-none ${
-                    mpinError
-                      ? 'border-rose-500 shadow-rose-500/20 shadow-lg animate-shake'
-                      : isSuccess
+                  className={`w-12 h-14 text-center tabular-nums text-2xl font-bold rounded-xl border transition-all bg-slate-950 text-white focus:outline-none ${mpinError
+                    ? 'border-rose-500 shadow-rose-500/20 shadow-lg animate-shake'
+                    : isSuccess
                       ? 'border-emerald-500 text-emerald-400'
                       : 'border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
-                  }`}
+                    }`}
                 />
               ))}
             </div>

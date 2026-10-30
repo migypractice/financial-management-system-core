@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   BookOpen,
   Scale,
@@ -17,11 +17,16 @@ import {
   ShoppingCart,
   Paperclip,
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  RotateCcw,
+  X,
+  ShieldAlert
 } from 'lucide-react';
 import apiClient from '../../services/apiClient';
+import { useAuth } from '../../context/AuthContext';
 import { SkeletonLoader } from '../../components/ui/SkeletonLoader';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { DatePeriodFilterBar } from '../../components/ui/DatePeriodFilterBar';
 
 interface GLLine {
   id: string;
@@ -144,11 +149,84 @@ interface PayrollItem {
 }
 
 export const GeneralLedgerPage: React.FC = () => {
+  const { user } = useAuth();
+  const canReverse = user?.role === 'super_admin' || user?.role === 'finance_manager';
+
   const [activeTab, setActiveTab] = useState<'JOURNAL' | 'BUY_ORDERS' | 'TRIAL_BALANCE' | 'AR_SUBLEDGER' | 'AP_SUBLEDGER' | 'PAYROLL'>('JOURNAL');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+
+  // Date Filter State
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [datePreset, setDatePreset] = useState<'ALL' | 'OCT_2026' | 'Q4_2026'>('ALL');
+
+  // Reversal Modal State
+  const [reversalModal, setReversalModal] = useState<{
+    isOpen: boolean;
+    entry: GLEntry | null;
+    reason: string;
+    loading: boolean;
+    error: string | null;
+  }>({
+    isOpen: false,
+    entry: null,
+    reason: '',
+    loading: false,
+    error: null,
+  });
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4500);
+  };
+
+  const handleOpenReverse = (entry: GLEntry) => {
+    setReversalModal({
+      isOpen: true,
+      entry,
+      reason: `Correction of Journal Entry #${entry.entry_number}: Billing adjustment`,
+      loading: false,
+      error: null,
+    });
+  };
+
+  const handleConfirmReverse = async () => {
+    if (!reversalModal.entry) return;
+    try {
+      setReversalModal((prev) => ({ ...prev, loading: true, error: null }));
+      const res = await apiClient.post(`/dashboard/gl/${reversalModal.entry.id}/reverse`, {
+        reason: reversalModal.reason,
+      });
+
+      showToast(`Success! Reversing Entry #${res.data?.data?.entry_number || 'posted'} generated. Double-entry offset balanced.`);
+      setReversalModal({ isOpen: false, entry: null, reason: '', loading: false, error: null });
+      fetchJournalEntries(searchTerm, categoryFilter);
+    } catch (err: any) {
+      setReversalModal((prev) => ({
+        ...prev,
+        loading: false,
+        error: err.response?.data?.message || 'Failed to reverse entry. Ensure permissions are sufficient.',
+      }));
+    }
+  };
+
+  const handlePresetSelect = (preset: 'ALL' | 'OCT_2026' | 'Q4_2026') => {
+    setDatePreset(preset);
+    if (preset === 'ALL') {
+      setFromDate('');
+      setToDate('');
+    } else if (preset === 'OCT_2026') {
+      setFromDate('2026-10-01');
+      setToDate('2026-10-31');
+    } else if (preset === 'Q4_2026') {
+      setFromDate('2026-10-01');
+      setToDate('2026-12-31');
+    }
+  };
 
   // Tab 1: General Journal
   const [entries, setEntries] = useState<GLEntry[]>([]);
@@ -262,7 +340,16 @@ export const GeneralLedgerPage: React.FC = () => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const safeEntries = Array.isArray(entries) ? entries : [];
+  const safeEntries: GLEntry[] = useMemo(() => {
+    const raw: GLEntry[] = Array.isArray(entries) ? entries : [];
+    return raw.filter((e: GLEntry) => {
+      const entryDate = e.posted_at ? e.posted_at.split('T')[0] : '';
+      if (fromDate && entryDate && entryDate < fromDate) return false;
+      if (toDate && entryDate && entryDate > toDate) return false;
+      return true;
+    });
+  }, [entries, fromDate, toDate]);
+
   const safeTrialAccounts = Array.isArray(trialAccounts) ? trialAccounts : [];
   const safeArSubledger = Array.isArray(arSubledger) ? arSubledger : [];
   const safeApSubledger = Array.isArray(apSubledger) ? apSubledger : [];
@@ -417,6 +504,16 @@ export const GeneralLedgerPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Dynamic Date-Range / Period Filter Bar */}
+          <DatePeriodFilterBar
+            fromDate={fromDate}
+            toDate={toDate}
+            onFromDateChange={setFromDate}
+            onToDateChange={setToDate}
+            selectedPreset={datePreset}
+            onPresetSelect={handlePresetSelect}
+          />
+
           {/* Search Box & Category Filters */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="relative w-full sm:w-80">
@@ -487,7 +584,7 @@ export const GeneralLedgerPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    safeEntries.map((entry) => {
+                    safeEntries.map((entry: GLEntry) => {
                       const isExpanded = !!expandedRows[entry.id];
                       const hasLines = Array.isArray(entry.lines) && entry.lines.length > 0;
 
@@ -558,9 +655,31 @@ export const GeneralLedgerPage: React.FC = () => {
                             </td>
 
                             <td className="py-2.5 px-2 sm:px-3 text-center whitespace-nowrap">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Balanced
-                              </span>
+                              <div className="flex items-center justify-center gap-1.5">
+                                {entry.description.startsWith('REVERSAL OF') ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                    Reversing Entry
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Balanced
+                                  </span>
+                                )}
+
+                                {canReverse && !entry.description.startsWith('REVERSAL OF') && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenReverse(entry);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
+                                    title="PFRS Reversing Entry: Generate offsetting journal entry to prove WORM immutability"
+                                  >
+                                    <RotateCcw className="w-3 h-3 text-rose-500" />
+                                    <span>↺ Reverse</span>
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
 
@@ -583,7 +702,7 @@ export const GeneralLedgerPage: React.FC = () => {
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800">
-                                        {(Array.isArray(entry.lines) ? entry.lines : []).map((line) => (
+                                        {(Array.isArray(entry.lines) ? entry.lines : []).map((line: GLLine) => (
                                           <tr key={line.id} className="text-slate-700 dark:text-slate-300">
                                             <td className="py-2 px-2">
                                               <span className="font-semibold text-indigo-600 dark:text-indigo-400">[{line.account_code}]</span>{' '}
@@ -1198,6 +1317,107 @@ export const GeneralLedgerPage: React.FC = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-2xl backdrop-blur-md animate-slideDown">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span className="text-xs font-semibold">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* PFRS WORM Immutability Reversal Modal */}
+      {reversalModal.isOpen && reversalModal.entry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-fadeIn">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700 bg-rose-50/50 dark:bg-rose-950/30">
+              <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400">
+                <RotateCcw className="w-5 h-5" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Generate Reversing Entry
+                </h3>
+              </div>
+              <button
+                onClick={() => setReversalModal({ isOpen: false, entry: null, reason: '', loading: false, error: null })}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              {/* Compliance Notice */}
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                  <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>PFRS & WORM Immutability Compliance</span>
+                </div>
+                <p className="text-[11px] text-amber-700 dark:text-amber-300/90 leading-relaxed">
+                  Under Philippine Financial Reporting Standards (PFRS) and our PostgreSQL trigger <code className="font-mono text-[10px] bg-amber-100 dark:bg-amber-900 px-1 py-0.5 rounded">trg_enforce_journal_immutability</code>, posted journal records cannot be deleted or edited. Reversing this voucher creates an exact offsetting double-entry record with inverted Debits and Credits.
+                </p>
+              </div>
+
+              {/* Target Entry Summary */}
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50/60 dark:bg-slate-900/40 space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Target Voucher:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">{reversalModal.entry.entry_number}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Description:</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[280px]">{reversalModal.entry.description}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Voucher Total:</span>
+                  <span className="font-bold text-slate-900 dark:text-white tabular-nums">
+                    ₱{Number(reversalModal.entry.debit).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Reason Input */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Reason for Reversal (Mandatory Audit Trail Note):
+                </label>
+                <textarea
+                  rows={3}
+                  value={reversalModal.reason}
+                  onChange={(e) => setReversalModal({ ...reversalModal, reason: e.target.value })}
+                  placeholder="Explain why this entry is being reversed (e.g. Disputed invoice, incorrect GL account, vendor billing error)..."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-500 shadow-xs"
+                />
+              </div>
+
+              {reversalModal.error && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-lg text-xs">
+                  {reversalModal.error}
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setReversalModal({ isOpen: false, entry: null, reason: '', loading: false, error: null })}
+                disabled={reversalModal.loading}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReverse}
+                disabled={reversalModal.loading || !reversalModal.reason.trim()}
+                className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {reversalModal.loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>Post Reversing Entry</span>
+              </button>
             </div>
           </div>
         </div>

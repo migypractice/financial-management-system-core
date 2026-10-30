@@ -3,7 +3,7 @@ import {
   LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
   Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X, Sparkles,
-  FileText, CheckCircle2, ArrowRight, RefreshCw
+  FileText, CheckCircle2, ArrowRight, RefreshCw, Shield
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../services/apiClient';
@@ -89,6 +89,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
@@ -104,7 +105,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   }, []);
   
   const headerRef = useRef<HTMLDivElement>(null);
-  const { logout, user } = useAuth();
+  const { logout, user, switchRole } = useAuth();
 
   // ── Live Incoming Requests & Submissions Inbox ──
   const [incomingRequests, setIncomingRequests] = useState<IncomingRequestItem[]>([]);
@@ -673,6 +674,82 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       <span>Disbursements Queue</span>
                       <ArrowRight size={12} />
                     </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Live Demo Role Switcher (Proving Maker-Checker & RBAC) */}
+            <div className="relative">
+              <button
+                onClick={() => setRoleMenuOpen(!roleMenuOpen)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold shadow-xs transition-all bg-indigo-50/80 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 cursor-pointer"
+                title="Oral Defense Live Role Switcher: Demonstrate Segregation of Duties (Maker ≠ Checker)"
+              >
+                <Shield size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span className="hidden md:inline font-bold">Role:</span>
+                <span className="truncate max-w-[130px] font-semibold text-[11px]">
+                  {user?.role === 'super_admin' ? 'Super Admin' :
+                   user?.role === 'finance_manager' ? 'Checker (Mgr)' :
+                   user?.role === 'accountant' ? 'Maker (Acct)' :
+                   user?.role === 'auditor' ? 'Auditor (Read)' : (user?.role || 'User')}
+                </span>
+                <ChevronDown size={12} className="text-indigo-500 shrink-0" />
+              </button>
+
+              {roleMenuOpen && (
+                <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-150 dark:border-slate-700 py-1.5 z-50 animate-fadeIn">
+                  <div className="px-3.5 py-2 border-b border-gray-100 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Live Defense Role Switcher</span>
+                      <span className="text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.2 rounded border border-indigo-200 dark:border-indigo-800">RBAC Demo</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Switch role live to demonstrate Segregation of Duties (Maker ≠ Checker).</p>
+                  </div>
+                  <div className="p-1 space-y-1">
+                    {[
+                      { role: 'super_admin', title: 'Super Admin', sub: 'Full access to all 10 modules & overrides', badge: 'Full Access' },
+                      { role: 'finance_manager', title: 'Finance Manager (Checker)', sub: 'Can Approve & Disburse vouchers', badge: 'Checker' },
+                      { role: 'accountant', title: 'Accountant (Maker)', sub: 'Can create bills & invoices; approvals locked', badge: 'Maker' },
+                      { role: 'auditor', title: 'Internal Auditor (Read-Only)', sub: 'View-only access; mutations disabled', badge: 'Read-Only' },
+                    ].map((item) => {
+                      const isActive = (user?.role || 'super_admin') === item.role;
+                      return (
+                        <button
+                          key={item.role}
+                          onClick={() => {
+                            switchRole(item.role, item.title);
+                            setRoleMenuOpen(false);
+                          }}
+                          className={`w-full text-left p-2.5 rounded-lg transition-colors cursor-pointer flex items-start gap-2.5 ${
+                            isActive
+                              ? 'bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800'
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                          }`}
+                        >
+                          <div className="mt-0.5">
+                            {isActive ? (
+                              <CheckCircle2 size={15} className="text-indigo-600 dark:text-indigo-400" />
+                            ) : (
+                              <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-600 mt-0.5" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className={`text-xs font-bold ${isActive ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-800 dark:text-slate-200'}`}>
+                                {item.title}
+                              </span>
+                              <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                {item.badge}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-0.5 leading-snug">
+                              {item.sub}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
