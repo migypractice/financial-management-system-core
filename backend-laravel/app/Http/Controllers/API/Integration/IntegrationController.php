@@ -454,7 +454,32 @@ class IntegrationController extends Controller
             ], 200);
         }
 
-        // 4. Fallback: Check Transactions Table
+        // 4. Check Purchase Order (SmartChain Procurement Intake)
+        $po = \App\Models\PurchaseOrder::with('supplier')
+            ->where('financial_reference', $ref)
+            ->orWhere('external_reference_id', $ref)
+            ->orWhere('id', $ref)
+            ->first();
+
+        if ($po) {
+            return response()->json([
+                'success'               => true,
+                'reference'             => $ref,
+                'record_type'           => 'PURCHASE_ORDER',
+                'status'                => $po->processing_status,
+                'receipt_status'        => $po->receipt_status,
+                'processing_status'     => $po->processing_status,
+                'financial_reference'   => $po->financial_reference,
+                'external_reference_id' => $po->external_reference_id,
+                'source_system'         => $po->source_system,
+                'supplier_name'         => $po->supplier_name,
+                'total_amount'          => (float) $po->total_amount,
+                'currency'              => $po->currency,
+                'created_at'            => $po->created_at->toIso8601String(),
+            ], 200);
+        }
+
+        // 5. Fallback: Check Transactions Table
         $tx = Transaction::where('external_reference_id', $ref)
             ->orWhere('transaction_code', $ref)
             ->orWhere('id', $ref)

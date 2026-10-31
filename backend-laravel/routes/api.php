@@ -24,6 +24,11 @@ Route::prefix('v1/integration')->middleware('api.key')->group(function () {
     Route::get('/financial-summary', [IntegrationController::class, 'financialSummary']);
     Route::get('/tax-summary', [IntegrationController::class, 'taxSummary']);
     Route::get('/archiving-records', [IntegrationController::class, 'archivingRecords']);
+
+    // Phase 1 SmartChain Purchase Order Integration
+    Route::post('/purchase-orders', [\App\Http\Controllers\API\Integration\PurchaseOrderIntegrationController::class, 'store']);
+    Route::get('/purchase-orders/{reference}', [\App\Http\Controllers\API\Integration\PurchaseOrderIntegrationController::class, 'show']);
+    Route::get('/purchase-orders', [\App\Http\Controllers\API\Integration\PurchaseOrderIntegrationController::class, 'index']);
 });
 
 Route::prefix('v1/auth')->group(function () {
