@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   FileSpreadsheet,
   ExternalLink,
-  Info
+  Info,
+  Send
 } from 'lucide-react';
 import {
   purchaseOrderService,
@@ -37,6 +38,8 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
   const [receiptFilter, setReceiptFilter] = useState('ALL');
   const [processingFilter, setProcessingFilter] = useState('ALL');
   const [selectedPO, setSelectedPO] = useState<InboundPurchaseOrder | null>(null);
+  const [forwarding, setForwarding] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [meta, setMeta] = useState({
     current_page: 1,
     last_page: 1,
@@ -74,6 +77,40 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
   useEffect(() => {
     fetchPurchaseOrders();
   }, [fetchPurchaseOrders]);
+
+  const handleForwardToDisbursement = async (po: InboundPurchaseOrder) => {
+    try {
+      setForwarding(true);
+      const res = await purchaseOrderService.forwardToDisbursement(po.id);
+      setToastMessage(res.message || 'Successfully forwarded to Disbursement Management as a Payment Voucher!');
+
+      // Refresh list
+      await fetchPurchaseOrders(true);
+
+      // Update selected PO
+      setSelectedPO((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          processing_status: 'FORWARDED_TO_DISBURSEMENT',
+          metadata: {
+            ...(prev.metadata || {}),
+            voucher_number: res.data?.voucher_number,
+            payment_request_id: res.data?.payment_request_id,
+          },
+        };
+      });
+
+      setTimeout(() => {
+        setToastMessage(null);
+      }, 6000);
+    } catch (err: any) {
+      console.error('Failed to forward to disbursement:', err);
+      alert(err.response?.data?.message || 'Failed to forward to disbursement.');
+    } finally {
+      setForwarding(false);
+    }
+  };
 
   // Statistics KPIs
   const stats = useMemo(() => {
@@ -133,6 +170,14 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
     }
 
     // Processing status
+    if (normalized === 'FORWARDED_TO_DISBURSEMENT') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800">
+          <Send className="w-3 h-3" />
+          VOUCHER QUEUED
+        </span>
+      );
+    }
     if (normalized === 'PENDING_REVIEW') {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">
@@ -171,6 +216,25 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
 
   return (
     <div className="p-4 lg:p-6 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-full space-y-5">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-xl backdrop-blur-md animate-slideDown">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <div className="text-xs">
+            <span className="font-semibold block">Disbursement Voucher Created!</span>
+            <span>{toastMessage}</span>
+          </div>
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('/disbursements')}
+              className="ml-2 px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold text-xs hover:bg-emerald-700 transition-colors shrink-0"
+            >
+              Go to Disbursements →
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 gap-3">
         <div>
@@ -188,6 +252,16 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('/disbursements')}
+              className="p-2 sm:px-3 sm:py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-xs font-semibold shadow-xs"
+              title="Open Disbursement Management"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Disbursement Mgmt</span>
+            </button>
+          )}
           <button
             onClick={() => fetchPurchaseOrders(true)}
             disabled={refreshing}
@@ -204,7 +278,7 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
       <div className="rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 p-3.5 flex items-start gap-3">
         <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
         <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-          <span className="font-semibold">Procurement Intake Protocol:</span> These records confirm receipt of approved Purchase Orders transmitted via <code className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded font-mono text-[11px]">POST /api/v1/integration/purchase-orders</code>. Per Financial Core standards, intake does not automatically post journal entries or create Accounts Payable bills until delivery receipts and supplier invoices are matched.
+          <span className="font-semibold">Procurement Intake Protocol:</span> These records confirm receipt of approved Purchase Orders transmitted via <code className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded font-mono text-[11px]">POST /api/v1/integration/purchase-orders</code>. Once materials or supplier invoices are verified, authorized finance officers can forward records directly to <strong>Disbursement Management</strong> to issue payment vouchers for Maker-Checker approval.
         </div>
       </div>
 
@@ -236,7 +310,7 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
             {stats.pendingReview}
           </div>
           <span className="text-[10px] text-slate-400 mt-1 block">
-            Awaiting AP voucher matching
+            Awaiting disbursement matching
           </span>
         </div>
 
@@ -307,6 +381,7 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
             >
               <option value="ALL">All Processing</option>
               <option value="PENDING_REVIEW">PENDING_REVIEW</option>
+              <option value="FORWARDED_TO_DISBURSEMENT">FORWARDED_TO_DISBURSEMENT</option>
               <option value="APPROVED">APPROVED</option>
               <option value="REJECTED">REJECTED</option>
             </select>
@@ -327,7 +402,7 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
                 <th className="py-3 px-4 text-center">Receipt Status</th>
                 <th className="py-3 px-4 text-center">Processing Status</th>
                 <th className="py-3 px-4">Received Date</th>
-                <th className="py-3 px-4 text-center">Action</th>
+                <th className="py-3 px-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs">
@@ -382,13 +457,38 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
                       {formatDate(po.received_at)}
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      <button
-                        onClick={() => setSelectedPO(po)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors shadow-2xs"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        View Details
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => setSelectedPO(po)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors shadow-2xs"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Details
+                        </button>
+
+                        {po.processing_status === 'FORWARDED_TO_DISBURSEMENT' ? (
+                          onNavigate && (
+                            <button
+                              onClick={() => onNavigate('/disbursements')}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 transition-colors shadow-2xs"
+                              title="View voucher in Disbursement Mgmt"
+                            >
+                              <ArrowRight className="w-3.5 h-3.5" />
+                              Voucher
+                            </button>
+                          )
+                        ) : (
+                          <button
+                            onClick={() => handleForwardToDisbursement(po)}
+                            disabled={forwarding}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-2xs disabled:opacity-50"
+                            title="Forward to Disbursement Management"
+                          >
+                            <Send className="w-3 h-3" />
+                            Disburse
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -497,6 +597,12 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
                   <span>Idempotency Key:</span>
                   <span className="text-slate-700 dark:text-slate-300">{selectedPO.idempotency_key}</span>
                 </div>
+                {(selectedPO as any).metadata?.voucher_number && (
+                  <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                    <span>Disbursement Voucher #:</span>
+                    <span>{(selectedPO as any).metadata.voucher_number}</span>
+                  </div>
+                )}
               </div>
 
               {/* Line Items Table */}
@@ -570,22 +676,45 @@ export const PurchaseOrdersPage: React.FC<PurchaseOrdersPageProps> = ({ onNaviga
               <div className="rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 p-3 text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Accounting Notice:</strong> This purchase order intake does not automatically create an Accounts Payable bill, General Ledger journal entry, or disbursement voucher. Upon delivery verification, the warehouse team or procurement officer matches the PO against the supplier invoice before submitting a disbursement request.
+                  <strong>Accounting Workflow Notice:</strong> Forwarding this Purchase Order will generate an AP Bill and a Maker-Checker <strong>Payment Request Voucher</strong> in the <strong>Disbursement Management</strong> module. The Finance Manager can then review, approve, or reject the payment voucher.
                 </span>
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
-              <span className="text-xs text-slate-400">
-                Financial Management System Core • M2M Intake Module
-              </span>
+            {/* Modal Footer with Actions */}
+            <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/40">
               <button
                 onClick={() => setSelectedPO(null)}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors"
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors"
               >
                 Close
               </button>
+
+              <div className="flex items-center gap-2">
+                {selectedPO.processing_status === 'FORWARDED_TO_DISBURSEMENT' || (selectedPO as any).metadata?.voucher_number ? (
+                  onNavigate && (
+                    <button
+                      onClick={() => {
+                        setSelectedPO(null);
+                        onNavigate('/disbursements');
+                      }}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5" />
+                      View in Disbursement Mgmt →
+                    </button>
+                  )
+                ) : (
+                  <button
+                    onClick={() => handleForwardToDisbursement(selectedPO)}
+                    disabled={forwarding}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs disabled:opacity-50"
+                  >
+                    <Send className={`w-3.5 h-3.5 ${forwarding ? 'animate-spin' : ''}`} />
+                    {forwarding ? 'Forwarding to Disbursement...' : 'Forward to Disbursement / Create Voucher'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

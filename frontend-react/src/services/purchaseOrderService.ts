@@ -68,6 +68,23 @@ export const purchaseOrderService = {
     );
     return res.data.data;
   },
+
+  async forwardToDisbursement(id: string): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      voucher_number: string;
+      payment_request_id: string;
+      ap_bill_number?: string;
+      amount: number;
+      payee_name: string;
+      status: string;
+    };
+  }> {
+    const res = await apiClient.post(`/dashboard/purchase-orders/${id}/forward-disbursement`);
+    return res.data;
+  },
 };
 
 export default purchaseOrderService;
+

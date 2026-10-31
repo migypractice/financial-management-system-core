@@ -97,6 +97,7 @@ Route::prefix('v1/dashboard/purchase-orders')->middleware('auth:sanctum')->group
     Route::middleware('role:super_admin,finance_manager,accountant,auditor')->group(function () {
         Route::get('/', [\App\Http\Controllers\API\Dashboard\PurchaseOrderController::class, 'index']);
         Route::get('/{reference}', [\App\Http\Controllers\API\Dashboard\PurchaseOrderController::class, 'show']);
+        Route::post('/{reference}/forward-disbursement', [\App\Http\Controllers\API\Dashboard\PurchaseOrderController::class, 'forwardToDisbursement']);
     });
 });
 

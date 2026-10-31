@@ -29,8 +29,9 @@ class DashboardPurchaseOrderTest extends TestCase
 
     protected function createSamplePurchaseOrder(array $attributes = []): PurchaseOrder
     {
+        $code = $attributes['supplier_code'] ?? 'SUP-007';
         $supplier = Supplier::firstOrCreate(
-            ['supplier_code' => $attributes['supplier_code'] ?? 'SUP-007'],
+            ['supplier_code' => $code],
             [
                 'name'               => $attributes['supplier_name'] ?? 'Joey',
                 'company_name'       => 'Joey Construction & Industrial Supplies',
@@ -211,4 +212,37 @@ class DashboardPurchaseOrderTest extends TestCase
         $this->assertDatabaseCount('journal_entries', 0);
         $this->assertDatabaseCount('disbursements', 0);
     }
+
+    /**
+     * 8. Explicit user forwardToDisbursement creates ApBill and PaymentRequest voucher.
+     */
+    public function test_forward_to_disbursement_creates_payment_request_voucher(): void
+    {
+        $this->createSamplePurchaseOrder();
+
+        $user = $this->makeUserWithRole('finance_manager');
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/dashboard/purchase-orders/FIN-PO-0001/forward-disbursement');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'PENDING_APPROVAL')
+            ->assertJsonPath('data.amount', 2000)
+            ->assertJsonPath('data.payee_name', 'Joey');
+
+        $this->assertDatabaseCount('payment_requests', 1);
+        $this->assertDatabaseHas('payment_requests', [
+            'status'     => 'PENDING_APPROVAL',
+            'amount'     => 2000,
+            'payee_name' => 'Joey',
+        ]);
+
+        // Calling again does not duplicate
+        $second = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/dashboard/purchase-orders/FIN-PO-0001/forward-disbursement');
+        $second->assertStatus(200);
+        $this->assertDatabaseCount('payment_requests', 1);
+    }
 }
+

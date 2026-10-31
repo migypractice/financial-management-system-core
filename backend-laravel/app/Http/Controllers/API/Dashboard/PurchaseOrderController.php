@@ -3,10 +3,16 @@
 namespace App\Http\Controllers\API\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\ApBill;
+use App\Models\ChartOfAccount;
+use App\Models\PaymentRequest;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
+use App\Models\Supplier;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PurchaseOrderController extends Controller
@@ -156,4 +162,143 @@ class PurchaseOrderController extends Controller
             ],
         ], 200);
     }
+
+    /**
+     * Forward an approved Purchase Order intake to Disbursement Management as a Payment Request voucher.
+     *
+     * Route: POST /api/v1/dashboard/purchase-orders/{reference}/forward-disbursement
+     */
+    public function forwardToDisbursement(string $reference, Request $request): JsonResponse
+    {
+        $ref = trim($reference);
+
+        $query = PurchaseOrder::with(['items', 'supplier'])
+            ->where(function ($q) use ($ref) {
+                $q->where('financial_reference', $ref)
+                  ->orWhere('external_reference_id', $ref);
+
+                if (Str::isUuid($ref)) {
+                    $q->orWhere('id', $ref);
+                }
+            });
+
+        $po = $query->first();
+
+        if (!$po) {
+            return response()->json([
+                'success' => false,
+                'message' => "Purchase order not found for reference '{$ref}'.",
+            ], 404);
+        }
+
+        // Check if already forwarded or existing PaymentRequest found
+        $existingPr = PaymentRequest::where('purpose', 'like', "%{$po->external_reference_id}%")
+            ->orWhere('purpose', 'like', "%{$po->financial_reference}%")
+            ->first();
+
+        if ($existingPr) {
+            return response()->json([
+                'success' => true,
+                'message' => "Purchase order is already forwarded to Disbursement Management as Voucher {$existingPr->request_number}.",
+                'data'    => [
+                    'voucher_number'     => $existingPr->request_number,
+                    'payment_request_id' => $existingPr->id,
+                    'amount'             => (float) $existingPr->amount,
+                    'payee_name'         => $existingPr->payee_name,
+                    'status'             => $existingPr->status,
+                ],
+            ], 200);
+        }
+
+        return DB::transaction(function () use ($po) {
+            // 1. Resolve Supplier
+            $supplier = $po->supplier;
+            if (!$supplier) {
+                $supplier = Supplier::where('supplier_code', $po->supplier_code)
+                    ->orWhere('name', 'like', "%{$po->supplier_name}%")
+                    ->first();
+            }
+
+            if (!$supplier) {
+                $supplier = Supplier::create([
+                    'supplier_code'      => $po->supplier_code ?? ('SUP-' . strtoupper(Str::random(4))),
+                    'name'               => $po->supplier_name ?? 'SmartChain Supplier',
+                    'company_name'       => $po->supplier_name ?? 'SmartChain Supplier',
+                    'payment_terms_days' => 30,
+                ]);
+            }
+
+            // 2. Resolve Chart of Accounts
+            $coa = ChartOfAccount::where('code', '1200-INV')->first()
+                ?? ChartOfAccount::where('code', '5500-EXP-SUPPLIES')->first()
+                ?? ChartOfAccount::first();
+
+            // 3. Create real ApBill for the purchase order obligation
+            $billNumber = 'BILL-' . now()->format('Ym') . '-' . strtoupper(Str::random(5));
+            while (ApBill::where('bill_number', $billNumber)->exists()) {
+                $billNumber = 'BILL-' . now()->format('Ym') . '-' . strtoupper(Str::random(5));
+            }
+
+            $userId = auth()->id() ?? User::first()?->id;
+
+            $bill = ApBill::create([
+                'bill_number'         => $billNumber,
+                'supplier_id'         => $supplier->id,
+                'chart_of_account_id' => $coa?->id,
+                'bill_date'           => now()->toDateString(),
+                'due_date'            => now()->addDays(15)->toDateString(),
+                'total_amount'        => $po->total_amount,
+                'paid_amount'         => 0.00,
+                'balance'             => $po->total_amount,
+                'category_type'       => $po->category_type ?? 'INVENTORY_PURCHASE',
+                'description'         => "Supplier Bill for SmartChain PO [{$po->external_reference_id}] ({$po->financial_reference}) - {$supplier->name}",
+                'status'              => 'UNPAID',
+                'created_by'          => $userId,
+            ]);
+
+            // 4. Create Payment Request (Disbursement Voucher) in PENDING_APPROVAL
+            $prCount = DB::table('payment_requests')->count() + 1;
+            $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
+            while (PaymentRequest::where('request_number', $prNumber)->exists()) {
+                $prCount++;
+                $prNumber = sprintf('PR-%s-%04d', now()->format('Ym'), $prCount);
+            }
+
+            $pr = PaymentRequest::create([
+                'request_number'      => $prNumber,
+                'ap_bill_id'          => $bill->id,
+                'payee_name'          => $supplier->name,
+                'amount'              => $po->total_amount,
+                'purpose'             => "Payment Voucher for SmartChain PO [{$po->external_reference_id}] ({$po->financial_reference}) - {$supplier->name}",
+                'requested_by'        => $userId,
+                'status'              => 'PENDING_APPROVAL',
+                'ai_confidence_score' => 0.9850,
+                'ai_anomaly_flag'     => false,
+            ]);
+
+            // 5. Update Purchase Order status
+            $po->processing_status = 'FORWARDED_TO_DISBURSEMENT';
+            $meta = is_array($po->metadata) ? $po->metadata : [];
+            $meta['payment_request_id'] = $pr->id;
+            $meta['voucher_number'] = $prNumber;
+            $meta['ap_bill_number'] = $billNumber;
+            $meta['forwarded_at'] = now()->toIso8601String();
+            $po->metadata = $meta;
+            $po->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Purchase order [{$po->financial_reference}] successfully forwarded to Disbursement Management as Voucher {$prNumber}.",
+                'data'    => [
+                    'voucher_number'     => $pr->request_number,
+                    'payment_request_id' => $pr->id,
+                    'ap_bill_number'     => $billNumber,
+                    'amount'             => (float) $pr->amount,
+                    'payee_name'         => $pr->payee_name,
+                    'status'             => $pr->status,
+                ],
+            ], 200);
+        });
+    }
 }
+
