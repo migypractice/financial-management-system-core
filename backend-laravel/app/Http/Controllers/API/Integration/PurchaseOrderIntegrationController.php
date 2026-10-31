@@ -358,11 +358,17 @@ class PurchaseOrderIntegrationController extends Controller
     {
         $ref = trim($reference);
 
-        $po = PurchaseOrder::with(['items', 'supplier'])
-            ->where('financial_reference', $ref)
-            ->orWhere('external_reference_id', $ref)
-            ->orWhere('id', $ref)
-            ->first();
+        $query = PurchaseOrder::with(['items', 'supplier'])
+            ->where(function ($q) use ($ref) {
+                $q->where('financial_reference', $ref)
+                  ->orWhere('external_reference_id', $ref);
+
+                if (Str::isUuid($ref)) {
+                    $q->orWhere('id', $ref);
+                }
+            });
+
+        $po = $query->first();
 
         if (!$po) {
             return response()->json([

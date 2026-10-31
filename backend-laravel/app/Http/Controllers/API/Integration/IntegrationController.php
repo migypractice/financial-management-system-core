@@ -379,10 +379,12 @@ class IntegrationController extends Controller
         $ref = trim($reference);
 
         // 1. Check Payment Request
-        $pr = PaymentRequest::with(['bill', 'attachments'])
-            ->where('request_number', $ref)
-            ->orWhere('id', $ref)
-            ->first();
+        $prQuery = PaymentRequest::with(['bill', 'attachments'])
+            ->where('request_number', $ref);
+        if (Str::isUuid($ref)) {
+            $prQuery->orWhere('id', $ref);
+        }
+        $pr = $prQuery->first();
 
         if ($pr) {
             return response()->json([
@@ -402,10 +404,12 @@ class IntegrationController extends Controller
         }
 
         // 2. Check AP Bill
-        $bill = ApBill::with(['supplier', 'paymentRequests'])
-            ->where('bill_number', $ref)
-            ->orWhere('id', $ref)
-            ->first();
+        $billQuery = ApBill::with(['supplier', 'paymentRequests'])
+            ->where('bill_number', $ref);
+        if (Str::isUuid($ref)) {
+            $billQuery->orWhere('id', $ref);
+        }
+        $bill = $billQuery->first();
 
         if ($bill) {
             return response()->json([
@@ -429,10 +433,12 @@ class IntegrationController extends Controller
         }
 
         // 3. Check AR Invoice
-        $inv = ArInvoice::with(['customer', 'collections'])
-            ->where('invoice_number', $ref)
-            ->orWhere('id', $ref)
-            ->first();
+        $invQuery = ArInvoice::with(['customer', 'collections'])
+            ->where('invoice_number', $ref);
+        if (Str::isUuid($ref)) {
+            $invQuery->orWhere('id', $ref);
+        }
+        $inv = $invQuery->first();
 
         if ($inv) {
             return response()->json([
@@ -455,11 +461,13 @@ class IntegrationController extends Controller
         }
 
         // 4. Check Purchase Order (SmartChain Procurement Intake)
-        $po = \App\Models\PurchaseOrder::with('supplier')
+        $poQuery = \App\Models\PurchaseOrder::with('supplier')
             ->where('financial_reference', $ref)
-            ->orWhere('external_reference_id', $ref)
-            ->orWhere('id', $ref)
-            ->first();
+            ->orWhere('external_reference_id', $ref);
+        if (Str::isUuid($ref)) {
+            $poQuery->orWhere('id', $ref);
+        }
+        $po = $poQuery->first();
 
         if ($po) {
             return response()->json([
@@ -480,10 +488,12 @@ class IntegrationController extends Controller
         }
 
         // 5. Fallback: Check Transactions Table
-        $tx = Transaction::where('external_reference_id', $ref)
-            ->orWhere('transaction_code', $ref)
-            ->orWhere('id', $ref)
-            ->first();
+        $txQuery = Transaction::where('external_reference_id', $ref)
+            ->orWhere('transaction_code', $ref);
+        if (Str::isUuid($ref)) {
+            $txQuery->orWhere('id', $ref);
+        }
+        $tx = $txQuery->first();
 
         if ($tx) {
             return response()->json([
