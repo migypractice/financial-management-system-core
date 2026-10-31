@@ -92,6 +92,14 @@ Route::prefix('v1/dashboard/audit-logs')->middleware('auth:sanctum')->group(func
     });
 });
 
+// Authenticated Internal Dashboard: Incoming SmartChain Purchase Orders
+Route::prefix('v1/dashboard/purchase-orders')->middleware('auth:sanctum')->group(function () {
+    Route::middleware('role:super_admin,finance_manager,accountant,auditor')->group(function () {
+        Route::get('/', [\App\Http\Controllers\API\Dashboard\PurchaseOrderController::class, 'index']);
+        Route::get('/{reference}', [\App\Http\Controllers\API\Dashboard\PurchaseOrderController::class, 'show']);
+    });
+});
+
 // Master Data & Financial Setup Routes
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/chart-of-accounts', [\App\Http\Controllers\API\ChartOfAccountController::class, 'index']);

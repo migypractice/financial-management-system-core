@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  LayoutDashboard, CheckSquare, BookOpen, CreditCard, DollarSign,
+  LayoutDashboard, ShoppingBag, CheckSquare, BookOpen, CreditCard, DollarSign,
   Send, Inbox, PieChart, Landmark, BarChart2, Receipt, ShieldCheck,
   Bell, Mail, ChevronDown, Menu, LogOut, Settings, ChevronLeft, Moon, Sun, Clock, X, Sparkles,
   FileText, CheckCircle2, ArrowRight, RefreshCw, Shield
@@ -28,6 +28,7 @@ const coreModules: NavItem[] = [
   { path: '/dashboard',     label: 'Dashboard',                icon: LayoutDashboard },
   { path: '/gl',            label: 'General Ledger',            icon: BookOpen },
   { path: '/ap',            label: 'Accounts Payable',          icon: CreditCard },
+  { path: '/purchase-orders', label: 'Purchase Orders',          icon: ShoppingBag },
   { path: '/ar',            label: 'Accounts Receivable',       icon: DollarSign },
   { path: '/disbursements', label: 'Disbursement Mgmt',         icon: Send },
   { path: '/collections',   label: 'Collection Mgmt',           icon: Inbox },

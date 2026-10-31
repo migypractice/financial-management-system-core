@@ -16,6 +16,7 @@ import AuditLogPage from './pages/AuditLog/AuditLogPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import SecretProvisionPage from './pages/Auth/SecretProvisionPage';
 import IntegrationInboxPage from './pages/Inbox/IntegrationInboxPage';
+import PurchaseOrdersPage from './pages/PurchaseOrders/PurchaseOrdersPage';
 
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/Auth/LoginPage';
@@ -25,6 +26,7 @@ import { ShieldAlert } from 'lucide-react';
 type AppRoute = 
   | '/dashboard' 
   | '/inbox'
+  | '/purchase-orders'
   | '/approvals' 
   | '/gl' 
   | '/ap' 
@@ -170,6 +172,8 @@ export const App: React.FC = () => {
         return <ApprovalsPage />;
       case '/gl':
         return <GeneralLedgerPage />;
+      case '/purchase-orders':
+        return <PurchaseOrdersPage onNavigate={(path) => setActivePath(path as AppRoute)} />;
       case '/ap':
         return <AccountsPayablePage onNavigate={(path) => setActivePath(path as AppRoute)} />;
       case '/ar':

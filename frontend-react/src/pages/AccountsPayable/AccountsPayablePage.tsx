@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   FileText,
+  ShoppingBag,
   Plus,
   Search,
   Filter,
@@ -279,6 +280,16 @@ export const AccountsPayablePage: React.FC<AccountsPayablePageProps> = ({ onNavi
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-500' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('/purchase-orders')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold text-xs shadow-xs transition-all"
+              title="View Inbound Purchase Orders from SmartChain"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              Inbound POs
+            </button>
+          )}
           <button
             onClick={() => setIsBillModalOpen(true)}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-all"
